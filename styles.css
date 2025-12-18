@@ -26,9 +26,9 @@ button[disabled]{opacity:0.6;cursor:default}
 .muted{color:var(--muted);font-size:13px}
 .controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .controls .right{display:flex;gap:8px;align-items:center}
-#docs-table{width:100%;border-collapse:collapse ; margin-right: auto;}
+#docs-table{width:100%;border-collapse:collapse ; margin-right: auto; table-layout: auto;}
 #docs-table th, #docs-table td{padding:8px;border-bottom:1px solid #eef2f6;text-align:left}
-#docs-table th{background:#fbfdff;font-weight:600}
+#docs-table th{background:#fbfdff;font-weight:600; position: sticky; top: 0; z-index: 1;}
 .form-actions{display:flex;gap:8px}
 td.actions button{margin-right:6px;background:#2b6a2b}
 td.actions button.delete{background:#a63131}
@@ -92,18 +92,9 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 .note-save-btn{background:#2b6a2b;padding:4px 6px;margin-left:6px}
 .note-cancel-btn{background:#a63131;padding:4px 6px;margin-left:6px}
 
-/* Column widths for the documents table (Control, Title, Notes, Owner, Status, WINS, Created, Updated, Age, Actions) */
+/* Column widths for the documents table (Select, Control, Title, Notes, Owner, Status, WINS, Created, Updated, Age, Actions) */
 
-#docs-table th:nth-child(1), #docs-table td:nth-child(1){width:180px;max-width:180px} 
-#docs-table th:nth-child(2), #docs-table td:nth-child(2){width:220px;max-width:220px}
-#docs-table th:nth-child(3), #docs-table td:nth-child(3){width:200px;max-width:200px}
-#docs-table th:nth-child(4), #docs-table td:nth-child(4){width:120px;max-width:120px}
-#docs-table th:nth-child(5), #docs-table td:nth-child(5){width:120px;max-width:120px}
-#docs-table th:nth-child(6), #docs-table td:nth-child(6){width:140px;max-width:140px}
-#docs-table th:nth-child(7), #docs-table td:nth-child(7){width:160px;max-width:160px}
-#docs-table th:nth-child(8), #docs-table td:nth-child(8){width:260px;max-width:260px}
-#docs-table th:nth-child(9), #docs-table td:nth-child(9){width:80px;max-width:80px}
-#docs-table th:nth-child(10), #docs-table td:nth-child(10){width:120px;max-width:120px}
+/* Removed fixed widths for autofit */
 
 /* Ensure truncated cells wrap appropriately where needed */
 #docs-table td{overflow:hidden;text-overflow:ellipsis}
