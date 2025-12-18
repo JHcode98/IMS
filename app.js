@@ -554,19 +554,19 @@ docsTableBody.addEventListener('click', e => {
         const display = ms ? msToDatetimeLocal(ms).replace('T',' ') : '';
         const editingKey = docForm.dataset.editing || '';
         if(!editingKey) return;
-        // find the row for the editing document and update the Created cell (column index 6)
+        // find the row for the editing document and update the Created cell (column index 7)
         try{
           const editBtn = docsTableBody.querySelector(`button[data-edit="${editingKey}"]`);
           if(editBtn){
             const tr = editBtn.closest('tr');
-            if(tr && tr.children && tr.children[6]){
-              tr.children[6].textContent = display;
+            if(tr && tr.children && tr.children[7]){
+              tr.children[7].textContent = display;
               // update in-memory doc preview so age and sidebars reflect change before save
               const doc = docs.find(d => d.controlNumber === editingKey);
               if(doc){
                 if(ms) doc.createdAt = ms;
-                // update age cell as well (column index 8)
-                const ageCell = tr.children[8];
+                // update age cell as well (column index 9)
+                const ageCell = tr.children[9];
                 if(ageCell){
                   const ageDays = doc.createdAt ? Math.floor((Date.now() - Number(doc.createdAt)) / (1000 * 60 * 60 * 24)) : '';
                   let ageClass = '';
