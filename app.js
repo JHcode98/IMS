@@ -820,8 +820,8 @@ function importFromCSVText(text){
     const winsStatus = (row[mapIndex['winsStatus']] || 'Pending for Approve').trim();
     const createdAtRaw = row[mapIndex['createdAt']];
     const updatedAtRaw = row[mapIndex['updatedAt']];
-    const createdAt = createdAtRaw ? (parseDateFromCSV(createdAtRaw) || Date.now()) : Date.now();
-    const updatedAt = updatedAtRaw ? (parseDateFromCSV(updatedAtRaw) || Date.now()) : Date.now();
+    const createdAt = createdAtRaw ? parseDateFromCSV(createdAtRaw) : null;
+    const updatedAt = updatedAtRaw ? parseDateFromCSV(updatedAtRaw) : null;
     const doc = { controlNumber, title, notes, owner, status, winsStatus, createdAt, updatedAt };
     parsed.push(doc);
     if(docs.find(d => d.controlNumber === controlNumber)) duplicates.push(controlNumber);
@@ -839,13 +839,14 @@ function importFromCSVText(text){
     const idx = docs.findIndex(d => d.controlNumber === doc.controlNumber);
     if(idx >= 0){
       if(overwriteDuplicates){ 
-        doc.createdAt = docs[idx].createdAt; // preserve original createdAt
+        doc.createdAt = doc.createdAt || docs[idx].createdAt; // use from CSV if valid, else preserve
         doc.updatedAt = Date.now(); // set updatedAt to now
         docs[idx] = doc; 
         updated++; 
       }
       else { skipped++; }
     } else { 
+      doc.createdAt = doc.createdAt || Date.now(); // use from CSV if valid, else set to now
       doc.updatedAt = Date.now(); // ensure updatedAt is current time for new docs
       docs.unshift(doc); 
       added++; 
