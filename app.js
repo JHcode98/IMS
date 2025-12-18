@@ -741,6 +741,20 @@ function downloadTemplate(){
   URL.revokeObjectURL(url);
 }
 
+function parseDateFromCSV(s){
+  if(!s || typeof s !== 'string') return null;
+  // Format: yyyy-mm-dd hh:mm:ss
+  const parts = s.trim().split(' ');
+  if(parts.length !== 2) return null;
+  const datePart = parts[0].split('-');
+  const timePart = parts[1].split(':');
+  if(datePart.length !== 3 || timePart.length !== 3) return null;
+  const [yyyy, mm, dd] = datePart.map(Number);
+  const [hh, min, ss] = timePart.map(Number);
+  const d = new Date(yyyy, mm-1, dd, hh, min, ss);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+
 function parseCSV(text){
   // Simple CSV parser supporting quoted fields and newlines inside quotes
   const rows = [];
@@ -806,8 +820,8 @@ function importFromCSVText(text){
     const winsStatus = (row[mapIndex['winsStatus']] || 'Pending for Approve').trim();
     const createdAtRaw = row[mapIndex['createdAt']];
     const updatedAtRaw = row[mapIndex['updatedAt']];
-    const createdAt = createdAtRaw ? Number(createdAtRaw) : Date.now();
-    const updatedAt = updatedAtRaw ? Number(updatedAtRaw) : Date.now();
+    const createdAt = createdAtRaw ? (parseDateFromCSV(createdAtRaw) || Date.now()) : Date.now();
+    const updatedAt = updatedAtRaw ? (parseDateFromCSV(updatedAtRaw) || Date.now()) : Date.now();
     const doc = { controlNumber, title, notes, owner, status, winsStatus, createdAt, updatedAt };
     parsed.push(doc);
     if(docs.find(d => d.controlNumber === controlNumber)) duplicates.push(controlNumber);
