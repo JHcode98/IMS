@@ -824,9 +824,18 @@ function importFromCSVText(text){
   parsed.forEach(doc => {
     const idx = docs.findIndex(d => d.controlNumber === doc.controlNumber);
     if(idx >= 0){
-      if(overwriteDuplicates){ docs[idx] = doc; updated++; }
+      if(overwriteDuplicates){ 
+        doc.createdAt = docs[idx].createdAt; // preserve original createdAt
+        doc.updatedAt = Date.now(); // set updatedAt to now
+        docs[idx] = doc; 
+        updated++; 
+      }
       else { skipped++; }
-    } else { docs.unshift(doc); added++; }
+    } else { 
+      doc.updatedAt = Date.now(); // ensure updatedAt is current time for new docs
+      docs.unshift(doc); 
+      added++; 
+    }
   });
 
   saveDocs();
