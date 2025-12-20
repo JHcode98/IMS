@@ -46,6 +46,12 @@ let sidebarPageSize = 8;
 let byStatusPage = 1;
 let byWinsPage = 1;
 
+// Admin inbox state
+let adminInboxFilter = 'forwarded';
+let adminInboxQuery = '';
+let adminInboxPage = 1;
+let adminInboxPageSize = 8;
+
 // Inactivity logout (1 hour)
 const INACTIVITY_MS = 60 * 60 * 1000;
 let inactivityTimer = null;
@@ -149,8 +155,8 @@ function renderDocs(filter){
         <button data-edit="${escapeHtml(doc.controlNumber)}" title="Edit">✏️</button>
         ${!isAdmin && !doc.forwarded ? `<button data-forward="${escapeHtml(doc.controlNumber)}" class="forward" title="Forward to Admin">➡️</button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : '')}
         ${isAdmin && doc.forwarded ? `<button data-receive="${escapeHtml(doc.controlNumber)}" class="receive" title="Forwarded by ${escapeHtml(doc.forwardedBy || '')} at ${doc.forwardedAt ? new Date(Number(doc.forwardedAt)).toLocaleString() : ''}">✔️ Receive</button>` : ''}
-        ${isAdmin ? `<button data-delete="${escapeHtml(doc.controlNumber)}" class="delete" title="Delete">🗑️</button>` : ''}
-      </td>
+        <button data-delete="${escapeHtml(doc.controlNumber)}" class="delete" title="Delete">🗑️</button>
+      </td> 
     `;
     docsTableBody.appendChild(tr);
   });
@@ -333,6 +339,18 @@ function renderLeftSidebar(){
   // Approved by WINS
   const approvedByWinsDocs = docs.filter(d => d.winsStatus === 'Approved');
   renderList(byWins, approvedByWinsDocs, byWinsPage, byWinsPagination);
+
+  // render admin inbox if admin
+  try{
+    const inbox = document.getElementById('admin-inbox');
+    if(inbox){
+      const role = currentUserRole || localStorage.getItem(AUTH_ROLE_KEY) || null;
+      if(role === 'admin'){
+        inbox.classList.remove('hidden');
+        renderAdminInbox();
+      } else { inbox.classList.add('hidden'); }
+    }
+  }catch(e){}
 }
 
 function setAgeStatusFilter(status){
@@ -340,6 +358,71 @@ function setAgeStatusFilter(status){
   // mirror into the main status filter for consistent behavior
   if(status) setStatusFilter(status);
   else setStatusFilter(null);
+}
+
+// Render the Admin Inbox (visible to admins). Supports filters: forwarded, received, all
+function renderAdminInbox(){
+  const container = document.getElementById('admin-inbox-list');
+  const filterEl = document.getElementById('admin-inbox-filter');
+  const searchEl = document.getElementById('admin-inbox-search');
+  const pagination = document.getElementById('admin-inbox-pagination');
+  if(!container || !filterEl || !searchEl) return;
+  const filter = (filterEl.value || adminInboxFilter || 'forwarded');
+  adminInboxFilter = filter;
+  adminInboxQuery = (searchEl.value || '').trim().toLowerCase();
+
+  let list = docs.slice();
+  if(filter === 'forwarded'){
+    list = list.filter(d => d.forwarded);
+  } else if(filter === 'received'){
+    list = list.filter(d => d.status === 'Received');
+  } else if(filter === 'all'){
+    list = list.filter(d => d.forwarded || d.status === 'Received');
+  }
+  if(adminInboxQuery){
+    list = list.filter(d => ((d.controlNumber||'') + ' ' + (d.title||'') + ' ' + (d.owner||'')).toLowerCase().includes(adminInboxQuery));
+  }
+
+  // pagination
+  const totalPages = Math.max(1, Math.ceil(list.length / adminInboxPageSize));
+  adminInboxPage = Math.min(Math.max(1, adminInboxPage), totalPages);
+  const start = (adminInboxPage - 1) * adminInboxPageSize;
+  const slice = list.slice(start, start + adminInboxPageSize);
+
+  container.innerHTML = '';
+  if(slice.length === 0){ container.innerHTML = '<div class="muted">No items in inbox.</div>'; pagination && (pagination.innerHTML = ''); return; }
+
+  const ul = document.createElement('ul'); ul.className = 'approved-ul';
+  slice.forEach(d => {
+    const li = document.createElement('li');
+    const left = document.createElement('div'); left.style.flex = '1';
+    left.innerHTML = `<strong>${escapeHtml(d.controlNumber)}</strong> — ${escapeHtml(d.title)} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}</div>`;
+    const actions = document.createElement('div');
+    // view
+    const view = document.createElement('button'); view.type = 'button'; view.className = 'open-new-tab'; view.textContent = 'View'; view.title = 'Open details'; view.style.marginLeft = '6px';
+    view.addEventListener('click', () => { openDocModal(d.controlNumber); });
+    actions.appendChild(view);
+    if(d.forwarded){
+      const rec = document.createElement('button'); rec.type = 'button'; rec.className = 'receive'; rec.textContent = '✔️ Receive'; rec.setAttribute('data-receive', d.controlNumber); rec.style.marginLeft = '6px';
+      actions.appendChild(rec);
+    }
+    li.appendChild(left);
+    li.appendChild(actions);
+    li.style.display = 'flex'; li.style.alignItems = 'center'; li.style.justifyContent = 'space-between';
+    ul.appendChild(li);
+  });
+  container.appendChild(ul);
+
+  // pagination controls
+  if(pagination){
+    pagination.innerHTML = '';
+    const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Prev'; prev.disabled = adminInboxPage <= 1;
+    prev.addEventListener('click', () => { adminInboxPage = Math.max(1, adminInboxPage - 1); renderAdminInbox(); });
+    const info = document.createElement('span'); info.className = 'current-page'; info.textContent = 'Page ' + adminInboxPage + ' / ' + totalPages;
+    const next = document.createElement('button'); next.type = 'button'; next.textContent = 'Next'; next.disabled = adminInboxPage >= totalPages;
+    next.addEventListener('click', () => { adminInboxPage = Math.min(totalPages, adminInboxPage + 1); renderAdminInbox(); });
+    pagination.appendChild(prev); pagination.appendChild(info); pagination.appendChild(next);
+  }
 }
 
 const clearAgeFilterBtn = document.getElementById('clear-age-filter');
@@ -352,7 +435,7 @@ function renderTotalDocs(){
 }
 
 function computeStatusCounts(){
-  const counts = { 'Revision':0, 'Routing':0, 'Approved':0, 'Rejected':0 };
+  const counts = { 'Revision':0, 'Routing':0, 'Approved':0, 'Rejected':0, 'Received':0 };
   docs.forEach(d => {
     const s = d.status || 'Revision';
     if(!(s in counts)) counts[s] = 0;
@@ -371,7 +454,8 @@ function renderStatusChart(){
     { key: 'Revision', cls: 'status-revision' },
     { key: 'Routing', cls: 'status-routing' },
     { key: 'Approved', cls: 'status-approved' },
-    { key: 'Rejected', cls: 'status-rejected' }
+    { key: 'Rejected', cls: 'status-rejected' },
+    { key: 'Received', cls: 'status-received' }
   ];
   statuses.forEach(s => {
     const row = document.createElement('div');
@@ -431,12 +515,9 @@ function deleteDocInternal(controlNumber){
 }
 
 function deleteDoc(controlNumber){
-  // Enforce admin-only deletion via UI or programmatic attempts
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin users can delete documents.'); return; }
+  // Allow deletion by any authenticated role (user or admin)
   deleteDocInternal(controlNumber);
-}
+} 
 
 // Forward document to admin (user action)
 function forwardDoc(controlNumber){
@@ -463,10 +544,14 @@ function receiveDoc(controlNumber){
   doc.forwarded = false;
   doc.forwardedHandledAt = Date.now();
   try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
+  // mark as Received when admin handles it
+  doc.status = 'Received';
   doc.updatedAt = Date.now();
   saveDocs();
   renderDocs();
-}
+  // refresh admin inbox view as well
+  try{ renderAdminInbox(); }catch(e){}
+} 
 
 // Auth
 function signIn(username, password){
@@ -519,6 +604,10 @@ function adjustUIForRole(){
     roleBadge.textContent = isAdmin ? 'Admin' : (currentUserRole ? 'User' : '');
     roleBadge.style.display = currentUserRole ? '' : 'none';
   }
+
+  // Admin-only: show link to dedicated admin inbox page
+  const adminInboxPageBtn = document.getElementById('admin-inbox-page-btn');
+  if(adminInboxPageBtn) adminInboxPageBtn.style.display = isAdmin ? '' : 'none';
 
   // Re-render docs so per-row actions reflect role
   try{ renderDocs(searchInput.value.trim()); }catch(e){}
@@ -1004,6 +1093,28 @@ document.addEventListener('DOMContentLoaded', () => {
   modalCancel && modalCancel.addEventListener('click', closeModal);
   document.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') closeModal(); });
 
+  // Admin inbox controls
+  const adminFilter = document.getElementById('admin-inbox-filter');
+  const adminSearch = document.getElementById('admin-inbox-search');
+  const adminPagination = document.getElementById('admin-inbox-pagination');
+  if(adminFilter){ adminFilter.addEventListener('change', () => { adminInboxFilter = adminFilter.value; adminInboxPage = 1; renderAdminInbox(); }); }
+  if(adminSearch){ adminSearch.addEventListener('input', debounce(() => { adminInboxQuery = adminSearch.value.trim(); adminInboxPage = 1; renderAdminInbox(); }, 250)); }
+
+  // delegate clicks inside admin inbox (receive)
+  const adminList = document.getElementById('admin-inbox-list');
+  if(adminList){
+    adminList.addEventListener('click', (ev) => {
+      const rec = ev.target.closest('button[data-receive]');
+      if(rec){
+        const ctl = rec.getAttribute('data-receive');
+        if(confirm(`Mark document ${ctl} as received?`)){
+          receiveDoc(ctl);
+          renderAdminInbox();
+        }
+      }
+    });
+  }
+
   // Modal open helper
   window.openDocModal = function(control){
     const doc = docs.find(d => d.controlNumber === control);
@@ -1254,10 +1365,7 @@ function importFromCSVText(text){
 }
 
 importFileInput && importFileInput.addEventListener('change', e => {
-  // ensure only admin can import
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin may import CSV.'); importFileInput.value = ''; return; }
+  // Allow import for both user and admin
   const file = e.target.files && e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -1275,16 +1383,12 @@ importFileInput && importFileInput.addEventListener('change', e => {
 });
 
 exportCsvBtn && exportCsvBtn.addEventListener('click', () => {
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin may export CSV.'); return; }
+  // Allow CSV export for both user and admin
   exportToCSV();
 });
 
 downloadTemplateBtn && downloadTemplateBtn.addEventListener('click', () => {
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin may download the template.'); return; }
+  // Allow template download for both user and admin
   downloadTemplate();
 });
 
@@ -1298,10 +1402,6 @@ selectAll && selectAll.addEventListener('change', () => {
 });
 
 bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
-  // ensure only admin may perform bulk delete
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin can bulk delete.'); return; }
   const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
   if(selected.length === 0){
     alert('No documents selected.');
@@ -1314,17 +1414,13 @@ bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
 });
 
 bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
-  // only admin permitted to bulk-update
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Permission denied: only admin can perform bulk updates.'); return; }
   const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
   if(selected.length === 0){
     alert('No documents selected.');
     return;
   }
-  const newStatus = prompt('Enter new status for selected documents (Revision, Routing, Approved, Rejected):');
-  if(newStatus && ['Revision', 'Routing', 'Approved', 'Rejected'].includes(newStatus)){
+  const newStatus = prompt('Enter new status for selected documents (Revision, Routing, Approved, Rejected, Received):');
+  if(newStatus && ['Revision', 'Routing', 'Approved', 'Rejected', 'Received'].includes(newStatus)){
     selected.forEach(controlNumber => {
       const doc = docs.find(d => d.controlNumber === controlNumber);
       if(doc){
