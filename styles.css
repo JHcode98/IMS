@@ -50,9 +50,19 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 .approved-list{font-size:13px}
 .approved-list .muted{padding:6px;color:var(--muted)}
 .approved-ul{list-style:none;padding:0;margin:0}
-.approved-ul li{margin-bottom:6px}
-.approved-ul a{color:var(--accent);text-decoration:none;font-weight:600;display:block;padding:6px;border-radius:6px}
+.approved-ul li{margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.approved-ul a{color:var(--accent);text-decoration:none;font-weight:600;display:block;padding:6px;border-radius:6px;flex:1}
 .approved-ul a:hover{background:#f1f6ff}
+
+/* Sidebar toggle styles */
+.layout{display:flex;gap:16px;position:relative}
+.sidebar-toggle{position:absolute;left:260px;top:120px;transform:translateX(-50%);width:34px;height:40px;border-radius:6px;border:1px solid #e6eef8;background:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.sidebar-toggle[aria-expanded="false"]{left:8px;}
+.left-sidebar.collapsed{width:0;min-width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none}
+.left-sidebar{transition:width 200ms ease, opacity 200ms ease}
+
+/* When collapsed, make the sidebar-toggle sit at the edge */
+.sidebar-toggle{transition:left 200ms ease, transform 200ms ease}
 
 /* Sidebar search & pagination */
 .sidebar-controls input{width:100%}
