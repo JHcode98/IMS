@@ -15,6 +15,7 @@
 				<div id="clock" class="clock" aria-live="polite"></div>
 				<div id="user-info" class="hidden">
 					<span id="username-display"></span>
+					<span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span>
 					<button id="logout-btn">Logout</button>
 				</div>
 			</div>
@@ -48,6 +49,7 @@
 								<option value="12">12</option>
 							</select>
 						</div>
+
 						<h3>Approved by Status</h3>
 						<div id="approved-by-status" class="approved-list"></div>
 						<div id="by-status-pagination" class="sidebar-pagination" style="margin-bottom:10px"></div>
@@ -55,10 +57,8 @@
 						<h3>Approved by WINS</h3>
 						<div id="approved-by-wins" class="approved-list"></div>
 						<div id="by-wins-pagination" class="sidebar-pagination" style="margin-bottom:10px"></div>
-					</aside>
-					<!-- Sidebar toggle button -->
-					<button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="true" title="Hide sidebar">‹</button>
-					<div class="main-column">
+					</aside>						<!-- Sidebar toggle placed as sibling so it remains clickable when sidebar is collapsed -->
+						<button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="true" title="Hide sidebar">‹</button>					<div class="main-column">
 						<div class="controls">
 					<div class="left">
 						<button id="new-doc-btn">New Document</button>
