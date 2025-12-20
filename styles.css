@@ -104,6 +104,7 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 .status-routing .status-bar-inner{background:#f6b042}
 .status-approved .status-bar-inner{background:#2b8a2b}
 .status-rejected .status-bar-inner{background:#d9534f}
+.status-received .status-bar-inner{background:#6b6b6b}
 .status-row button{margin-left:6px;background:#fff;color:var(--accent);border:1px solid #e0e6f0;padding:4px 6px;border-radius:6px}
 .status-row.selected{outline:2px solid rgba(39,82,167,0.14);background:#f6f9ff}
 
@@ -146,6 +147,13 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 .forward{background:#fff;color:var(--accent);border:1px solid #e0e6f0;padding:4px 6px;border-radius:6px;margin-left:6px}
 .receive{background:#2b8a2b;color:#fff;padding:4px 6px;border-radius:6px;margin-left:6px;border:0}
 .forwarded-label{display:inline-block;padding:4px 8px;border-radius:6px;background:#fff3e8;color:#d08a1a;font-weight:700;margin-left:6px}
+
+/* Admin inbox */
+#admin-inbox{margin-bottom:12px}
+#admin-inbox-list .approved-ul li{padding:8px;border-bottom:1px solid #eef2f6}
+#admin-inbox-list .approved-ul li .muted{margin-top:4px;display:block}
+#admin-inbox-list .receive{background:#2b8a2b;color:#fff;border:0}
+#admin-inbox-list .open-new-tab{background:#fff;color:var(--accent);border:1px solid #e0e6f0;padding:4px 6px;border-radius:6px}
 
 /* Column widths for the documents table (Select, Control, Title, Notes, Owner, Status, WINS, Created, Updated, Age, Actions) */
 
