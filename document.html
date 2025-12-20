@@ -23,14 +23,20 @@
       <div id="not-found" class="muted hidden">Document not found.</div>
 
       <div id="doc-content" class="hidden">
-        <div class="doc-row"><div class="doc-label">Control #</div><div id="detail-control"></div></div>
-        <div class="doc-row"><div class="doc-label">Title</div><div id="detail-title"></div></div>
-        <div class="doc-row"><div class="doc-label">Owner</div><div id="detail-owner"></div></div>
-        <div class="doc-row"><div class="doc-label">Status</div><div id="detail-status"></div></div>
-        <div class="doc-row"><div class="doc-label">WINS Status</div><div id="detail-wins"></div></div>
-        <div class="doc-row"><div class="doc-label">Created</div><div id="detail-created"></div></div>
-        <div class="doc-row"><div class="doc-label">Updated</div><div id="detail-updated"></div></div>
-        <div class="doc-row"><div class="doc-label">Notes</div><div><pre id="detail-notes" class="notes"></pre></div></div>
+        <form id="doc-edit-form">
+          <div class="doc-row"><div class="doc-label">Control #</div><div><input id="edit-control" name="controlNumber" required /></div></div>
+          <div class="doc-row"><div class="doc-label">Title</div><div><input id="edit-title" name="title" required /></div></div>
+          <div class="doc-row"><div class="doc-label">Owner</div><div><input id="edit-owner" name="owner" /></div></div>
+          <div class="doc-row"><div class="doc-label">Status</div><div><select id="edit-status" name="status"><option>Revision</option><option>Routing</option><option>Approved</option><option>Rejected</option></select></div></div>
+          <div class="doc-row"><div class="doc-label">WINS Status</div><div><select id="edit-wins" name="winsStatus"><option>Approved</option><option>Pending for Approve</option><option>Rejected</option></select></div></div>
+          <div class="doc-row"><div class="doc-label">Created</div><div><input id="edit-created" name="createdAt" type="datetime-local" /></div></div>
+          <div class="doc-row"><div class="doc-label">Notes</div><div><textarea id="edit-notes" name="notes" rows="6"></textarea></div></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button type="submit">Save Changes</button>
+            <a href="index.html">Cancel</a>
+          </div>
+          <input type="hidden" id="original-control" />
+        </form>
       </div>
     </main>
 
@@ -49,6 +55,24 @@
         const d = new Date(Number(ms));
         return d.toLocaleString();
       }
+      function msToDatetimeLocal(ms){
+        if(!ms) return '';
+        const d = new Date(Number(ms));
+        const pad = n => String(n).padStart(2,'0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth()+1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const min = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      }
+      function datetimeLocalToMs(val){
+        if(!val) return null;
+        const d = new Date(val);
+        if(isNaN(d.getTime())) return null;
+        return d.getTime();
+      }
+
       document.addEventListener('DOMContentLoaded', ()=>{
         const ctl = queryParam('control');
         if(!ctl){ document.getElementById('not-found').classList.remove('hidden'); return; }
@@ -56,15 +80,55 @@
         try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ docs = []; }
         const doc = docs.find(d => d.controlNumber === ctl);
         if(!doc){ document.getElementById('not-found').classList.remove('hidden'); return; }
+
+        // populate editable form
         document.getElementById('doc-content').classList.remove('hidden');
-        document.getElementById('detail-control').textContent = doc.controlNumber || '';
-        document.getElementById('detail-title').textContent = doc.title || '';
-        document.getElementById('detail-owner').textContent = doc.owner || '';
-        document.getElementById('detail-status').textContent = doc.status || '';
-        document.getElementById('detail-wins').textContent = doc.winsStatus || '';
-        document.getElementById('detail-created').textContent = formatDate(doc.createdAt);
-        document.getElementById('detail-updated').textContent = formatDate(doc.updatedAt);
-        document.getElementById('detail-notes').textContent = doc.notes || '';
+        document.getElementById('edit-control').value = doc.controlNumber || '';
+        document.getElementById('original-control').value = doc.controlNumber || '';
+        document.getElementById('edit-title').value = doc.title || '';
+        document.getElementById('edit-owner').value = doc.owner || '';
+        document.getElementById('edit-status').value = doc.status || 'Revision';
+        document.getElementById('edit-wins').value = doc.winsStatus || 'Pending for Approve';
+        document.getElementById('edit-created').value = msToDatetimeLocal(doc.createdAt);
+        document.getElementById('edit-notes').value = doc.notes || '';
+
+        const form = document.getElementById('doc-edit-form');
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          const controlNumber = document.getElementById('edit-control').value.trim();
+          const original = document.getElementById('original-control').value || '';
+          const title = document.getElementById('edit-title').value.trim();
+          const owner = document.getElementById('edit-owner').value.trim();
+          const status = document.getElementById('edit-status').value;
+          const winsStatus = document.getElementById('edit-wins').value;
+          const notes = document.getElementById('edit-notes').value.trim();
+          const createdVal = document.getElementById('edit-created').value || '';
+          const createdMs = datetimeLocalToMs(createdVal);
+
+          if(!controlNumber || !title){ alert('Control number and title are required'); return; }
+          const ctrlRe = /^ECOM-\d{4}-\d{4}$/;
+          if(!ctrlRe.test(controlNumber)){ alert('Control Number must follow ECOM-YYYY-NNNN'); return; }
+
+          // ensure unique if changed
+          if(controlNumber !== original && docs.find(d => d.controlNumber === controlNumber)){
+            alert('A document with that control number already exists. Choose another.');
+            return;
+          }
+
+          const idx = docs.findIndex(d => d.controlNumber === original);
+          const createdAtFinal = createdMs || (idx >= 0 ? docs[idx].createdAt : Date.now());
+          const entry = { controlNumber, title, owner, status, winsStatus, notes, createdAt: createdAtFinal, updatedAt: Date.now() };
+
+          if(idx >= 0){
+            if(controlNumber !== original) { docs.splice(idx,1); docs.unshift(entry); }
+            else { docs[idx] = entry; }
+          } else { docs.unshift(entry); }
+
+          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(docs)); }catch(e){ alert('Failed to save: ' + e.message); return; }
+          alert('Saved');
+          // redirect back to dashboard (optional)
+          window.location.href = 'index.html';
+        });
       });
     </script>
   </body>
