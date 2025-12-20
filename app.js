@@ -147,6 +147,8 @@ function renderDocs(filter){
       <td><span class="age ${ageClass}">${ageDays !== '' ? escapeHtml(ageDays) : ''}</span></td>
       <td class="actions">
         <button data-edit="${escapeHtml(doc.controlNumber)}" title="Edit">✏️</button>
+        ${!isAdmin && !doc.forwarded ? `<button data-forward="${escapeHtml(doc.controlNumber)}" class="forward" title="Forward to Admin">➡️</button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : '')}
+        ${isAdmin && doc.forwarded ? `<button data-receive="${escapeHtml(doc.controlNumber)}" class="receive" title="Forwarded by ${escapeHtml(doc.forwardedBy || '')} at ${doc.forwardedAt ? new Date(Number(doc.forwardedAt)).toLocaleString() : ''}">✔️ Receive</button>` : ''}
         ${isAdmin ? `<button data-delete="${escapeHtml(doc.controlNumber)}" class="delete" title="Delete">🗑️</button>` : ''}
       </td>
     `;
@@ -305,7 +307,7 @@ function renderLeftSidebar(){
       a.textContent = (d.controlNumber || '') + ' — ' + (d.title || '');
       // button to open in new tab
       const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'open-new-tab'; nb.title = 'Open in new tab'; nb.textContent = '↗'; nb.style.marginLeft = '6px';
-      nb.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); window.open(a.href, '_blank'); });
+      nb.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); const sb = document.getElementById('left-sidebar'); if(sb && sb.classList.contains('collapsed')) return; window.open(a.href, '_blank'); });
       li.appendChild(a);
       li.appendChild(nb);
       ul.appendChild(li);
@@ -431,9 +433,39 @@ function deleteDocInternal(controlNumber){
 function deleteDoc(controlNumber){
   // Enforce admin-only deletion via UI or programmatic attempts
   let isAdmin = (currentUserRole === 'admin');
-  try{ isAdmin = isAdmin || (localStorage.getItem(AUTH_ROLE_KEY) === 'admin'); }catch(e){}
+  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
   if(!isAdmin){ alert('Permission denied: only admin users can delete documents.'); return; }
   deleteDocInternal(controlNumber);
+}
+
+// Forward document to admin (user action)
+function forwardDoc(controlNumber){
+  let isUser = (currentUserRole === 'user');
+  try{ if(!isUser && (localStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
+  if(!isUser){ alert('Only non-admin users can forward documents to admin.'); return; }
+  const doc = docs.find(d => d.controlNumber === controlNumber);
+  if(!doc){ alert('Document not found'); return; }
+  doc.forwarded = true;
+  doc.forwardedAt = Date.now();
+  try{ doc.forwardedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
+  doc.updatedAt = Date.now();
+  saveDocs();
+  renderDocs();
+}
+
+// Admin receives forwarded document (acknowledge)
+function receiveDoc(controlNumber){
+  let isAdmin = (currentUserRole === 'admin');
+  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
+  const doc = docs.find(d => d.controlNumber === controlNumber);
+  if(!doc){ alert('Document not found'); return; }
+  doc.forwarded = false;
+  doc.forwardedHandledAt = Date.now();
+  try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
+  doc.updatedAt = Date.now();
+  saveDocs();
+  renderDocs();
 }
 
 // Auth
@@ -673,6 +705,31 @@ docsTableBody.addEventListener('click', e => {
     return;
   }
 
+  const forwardBtn = e.target.closest('button[data-forward]');
+  if(forwardBtn){
+    const ctrl = forwardBtn.getAttribute('data-forward');
+    // only non-admin users may forward
+    let isUser = (currentUserRole === 'user');
+    try{ if(!isUser && (localStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
+    if(!isUser){ alert('Only non-admin users can forward documents to admin.'); return; }
+    if(confirm(`Forward document ${ctrl} to admin?`)){
+      forwardDoc(ctrl);
+    }
+    return;
+  }
+  const receiveBtn = e.target.closest('button[data-receive]');
+  if(receiveBtn){
+    const ctrl = receiveBtn.getAttribute('data-receive');
+    // only admin may receive
+    let isAdmin = (currentUserRole === 'admin');
+    try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+    if(!isAdmin){ alert('Only admin may receive forwarded documents.'); return; }
+    if(confirm(`Mark document ${ctrl} as received?`)){
+      receiveDoc(ctrl);
+    }
+    return;
+  }
+
   const del = e.target.closest('button[data-delete]');
   if(del){
     const ctrl = del.getAttribute('data-delete');
@@ -888,8 +945,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sb = document.getElementById('left-sidebar');
     if(collapsed && sb){
       sb.classList.add('collapsed');
+      sb.setAttribute('aria-hidden','true');
       sidebarToggle.setAttribute('aria-expanded','false');
       sidebarToggle.textContent = '›';
+      sidebarToggle.title = 'Show sidebar';
     }
 
     // Prevent missing hit area: ensure toggle sits outside normal flow and listens to clicks
@@ -898,8 +957,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const sb = document.getElementById('left-sidebar');
       if(!sb) return;
       const isCollapsed = sb.classList.toggle('collapsed');
+      sb.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
       sidebarToggle.setAttribute('aria-expanded', String(!isCollapsed));
       sidebarToggle.textContent = isCollapsed ? '›' : '‹';
+      sidebarToggle.title = isCollapsed ? 'Show sidebar' : 'Hide sidebar';
       // persist
       try{ localStorage.setItem('dms_sidebar_collapsed', isCollapsed ? '1' : '0'); }catch(e){}
       // re-render sidebar so pagination remains consistent
@@ -909,6 +970,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modal behavior: open from sidebar link (prevent navigation), and support open-in-new-tab button
   document.body.addEventListener('click', e => {
+    const sb = document.getElementById('left-sidebar');
+    if(sb && sb.classList.contains('collapsed')) return; // ignore sidebar clicks when hidden
     const a = e.target.closest('.approved-ul a');
     if(a){
       // allow modifier clicks to open in new tab/window
