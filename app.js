@@ -40,6 +40,29 @@ let sidebarPageSize = 8;
 let byStatusPage = 1;
 let byWinsPage = 1;
 
+// Inactivity logout (1 hour)
+const INACTIVITY_MS = 60 * 60 * 1000;
+let inactivityTimer = null;
+function resetInactivityTimer(){
+  try{ localStorage.setItem('dms_last_activity', String(Date.now())); }catch(e){}
+  if(inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    // Only sign out if dashboard is visible (i.e., user is logged in)
+    if(!dashboard.classList.contains('hidden')){
+      try{ alert('You have been logged out due to 1 hour of inactivity.'); }catch(e){}
+      signOut();
+    }
+  }, INACTIVITY_MS);
+}
+function startInactivityWatcher(){
+  resetInactivityTimer();
+  ['mousemove','keydown','click','touchstart','scroll'].forEach(ev => window.addEventListener(ev, resetInactivityTimer));
+}
+function stopInactivityWatcher(){
+  if(inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+  ['mousemove','keydown','click','touchstart','scroll'].forEach(ev => window.removeEventListener(ev, resetInactivityTimer));
+}
+
 function loadDocs(){
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
@@ -403,6 +426,7 @@ function showDashboard(userName){
   usernameDisplay.textContent = userName;
   loadDocs();
   renderDocs();
+  startInactivityWatcher();
 }
 
 function signOut(){
@@ -411,6 +435,7 @@ function signOut(){
   userInfo.classList.add('hidden');
   usernameDisplay.textContent = '';
   try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
+  stopInactivityWatcher();
 }
 
 // Events
@@ -762,6 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sidebar search & page size
   const sidebarSearch = document.getElementById('sidebar-search');
   const sidebarPageSizeEl = document.getElementById('sidebar-page-size');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
   if(sidebarSearch){
     sidebarSearch.addEventListener('input', debounce(() => {
       sidebarQuery = sidebarSearch.value.trim();
@@ -774,6 +800,28 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarPageSize = Number(sidebarPageSizeEl.value) || sidebarPageSize;
       byStatusPage = 1; byWinsPage = 1;
       renderLeftSidebar();
+    });
+  }
+
+  // Sidebar toggle behavior (hide/unhide)
+  if(sidebarToggle){
+    // restore previous state
+    const collapsed = localStorage.getItem('dms_sidebar_collapsed') === '1';
+    if(collapsed){
+      const sb = document.getElementById('left-sidebar');
+      if(sb) sb.classList.add('collapsed');
+      sidebarToggle.setAttribute('aria-expanded','false');
+      sidebarToggle.textContent = '›';
+    }
+
+    sidebarToggle.addEventListener('click', () => {
+      const sb = document.getElementById('left-sidebar');
+      if(!sb) return;
+      const isCollapsed = sb.classList.toggle('collapsed');
+      sidebarToggle.setAttribute('aria-expanded', String(!isCollapsed));
+      sidebarToggle.textContent = isCollapsed ? '›' : '‹';
+      // persist
+      try{ localStorage.setItem('dms_sidebar_collapsed', isCollapsed ? '1' : '0'); }catch(e){}
     });
   }
 
