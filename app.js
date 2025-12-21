@@ -78,12 +78,12 @@ function stopInactivityWatcher(){
 function loadDocs(){
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
-  // migrate legacy 'Received' status to 'Admin Status' with adminStatus marker
+  // migrate legacy 'Received' status: preserve as adminStatus and set a sane status value
   try{
     docs.forEach(d => {
       if(d && d.status === 'Received'){
-        d.status = 'Admin Status';
         if(!d.adminStatus) d.adminStatus = 'Received';
+        d.status = 'Routing';
       }
     });
   }catch(e){}
@@ -117,7 +117,7 @@ function renderDocs(filter){
   }
   if(list.length === 0){
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="11" class="muted">No documents found.</td>';
+    tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
     docsTableBody.appendChild(tr);
     return;
   }
@@ -148,7 +148,7 @@ function renderDocs(filter){
             <option ${doc.status === 'Routing' ? 'selected' : ''}>Routing</option>
           <option ${doc.status === 'Approved' ? 'selected' : ''}>Approved</option>
           <option ${doc.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-          ${isAdmin ? `<option ${doc.status === 'Admin Status' ? 'selected' : ''}>Admin Status</option>` : ''}
+
         </select>
       </td>
       <td>
@@ -161,11 +161,12 @@ function renderDocs(filter){
       <td>${escapeHtml(createdText)}</td>
       <td>${escapeHtml(updatedText)}</td>
       <td><span class="age ${ageClass}">${ageDays !== '' ? escapeHtml(ageDays) : ''}</span></td>
+      <td class="admin-status-cell">${doc.adminStatus ? (doc.adminStatus === 'Returned' ? `<span class="forwarded-label">${escapeHtml(doc.adminStatus)}</span>` : `<span class="admin-status-label">${escapeHtml(doc.adminStatus)}</span>`) : ''}</td>
       <td class="actions">
         <button data-edit="${escapeHtml(doc.controlNumber)}" title="Edit">✏️</button>
         ${!isAdmin && !doc.forwarded ? `<button data-forward="${escapeHtml(doc.controlNumber)}" class="forward" title="Forward to Admin">➡️</button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : '')}
         ${isAdmin && doc.forwarded ? `<button data-receive="${escapeHtml(doc.controlNumber)}" class="receive" title="Forwarded by ${escapeHtml(doc.forwardedBy || '')} at ${doc.forwardedAt ? new Date(Number(doc.forwardedAt)).toLocaleString() : ''}">✔️ Receive</button>` : ''}
-        ${isAdmin && doc.status === 'Admin Status' && (doc.adminStatus === 'Received' || !doc.adminStatus) ? `<button data-return="${escapeHtml(doc.controlNumber)}" class="return" title="Return to IC">↩️ Return</button>` : (isAdmin && doc.status === 'Admin Status' && doc.adminStatus === 'Returned' ? `<span class="forwarded-label">Returned</span>` : '')}
+        ${isAdmin && doc.adminStatus === 'Received' ? `<button data-return="${escapeHtml(doc.controlNumber)}" class="return" title="Return to IC">↩️ Return</button>` : (isAdmin && doc.adminStatus === 'Returned' ? `<span class="forwarded-label">Returned</span>` : '')}
         <button data-delete="${escapeHtml(doc.controlNumber)}" class="delete" title="Delete">🗑️</button>
       </td> 
     `;
@@ -174,7 +175,9 @@ function renderDocs(filter){
   renderTotalDocs();
   renderStatusChart();
   renderWinsChart();
-  renderAgeOverview();  renderLeftSidebar();}
+  renderAdminStatusOverview();
+  renderAgeOverview();
+  renderLeftSidebar();}
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
@@ -283,6 +286,29 @@ function renderAgeOverview(){
   });
 }
 
+function renderAdminStatusOverview(){
+  const container = document.getElementById('admin-status-overview');
+  if(!container) return;
+  container.innerHTML = '';
+  const counts = computeAdminStatusCounts();
+  const total = (counts.Received + counts.Returned) || 1;
+  const rows = [
+    { key: 'Received', cls: 'status-admin' },
+    { key: 'Returned', cls: 'status-rejected' }
+  ];
+  rows.forEach(r => {
+    const row = document.createElement('div'); row.className = 'status-row';
+    const label = document.createElement('div'); label.className = 'status-label'; label.textContent = r.key;
+    const count = document.createElement('div'); count.className = 'status-count'; count.textContent = counts[r.key] || 0;
+    const bar = document.createElement('div'); bar.className = 'status-bar ' + r.cls;
+    const inner = document.createElement('div'); inner.className = 'status-bar-inner';
+    inner.style.width = Math.round(((counts[r.key]||0)/total)*100) + '%';
+    bar.appendChild(inner);
+    row.appendChild(label); row.appendChild(count); row.appendChild(bar);
+    container.appendChild(row);
+  });
+}
+
 function renderLeftSidebar(){
   const byStatus = document.getElementById('approved-by-status');
   const byWins = document.getElementById('approved-by-wins');
@@ -343,13 +369,13 @@ function renderLeftSidebar(){
     }
   }
 
-  // Approved by Status
-  const approvedByStatusDocs = docs.filter(d => d.status === 'Approved');
-  renderList(byStatus, approvedByStatusDocs, byStatusPage, byStatusPagination);
+  // Routing by Status
+  const routingByStatusDocs = docs.filter(d => d.status === 'Routing');
+  renderList(byStatus, routingByStatusDocs, byStatusPage, byStatusPagination);
 
-  // Approved by WINS
-  const approvedByWinsDocs = docs.filter(d => d.winsStatus === 'Approved');
-  renderList(byWins, approvedByWinsDocs, byWinsPage, byWinsPagination);
+  // Revision by Status
+  const revisionByStatusDocs = docs.filter(d => d.status === 'Revision');
+  renderList(byWins, revisionByStatusDocs, byWinsPage, byWinsPagination);
 
 
 }
@@ -376,10 +402,9 @@ function renderAdminInbox(){
   if(filter === 'forwarded'){
     list = list.filter(d => d.forwarded);
   } else if(filter === 'received'){
-    // Admin Status items marked as Received
-    list = list.filter(d => d.status === 'Admin Status' && (d.adminStatus === 'Received' || !d.adminStatus));
+    list = list.filter(d => d.adminStatus === 'Received');
   } else if(filter === 'all'){
-    list = list.filter(d => d.forwarded || d.status === 'Admin Status');
+    list = list.filter(d => d.forwarded || d.adminStatus);
   }
   if(adminInboxQuery){
     list = list.filter(d => ((d.controlNumber||'') + ' ' + (d.title||'') + ' ' + (d.owner||'')).toLowerCase().includes(adminInboxQuery));
@@ -398,7 +423,15 @@ function renderAdminInbox(){
   slice.forEach(d => {
     const li = document.createElement('li');
     const left = document.createElement('div'); left.style.flex = '1';
-    left.innerHTML = `<strong>${escapeHtml(d.controlNumber)}</strong> — ${escapeHtml(d.title)} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}</div>`;
+    let adminInfo = '';
+    if(d.adminStatus){
+      if(d.adminStatus === 'Received'){
+        adminInfo = ' • Admin: Received' + (d.forwardedHandledBy ? ' by ' + escapeHtml(d.forwardedHandledBy) + ' at ' + (d.forwardedHandledAt ? new Date(Number(d.forwardedHandledAt)).toLocaleString() : '') : '');
+      } else if(d.adminStatus === 'Returned'){
+        adminInfo = ' • Admin: Returned' + (d.returnedBy ? ' by ' + escapeHtml(d.returnedBy) + ' at ' + (d.returnedAt ? new Date(Number(d.returnedAt)).toLocaleString() : '') : '');
+      }
+    }
+    left.innerHTML = `<strong>${escapeHtml(d.controlNumber)}</strong> — ${escapeHtml(d.title)} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminInfo}</div>`;
     const actions = document.createElement('div');
     // view
     const view = document.createElement('button'); view.type = 'button'; view.className = 'open-new-tab'; view.textContent = 'View'; view.title = 'Open details'; view.style.marginLeft = '6px';
@@ -407,10 +440,10 @@ function renderAdminInbox(){
     if(d.forwarded){
       const rec = document.createElement('button'); rec.type = 'button'; rec.className = 'receive'; rec.textContent = '✔️ Receive'; rec.setAttribute('data-receive', d.controlNumber); rec.style.marginLeft = '6px';
       actions.appendChild(rec);
-    } else if(d.status === 'Admin Status' && (d.adminStatus === 'Received' || !d.adminStatus)){
+    } else if(d.adminStatus === 'Received'){
       const ret = document.createElement('button'); ret.type = 'button'; ret.className = 'return'; ret.textContent = '↩️ Return to IC'; ret.setAttribute('data-return', d.controlNumber); ret.style.marginLeft = '6px';
       actions.appendChild(ret);
-    } else if(d.status === 'Admin Status' && d.adminStatus === 'Returned'){
+    } else if(d.adminStatus === 'Returned'){
       const lbl = document.createElement('span'); lbl.className = 'forwarded-label'; lbl.textContent = 'Returned'; lbl.style.marginLeft = '6px';
       actions.appendChild(lbl);
     }
@@ -436,6 +469,9 @@ function renderAdminInbox(){
 const clearAgeFilterBtn = document.getElementById('clear-age-filter');
 clearAgeFilterBtn && clearAgeFilterBtn.addEventListener('click', () => { setAgeStatusFilter(null); });
 
+const clearAdminStatusFilterBtn = document.getElementById('clear-admin-status-filter');
+clearAdminStatusFilterBtn && clearAdminStatusFilterBtn.addEventListener('click', () => { setStatusFilter(null); renderDocs(); });
+
 function renderTotalDocs(){
   const container = document.getElementById('total-docs');
   if(!container) return;
@@ -443,22 +479,20 @@ function renderTotalDocs(){
 }
 
 function computeStatusCounts(){
-  const counts = { 'Revision':0, 'Routing':0, 'Approved':0, 'Rejected':0, 'Admin Status':0 };
+  const counts = { 'Revision':0, 'Routing':0, 'Approved':0, 'Rejected':0 };
   docs.forEach(d => {
     const s = d.status || 'Revision';
     if(!(s in counts)) counts[s] = 0;
     counts[s]++;
   });
   return counts;
-}
+} 
 
 function computeAdminStatusCounts(){
   const res = { Received:0, Returned:0 };
   docs.forEach(d => {
-    if(d.status === 'Admin Status'){
-      if(d.adminStatus === 'Returned') res.Returned++;
-      else res.Received++;
-    }
+    if(d.adminStatus === 'Received') res.Received++;
+    else if(d.adminStatus === 'Returned') res.Returned++;
   });
   return res;
 } 
@@ -473,8 +507,7 @@ function renderStatusChart(){
     { key: 'Revision', cls: 'status-revision' },
     { key: 'Routing', cls: 'status-routing' },
     { key: 'Approved', cls: 'status-approved' },
-    { key: 'Rejected', cls: 'status-rejected' },
-    { key: 'Admin Status', cls: 'status-admin' }
+    { key: 'Rejected', cls: 'status-rejected' }
   ];
   statuses.forEach(s => {
     const row = document.createElement('div');
@@ -495,13 +528,6 @@ function renderStatusChart(){
     row.appendChild(count);
     row.appendChild(bar);
     row.appendChild(btn);
-    // show Received/Returned breakdown for Admin Status
-    if(s.key === 'Admin Status'){
-      const adminCounts = computeAdminStatusCounts();
-      const sub = document.createElement('div'); sub.className = 'muted'; sub.style.fontSize = '12px'; sub.style.marginLeft = '8px';
-      sub.textContent = `(${adminCounts.Received} received • ${adminCounts.Returned} returned)`;
-      row.appendChild(sub);
-    }
     container.appendChild(row);
   });
 }
@@ -570,8 +596,7 @@ function receiveDoc(controlNumber){
   doc.forwarded = false;
   doc.forwardedHandledAt = Date.now();
   try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
-  // mark as Admin Status (Received) when admin handles it
-  doc.status = 'Admin Status';
+  // mark adminStatus (Received) when admin handles it
   doc.adminStatus = 'Received';
   doc.updatedAt = Date.now();
   saveDocs();
@@ -857,7 +882,7 @@ docsTableBody.addEventListener('click', e => {
     let isAdmin = (currentUserRole === 'admin');
     try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
     if(!isAdmin){ alert('Only admin may receive forwarded documents.'); return; }
-    if(confirm(`Mark document ${ctrl} as received (Admin Status)?`)){
+    if(confirm(`Mark document ${ctrl} as received?`)){
       receiveDoc(ctrl);
     }
     return;
@@ -1162,7 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const rec = ev.target.closest('button[data-receive]');
       if(rec){
         const ctl = rec.getAttribute('data-receive');
-        if(confirm(`Mark document ${ctl} as received (Admin Status)?`)){
+        if(confirm(`Mark document ${ctl} as received?`)){
           receiveDoc(ctl);
           renderAdminInbox();
         }
@@ -1484,8 +1509,8 @@ bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
     alert('No documents selected.');
     return;
   }
-  const newStatus = prompt('Enter new status for selected documents (Revision, Routing, Approved, Rejected, Admin Status):');
-  if(newStatus && ['Revision', 'Routing', 'Approved', 'Rejected', 'Admin Status'].includes(newStatus)){
+  const newStatus = prompt('Enter new status for selected documents (Revision, Routing, Approved, Rejected):');
+  if(newStatus && ['Revision', 'Routing', 'Approved', 'Rejected'].includes(newStatus)){
     selected.forEach(controlNumber => {
       const doc = docs.find(d => d.controlNumber === controlNumber);
       if(doc){
