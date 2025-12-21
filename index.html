@@ -18,6 +18,8 @@
 					<span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span>
 					<button id="logout-btn">Logout</button>
 				</div>
+				<!-- Full documents page (all users) -->
+				<button id="documents-full-page-btn" style="display:inline-block;margin-left:8px" title="Open Full Documents View" onclick="window.location.href='documents_full.html'">Full Documents View</button>
 				<!-- Admin Inbox page link (visible only to admin via JS) -->
 				<button id="admin-inbox-page-btn" style="display:none;margin-left:8px" title="Open Admin Inbox Page" onclick="window.location.href='admin_inbox.html'">Admin Inbox Page</button>
 			</div>
@@ -98,7 +100,7 @@
 							<option>Routing</option>
 							<option>Approved</option>
 							<option>Rejected</option>
-							<option>Received</option>
+<option>Admin Status</option>
 						</select>
 
 						<label for="wins-status">WINS Status</label>
@@ -118,20 +120,7 @@
 					</form>
 				</div>
 
-				<!-- Admin Inbox (visible to admins only) -->
-				<div id="admin-inbox" class="card hidden">
-					<h3>Admin Inbox</h3>
-					<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-						<select id="admin-inbox-filter">
-							<option value="forwarded">Forwarded</option>
-							<option value="received">Received</option>
-							<option value="all">All</option>
-						</select>
-						<input id="admin-inbox-search" placeholder="Search inbox..." style="flex:1;padding:6px;border:1px solid #e6eef8;border-radius:6px" />
-					</div>
-					<div id="admin-inbox-list"></div>
-					<div id="admin-inbox-pagination" class="sidebar-pagination"></div>
-				</div>
+
 
 				<div id="results" class="card">
 					<h3>Documents</h3>
@@ -209,7 +198,7 @@
 							<option>Routing</option>
 							<option>Approved</option>
 							<option>Rejected</option>
-							<option>Received</option>
+							<option>Admin Status</option>
 						</select>
 						<label>WINS Status</label>
 						<select id="modal-wins" name="winsStatus">
