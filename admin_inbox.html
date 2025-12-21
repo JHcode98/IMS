@@ -27,8 +27,13 @@
             <div>
               <a href="index.html">← Back to Dashboard</a>
             </div>
-            <div>
+            <div style="display:flex;gap:8px;align-items:center">
               <button id="refresh-inbox" style="margin-left:8px">Refresh</button>
+              <button id="bulk-update">Update Selected</button>
+              <button id="bulk-delete">Delete Selected</button>
+              <input id="import-file" type="file" accept=".csv" />
+              <button id="download-template">Download Template</button>
+              <button id="export-csv">Export CSV</button>
             </div>
           </div>
 
@@ -38,6 +43,7 @@
               <select id="admin-inbox-filter">
                 <option value="forwarded">Forwarded</option>
                 <option value="received">Received</option>
+                <option value="returned">Returned</option>
                 <option value="all">All</option>
               </select>
               <input id="admin-inbox-search" placeholder="Search inbox..." style="flex:1;padding:6px;border:1px solid #e6eef8;border-radius:6px" />
