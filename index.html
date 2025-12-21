@@ -100,13 +100,12 @@
 							<option>Routing</option>
 							<option>Approved</option>
 							<option>Rejected</option>
+					</select>
 
-							<option>Rejected</option>
-						</select>
-
-						<label for="created-at">Created (modify)</label>
-						<input id="created-at" name="createdAt" type="datetime-local" />
-
+					<label for="wins-status">WINS Status</label>
+					<select id="wins-status" name="winsStatus">
+						<option>Approved</option>
+						<option>Pending for Approve</option>
 						<div class="form-actions">
 							<button type="submit">Save</button>
 							<button type="button" id="cancel-new">Cancel</button>
