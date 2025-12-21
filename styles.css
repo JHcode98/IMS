@@ -157,6 +157,12 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 #admin-inbox-list .receive{background:#2b8a2b;color:#fff;border:0}
 #admin-inbox-list .open-new-tab{background:#fff;color:var(--accent);border:1px solid #e0e6f0;padding:4px 6px;border-radius:6px}
 
+/* Admin status label */
+.admin-status-label{display:inline-block;padding:4px 8px;border-radius:6px;background:#eef4ff;color:var(--accent);font-weight:700;margin-left:6px}
+#admin-status-overview .status-row{margin-bottom:6px}
+.admin-status-cell{text-align:center;white-space:nowrap}
+.admin-status-label{display:inline-block;padding:4px 8px;border-radius:6px;background:#eef4ff;color:var(--accent);font-weight:700;margin-left:6px}
+
 /* Column widths for the documents table (Select, Control, Title, Notes, Owner, Status, WINS, Created, Updated, Age, Actions) */
 
 /* Removed fixed widths for autofit */
