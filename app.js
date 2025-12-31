@@ -18,7 +18,20 @@ const dashboard = document.getElementById('dashboard');
 const loginForm = document.getElementById('login-form');
 const usernameDisplay = document.getElementById('username-display');
 const logoutBtn = document.getElementById('logout-btn');
-const userInfo = document.getElementById('user-info');
+const navUser = document.getElementById('nav-user');
+const userBtn = document.getElementById('user-btn');
+const userMenu = document.getElementById('user-menu');
+const navToggle = document.getElementById('nav-toggle');
+const navbar = document.querySelector('.navbar');
+const NAV_OPEN_KEY = 'dms_nav_open_v1';
+
+// Announce short status messages for screen readers.
+function announceStatus(msg){
+  try{
+    const el = document.getElementById('sr-status');
+    if(el){ el.textContent = msg; /* keep briefly */ setTimeout(()=>{ try{ el.textContent = ''; }catch(e){} }, 1200); }
+  }catch(e){}
+}
 
 const newDocBtn = document.getElementById('new-doc-btn');
 const newDocFormWrap = document.getElementById('new-doc-form');
@@ -636,7 +649,7 @@ function showDashboard(userName){
   loginSection.classList.remove('centered');
   loginSection.classList.add('hidden');
   dashboard.classList.remove('hidden');
-  userInfo.classList.remove('hidden');
+  try{ if(navUser) navUser.style.display = ''; }catch(e){}
   // ensure navbar is visible on the dashboard
   try{ document.body.classList.remove('no-navbar'); }catch(e){}
   usernameDisplay.textContent = userName;
@@ -646,19 +659,21 @@ function showDashboard(userName){
   renderDocs();
   adjustUIForRole();
   startInactivityWatcher();
+  try{ announceStatus('Signed in'); }catch(e){}
 }
 
 function signOut(){
   loginSection.classList.remove('hidden');
   loginSection.classList.add('centered');
   dashboard.classList.add('hidden');
-  userInfo.classList.add('hidden');
+  try{ if(navUser) navUser.style.display = 'none'; }catch(e){}
   // hide navbar on the login screen
   try{ document.body.classList.add('no-navbar'); }catch(e){}
   usernameDisplay.textContent = '';
   currentUserRole = null;
   try{ localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_ROLE_KEY); }catch(e){}
   stopInactivityWatcher();
+  try{ announceStatus('Signed out'); }catch(e){}
 }
 
 // Adjust UI and permissions based on role (admin vs user)
@@ -708,6 +723,44 @@ loginForm.addEventListener('submit', e => {
 if(logoutBtn) logoutBtn.addEventListener('click', () => {
   signOut();
 });
+
+// Toggle user dropdown menu when clicking user button
+if(userBtn && navUser){
+  userBtn.addEventListener('click', (ev) => { ev.stopPropagation(); const open = navUser.classList.toggle('open'); userBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); });
+  // close when clicking outside
+  document.addEventListener('click', () => { if(navUser) navUser.classList.remove('open'); });
+  if(userMenu) userMenu.addEventListener('click', ev => ev.stopPropagation());
+  // ensure nav-user hidden by default when not signed in
+  try{ if(!usernameDisplay || !usernameDisplay.textContent) navUser.style.display = 'none'; }catch(e){}
+}
+
+// Restore persisted hamburger/nav state
+try{
+  const wasOpen = localStorage.getItem(NAV_OPEN_KEY);
+  if(wasOpen === '1' && navbar){ navbar.classList.add('open'); if(navToggle) navToggle.setAttribute('aria-expanded','true'); }
+}catch(e){}
+
+// Hamburger nav toggle for small screens
+if(navToggle && navbar){
+  navToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = navbar.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    try{ localStorage.setItem(NAV_OPEN_KEY, isOpen ? '1' : '0'); }catch(e){}
+  });
+  // close when clicking outside
+  document.addEventListener('click', () => { if(navbar && navbar.classList.contains('open')) navbar.classList.remove('open'); });
+}
+
+// keyboard accessibility: Esc closes open menus
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape' || e.key === 'Esc'){
+    try{ if(navUser) navUser.classList.remove('open'); }catch(ex){}
+    try{ if(navbar && navbar.classList.contains('open')){ navbar.classList.remove('open'); if(navToggle) navToggle.setAttribute('aria-expanded','false'); } }catch(ex){}
+  }
+});
+
+// Profile is a standalone page now (profile.html); inline modal handlers removed.
 
 newDocBtn.addEventListener('click', () => {
   // open new form and clear editing state
@@ -1168,10 +1221,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalOpenNew = document.getElementById('modal-open-new');
 
   function closeModal(){
-    if(modal){ modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true'); }
+    if(modal){
+      modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true');
+      // remove focus trap
+      try{ if(modal._trapHandler) modal.removeEventListener('keydown', modal._trapHandler); }catch(e){}
+      try{ if(modal._previouslyFocused) modal._previouslyFocused.focus(); }
+      catch(e){}
+      try{ announceStatus('Dialog closed'); }catch(e){}
+    }
   }
   function openModal(){
-    if(modal){ modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false'); }
+    if(modal){
+      modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false');
+      // focus trapping: remember previously focused element
+      try{ modal._previouslyFocused = document.activeElement; }catch(e){}
+      // gather focusable elements inside modal
+      try{
+        const focusableSelectors = 'a[href], area[href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        const nodes = modal.querySelectorAll(focusableSelectors);
+        modal._focusable = Array.prototype.slice.call(nodes);
+        if(modal._focusable.length) modal._focusable[0].focus();
+        // trap Tab within modal
+        modal._trapHandler = function(e){
+          if(e.key === 'Tab'){
+            const first = modal._focusable[0];
+            const last = modal._focusable[modal._focusable.length - 1];
+            if(e.shiftKey){ if(document.activeElement === first){ e.preventDefault(); last.focus(); } }
+            else { if(document.activeElement === last){ e.preventDefault(); first.focus(); } }
+          }
+        };
+        modal.addEventListener('keydown', modal._trapHandler);
+      }catch(e){}
+      try{ announceStatus('Dialog opened'); }catch(e){}
+    }
   }
 
   modalClose && modalClose.addEventListener('click', closeModal);
