@@ -322,6 +322,12 @@ body{padding-top:64px}
 .icon-btn svg{width:16px;height:16px;display:block}
 .icon-btn:hover{background:rgba(255,255,255,0.06);transform:translateY(-2px)}
 
+/* Small inline nav inside card (admin inbox) - make icon buttons readable on white background */
+.small-nav .icon-btn{ color: var(--accent); background: #fff; border: 1px solid #e6eef8; padding:6px; border-radius:6px; box-shadow: 0 1px 2px rgba(16,40,80,0.04); }
+.small-nav .icon-btn svg{ width:16px; height:16px }
+.small-nav .icon-btn:hover{ background:#f6f9ff; transform:translateY(-2px); }
+.small-nav .nav-badge{ margin-left:6px; font-size:12px; padding:2px 6px }
+
 /* small tools area for pages */
 .tools{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .tools input{padding:6px 8px;border-radius:6px;border:1px solid #e6eef8}
