@@ -637,6 +637,8 @@ function showDashboard(userName){
   loginSection.classList.add('hidden');
   dashboard.classList.remove('hidden');
   userInfo.classList.remove('hidden');
+  // ensure navbar is visible on the dashboard
+  try{ document.body.classList.remove('no-navbar'); }catch(e){}
   usernameDisplay.textContent = userName;
   // restore role from storage if available
   try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
@@ -651,6 +653,8 @@ function signOut(){
   loginSection.classList.add('centered');
   dashboard.classList.add('hidden');
   userInfo.classList.add('hidden');
+  // hide navbar on the login screen
+  try{ document.body.classList.add('no-navbar'); }catch(e){}
   usernameDisplay.textContent = '';
   currentUserRole = null;
   try{ localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_ROLE_KEY); }catch(e){}
