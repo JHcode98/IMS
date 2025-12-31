@@ -201,7 +201,7 @@ function renderDocs(filter){
     } else if(doc.adminStatus === 'Received'){
       adminStatusHtml = `<span class="admin-status-label">Received</span>`;
     } else if(doc.adminStatus === 'Returned'){
-      adminStatusHtml = `<button class="returned-icon" title="Returned" aria-label="Returned"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10v6a2 2 0 0 1-2 2H7"></path><polyline points="7 10 3 14 7 18"></polyline></svg></button>`;
+      adminStatusHtml = `<span class="returned-label">Returned</span>`;
     }
 
     tr.innerHTML = `
@@ -234,7 +234,7 @@ function renderDocs(filter){
         <button class="icon-btn" data-edit="${escapeHtml(doc.controlNumber)}" title="Edit" aria-label="Edit ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg></button>
         ${!isAdmin && !doc.forwarded ? `<button class="icon-btn forward" data-forward="${escapeHtml(doc.controlNumber)}" title="Forward to Admin" aria-label="Forward ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : '')}
         ${isAdmin && doc.forwarded ? `<button class="icon-btn receive" data-receive="${escapeHtml(doc.controlNumber)}" title="Receive forwarded document" aria-label="Receive ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>` : ''}
-        ${isAdmin && doc.adminStatus === 'Received' ? `<button class="icon-btn return" data-return="${escapeHtml(doc.controlNumber)}" title="Return to IC" aria-label="Return ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg></button>` : (isAdmin && doc.adminStatus === 'Returned' ? `<button class="returned-icon" title="Returned" aria-label="Returned"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10v6a2 2 0 0 1-2 2H7"></path><polyline points="7 10 3 14 7 18"></polyline></svg></button>` : '')}
+        ${isAdmin && doc.adminStatus === 'Received' ? `<button class="icon-btn return" data-return="${escapeHtml(doc.controlNumber)}" title="Return to IC" aria-label="Return ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg><span class="btn-label">Return</span></button>` : (isAdmin && doc.adminStatus === 'Returned' ? `<span class="returned-label">Returned</span>` : '')}
         <button class="icon-btn delete" data-delete="${escapeHtml(doc.controlNumber)}" title="Delete" aria-label="Delete ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
       </td> 
     `;
@@ -514,9 +514,8 @@ function renderAdminInbox(externalFilter){
       ret.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg>';
       actions.appendChild(ret);
     } else if(String(d.adminStatus).toLowerCase() === 'returned'){
-      const retIcon = document.createElement('button'); retIcon.type = 'button'; retIcon.className = 'returned-icon'; retIcon.title = 'Returned'; retIcon.setAttribute('aria-label','Returned ' + (d.controlNumber||d.control)); retIcon.style.marginLeft = '6px';
-      retIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10v6a2 2 0 0 1-2 2H7"></path><polyline points="7 10 3 14 7 18"></polyline></svg>';
-      actions.appendChild(retIcon);
+      const lbl = document.createElement('span'); lbl.className = 'returned-label'; lbl.textContent = 'Returned'; lbl.style.marginLeft = '6px';
+      actions.appendChild(lbl);
     }
     li.appendChild(left);
     li.appendChild(actions);
