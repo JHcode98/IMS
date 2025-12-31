@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Profile</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Profile</h1>
+      <div class="navbar" role="navigation">
+        <div class="nav-left">
+          <a href="index.html" class="nav-btn" title="Back to Dashboard">Dashboard</a>
+          <a href="documents_full.html" id="documents-full-page-btn" class="nav-btn" title="Open Full Documents View">Full Docs</a>
+        </div>
+        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+        <div class="nav-right">
+          <div id="clock" class="clock" aria-live="polite"></div>
+          <div id="sr-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+          <div class="nav-user" id="nav-user">
+            <span class="user-btn" id="user-btn"><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></span>
+            <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+              <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+              <button id="logout-btn" role="menuitem">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main style="max-width:760px;margin:22px auto;padding:16px">
+      <div class="card">
+        <h2>Your Profile</h2>
+        <p>User: <strong id="profile-username-val"> </strong></p>
+        <p>Role: <strong id="profile-role-val"> </strong></p>
+        <div style="margin-top:12px">
+          <button id="profile-signout">Sign Out</button>
+          <a href="index.html" style="margin-left:8px">Back</a>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <small>Local demo — data stored in your browser.</small>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+      // Populate profile values and wire sign out
+      document.addEventListener('DOMContentLoaded', () => {
+        try{ document.getElementById('profile-username-val').textContent = localStorage.getItem('dms_auth_v1') || '' }catch(e){}
+        try{ document.getElementById('profile-role-val').textContent = localStorage.getItem('dms_auth_role_v1') || '' }catch(e){}
+        const signout = document.getElementById('profile-signout');
+        if(signout){ signout.addEventListener('click', () => { try{ localStorage.removeItem('dms_auth_v1'); localStorage.removeItem('dms_auth_role_v1'); }catch(e){}; try{ window.signOut && window.signOut(); }catch(ex){}; window.location.href = 'index.html'; }); }
+      });
+    </script>
+  </body>
+</html>
