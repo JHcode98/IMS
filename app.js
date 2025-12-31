@@ -367,13 +367,14 @@ function renderAdminStatusOverview(){
   ];
   rows.forEach(r => {
     const row = document.createElement('div'); row.className = 'status-row';
-    const label = document.createElement('div'); label.className = 'status-label'; label.textContent = r.key;
-    const count = document.createElement('div'); count.className = 'status-count'; count.textContent = counts[r.key] || 0;
+    const label = document.createElement('div'); label.className = 'status-label';
+    const badgeHtml = `<span class="nav-badge status-badge" aria-hidden="true">${counts[r.key] || 0}</span>`;
+    label.innerHTML = r.key + ' ' + badgeHtml;
     const bar = document.createElement('div'); bar.className = 'status-bar ' + r.cls;
     const inner = document.createElement('div'); inner.className = 'status-bar-inner';
     inner.style.width = Math.round(((counts[r.key]||0)/total)*100) + '%';
     bar.appendChild(inner);
-    row.appendChild(label); row.appendChild(count); row.appendChild(bar);
+    row.appendChild(label); row.appendChild(bar);
     container.appendChild(row);
   });
 }
@@ -456,39 +457,35 @@ function setAgeStatusFilter(status){
   else setStatusFilter(null);
 }
 
-// Render the Admin Inbox (visible to admins). Supports filters: forwarded, received, all
-function renderAdminInbox(){
+// Render the Admin Inbox (visible to admins). Supports filters: forwarded, received, returned, all
+function renderAdminInbox(externalFilter){
   const container = document.getElementById('admin-inbox-list');
-  const filterEl = document.getElementById('admin-inbox-filter');
-  const searchEl = document.getElementById('admin-inbox-search');
-  const pagination = document.getElementById('admin-inbox-pagination');
-  if(!container || !filterEl || !searchEl) return;
-  const filter = (filterEl.value || adminInboxFilter || 'forwarded');
-  adminInboxFilter = filter;
-  adminInboxQuery = (searchEl.value || '').trim().toLowerCase();
-
-  let list = docs.slice();
-  if(filter === 'forwarded'){
-    list = list.filter(d => d.forwarded);
-  } else if(filter === 'received'){
-    list = list.filter(d => d.adminStatus === 'Received');
-  } else if(filter === 'returned'){
-    list = list.filter(d => d.adminStatus === 'Returned');
-  } else if(filter === 'all'){
-    list = list.filter(d => d.forwarded || d.adminStatus);
-  }
+  const paginationEl = document.getElementById('admin-inbox-pagination');
+  if(!container) return;
+  container.innerHTML = '';
+  // ensure docs loaded
+  loadDocs();
+  const f = externalFilter || adminInboxFilter || 'all';
+  const q = (document.getElementById('admin-inbox-search') && document.getElementById('admin-inbox-search').value) || adminInboxQuery || '';
+  adminInboxQuery = q;
+  let list = (docs || []).slice();
+  // Apply filter
+  if(f === 'forwarded') list = list.filter(d => d.forwarded === true);
+  else if(f === 'received') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'received');
+  else if(f === 'returned') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'returned');
+  else list = list.filter(d => d.forwarded || d.adminStatus);
+  // Apply search query
   if(adminInboxQuery){
-    list = list.filter(d => ((d.controlNumber||'') + ' ' + (d.title||'') + ' ' + (d.owner||'')).toLowerCase().includes(adminInboxQuery));
+    const ql = adminInboxQuery.toLowerCase();
+    list = list.filter(d => ((d.controlNumber||'') + ' ' + (d.title||'') + ' ' + (d.owner||'')).toLowerCase().includes(ql));
   }
-
-  // pagination
+  // Pagination
   const totalPages = Math.max(1, Math.ceil(list.length / adminInboxPageSize));
   adminInboxPage = Math.min(Math.max(1, adminInboxPage), totalPages);
   const start = (adminInboxPage - 1) * adminInboxPageSize;
   const slice = list.slice(start, start + adminInboxPageSize);
 
-  container.innerHTML = '';
-  if(slice.length === 0){ container.innerHTML = '<div class="muted">No items in inbox.</div>'; pagination && (pagination.innerHTML = ''); return; }
+  if(slice.length === 0){ container.innerHTML = '<div class="muted">No items in inbox.</div>'; if(paginationEl) paginationEl.innerHTML = ''; updateAdminInboxBadge(); return; }
 
   const ul = document.createElement('ul'); ul.className = 'approved-ul';
   slice.forEach(d => {
@@ -496,25 +493,27 @@ function renderAdminInbox(){
     const left = document.createElement('div'); left.style.flex = '1';
     let adminHtml = '';
     if(d.adminStatus){
-      if(d.adminStatus === 'Received'){
+      if(String(d.adminStatus).toLowerCase() === 'received'){
         adminHtml = ' <span class="admin-status-label">Admin: Received' + (d.forwardedHandledBy ? ' by ' + escapeHtml(d.forwardedHandledBy) + ' at ' + (d.forwardedHandledAt ? new Date(Number(d.forwardedHandledAt)).toLocaleString() : '') : '') + '</span>';
-      } else if(d.adminStatus === 'Returned'){
+      } else if(String(d.adminStatus).toLowerCase() === 'returned'){
         adminHtml = ' <span class="forwarded-label">Admin: Returned' + (d.returnedBy ? ' by ' + escapeHtml(d.returnedBy) + ' at ' + (d.returnedAt ? new Date(Number(d.returnedAt)).toLocaleString() : '') : '') + '</span>';
       }
     }
-    left.innerHTML = `<strong>${escapeHtml(d.controlNumber)}</strong> — ${escapeHtml(d.title)} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
+    left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
     const actions = document.createElement('div');
-    // view
-    const view = document.createElement('button'); view.type = 'button'; view.className = 'open-new-tab'; view.textContent = 'View'; view.title = 'Open details'; view.style.marginLeft = '6px';
-    view.addEventListener('click', () => { openDocModal(d.controlNumber); });
-    actions.appendChild(view);
+    // view (eye icon)
+    const view = document.createElement('button'); view.type = 'button'; view.className = 'icon-btn'; view.title = 'Open details'; view.setAttribute('aria-label','Open details for ' + (d.controlNumber||d.control));
+    view.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    view.style.marginLeft = '6px'; view.addEventListener('click', () => { openDocModal(d.controlNumber||d.control); }); actions.appendChild(view);
     if(d.forwarded){
-      const rec = document.createElement('button'); rec.type = 'button'; rec.className = 'receive'; rec.textContent = '✔️ Receive'; rec.setAttribute('data-receive', d.controlNumber); rec.style.marginLeft = '6px';
+      const rec = document.createElement('button'); rec.type = 'button'; rec.className = 'icon-btn receive'; rec.title = 'Receive forwarded document'; rec.setAttribute('data-receive', d.controlNumber||d.control); rec.setAttribute('aria-label','Receive ' + (d.controlNumber||d.control)); rec.style.marginLeft = '6px';
+      rec.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
       actions.appendChild(rec);
-    } else if(d.adminStatus === 'Received'){
-      const ret = document.createElement('button'); ret.type = 'button'; ret.className = 'return'; ret.textContent = '↩️ Return to IC'; ret.setAttribute('data-return', d.controlNumber); ret.style.marginLeft = '6px';
+    } else if(String(d.adminStatus).toLowerCase() === 'received'){
+      const ret = document.createElement('button'); ret.type = 'button'; ret.className = 'icon-btn return'; ret.title = 'Return to originator'; ret.setAttribute('data-return', d.controlNumber||d.control); ret.setAttribute('aria-label','Return ' + (d.controlNumber||d.control)); ret.style.marginLeft = '6px';
+      ret.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg>';
       actions.appendChild(ret);
-    } else if(d.adminStatus === 'Returned'){
+    } else if(String(d.adminStatus).toLowerCase() === 'returned'){
       const lbl = document.createElement('span'); lbl.className = 'forwarded-label'; lbl.textContent = 'Returned'; lbl.style.marginLeft = '6px';
       actions.appendChild(lbl);
     }
@@ -526,18 +525,27 @@ function renderAdminInbox(){
   container.appendChild(ul);
 
   // pagination controls
-  if(pagination){
-    pagination.innerHTML = '';
+  if(paginationEl){
+    paginationEl.innerHTML = '';
     const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Prev'; prev.disabled = adminInboxPage <= 1;
     prev.addEventListener('click', () => { adminInboxPage = Math.max(1, adminInboxPage - 1); renderAdminInbox(); });
     const info = document.createElement('span'); info.className = 'current-page'; info.textContent = 'Page ' + adminInboxPage + ' / ' + totalPages;
     const next = document.createElement('button'); next.type = 'button'; next.textContent = 'Next'; next.disabled = adminInboxPage >= totalPages;
     next.addEventListener('click', () => { adminInboxPage = Math.min(totalPages, adminInboxPage + 1); renderAdminInbox(); });
-    pagination.appendChild(prev); pagination.appendChild(info); pagination.appendChild(next);
+    paginationEl.appendChild(prev); paginationEl.appendChild(info); paginationEl.appendChild(next);
   }
   // update badges in navbar
   try{ updateAdminInboxBadge(); }catch(e){}
 }
+
+// Allow external callers (e.g., navbar menu) to change the admin inbox filter
+function setAdminInboxFilter(f){
+  adminInboxFilter = f;
+  try{ const fe = document.getElementById('admin-inbox-filter'); if(fe) fe.value = adminInboxFilter; }catch(e){}
+  adminInboxPage = 1;
+  renderAdminInbox(f);
+}
+window.setAdminInboxFilter = setAdminInboxFilter;
 
 const clearAgeFilterBtn = document.getElementById('clear-age-filter');
 clearAgeFilterBtn && clearAgeFilterBtn.addEventListener('click', () => { setAgeStatusFilter(null); });
