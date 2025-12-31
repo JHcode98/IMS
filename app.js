@@ -147,7 +147,17 @@ function renderDocs(filter){
       else ageClass = 'age-good';
     }
 
-    const isAdmin = (currentUserRole === 'admin');
+      const isAdmin = (currentUserRole === 'admin');
+
+    // admin status cell — reflect forwarded/received/returned
+    let adminStatusHtml = '';
+    if(doc.forwarded){
+      adminStatusHtml = `<span class="forwarded-label">Forwarded</span>`;
+    } else if(doc.adminStatus === 'Received'){
+      adminStatusHtml = `<span class="admin-status-label">Received</span>`;
+    } else if(doc.adminStatus === 'Returned'){
+      adminStatusHtml = `<span class="forwarded-label">Returned</span>`;
+    }
 
     tr.innerHTML = `
       <td><input type="checkbox" class="row-checkbox" value="${escapeHtml(doc.controlNumber)}"></td>
@@ -174,7 +184,7 @@ function renderDocs(filter){
       <td>${escapeHtml(createdText)}</td>
       <td>${escapeHtml(updatedText)}</td>
       <td><span class="age ${ageClass}">${ageDays !== '' ? escapeHtml(ageDays) : ''}</span></td>
-      <td class="admin-status-cell">${doc.adminStatus ? (doc.adminStatus === 'Returned' ? `<span class="forwarded-label">${escapeHtml(doc.adminStatus)}</span>` : `<span class="admin-status-label">${escapeHtml(doc.adminStatus)}</span>`) : ''}</td>
+      <td class="admin-status-cell">${adminStatusHtml}</td>
       <td class="actions">
         <button data-edit="${escapeHtml(doc.controlNumber)}" title="Edit">✏️</button>
         ${!isAdmin && !doc.forwarded ? `<button data-forward="${escapeHtml(doc.controlNumber)}" class="forward" title="Forward to Admin">➡️</button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : '')}
@@ -191,6 +201,7 @@ function renderDocs(filter){
   renderAdminStatusOverview();
   renderAgeOverview();
   renderLeftSidebar();}
+  try{ updateAdminInboxBadge(); }catch(e){}
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
@@ -479,6 +490,8 @@ function renderAdminInbox(){
     next.addEventListener('click', () => { adminInboxPage = Math.min(totalPages, adminInboxPage + 1); renderAdminInbox(); });
     pagination.appendChild(prev); pagination.appendChild(info); pagination.appendChild(next);
   }
+  // update badges in navbar
+  try{ updateAdminInboxBadge(); }catch(e){}
 }
 
 const clearAgeFilterBtn = document.getElementById('clear-age-filter');
@@ -511,6 +524,31 @@ function computeAdminStatusCounts(){
   });
   return res;
 } 
+
+function computeAdminInboxCounts(){
+  const res = { forwarded:0, received:0, returned:0 };
+  docs.forEach(d => {
+    if(d.forwarded) res.forwarded++;
+    if(d.adminStatus === 'Received') res.received++;
+    if(d.adminStatus === 'Returned') res.returned++;
+  });
+  return res;
+}
+
+function updateAdminInboxBadge(){
+  try{
+    const btn = document.getElementById('admin-inbox-page-btn');
+    if(!btn) return;
+    const counts = computeAdminInboxCounts();
+    // Build inner HTML preserving the anchor text
+    const label = 'Admin Inbox';
+    const parts = [label];
+    if(counts.forwarded) parts.push(`<span class="nav-badge badge-forwarded" aria-label="${counts.forwarded} forwarded">${counts.forwarded}</span>`);
+    if(counts.received) parts.push(`<span class="nav-badge badge-received" aria-label="${counts.received} received">${counts.received}</span>`);
+    if(counts.returned) parts.push(`<span class="nav-badge badge-returned" aria-label="${counts.returned} returned">${counts.returned}</span>`);
+    btn.innerHTML = parts.join(' ');
+  }catch(e){}
+}
 
 function renderStatusChart(){
   const container = document.getElementById('status-chart');
@@ -675,6 +713,9 @@ function signOut(){
   stopInactivityWatcher();
   try{ announceStatus('Signed out'); }catch(e){}
 }
+
+// Ensure admin inbox badge reflects current data at startup
+try{ updateAdminInboxBadge(); }catch(e){}
 
 // Adjust UI and permissions based on role (admin vs user)
 function adjustUIForRole(){
