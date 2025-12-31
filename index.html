@@ -15,6 +15,7 @@
 					<div class="nav-left">
 						<a href="documents_full.html" id="documents-full-page-btn" class="nav-btn" title="Open Full Documents View">Full Docs</a>
 						<a href="admin_inbox.html" id="admin-inbox-page-btn" class="nav-btn" style="display:none" title="Open Admin Inbox Page">Admin Inbox</a>
+						<a href="users-dashboard.html" id="users-dashboard-page-btn" class="nav-btn" style="display:none" title="Open Users Dashboard">Users</a>
 					</div>
 					<button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
 						<span class="bar"></span>
@@ -58,6 +59,33 @@
 					<input id="password" name="password" type="password" required />
 
 					<button type="submit">Sign In</button>
+				</form>
+
+				<!-- Registration (toggle) -->
+				<div style="margin-top:12px">
+					<button id="show-register" type="button">Create account</button>
+				</div>
+				<form id="register-form" class="hidden" style="margin-top:12px">
+					<h3>Create account</h3>
+					<label for="reg-username">Username</label>
+					<input id="reg-username" name="reg-username" />
+
+					<label for="reg-password">Password</label>
+					<input id="reg-password" name="reg-password" type="password" />
+
+					<label for="reg-password-confirm">Confirm Password</label>
+					<input id="reg-password-confirm" name="reg-password-confirm" type="password" />
+
+					<label for="reg-role">Role</label>
+					<select id="reg-role" name="reg-role">
+						<option value="user" selected>User</option>
+						<option value="admin">Admin</option>
+					</select>
+
+					<div class="form-actions" style="margin-top:8px">
+						<button id="register-btn" type="submit">Register</button>
+						<button id="cancel-register" type="button">Cancel</button>
+					</div>
 				</form>
 				<p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
 			</section>
