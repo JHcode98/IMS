@@ -18,9 +18,35 @@ let USE_SERVER = false;
 // probe server once
 (function(){
   try{
-    fetch(API_BASE.replace('/api','') + '/api/ping').then(r => { if(r.ok){ USE_SERVER = true; } }).catch(()=>{});
+    fetch(API_BASE.replace('/api','') + '/api/ping').then(r => {
+      if(r.ok){
+        USE_SERVER = true;
+        try{ announceStatus('Connected to sync server'); }catch(e){}
+        startServerSync();
+      }
+    }).catch(()=>{});
   }catch(e){}
 })();
+
+// Start periodic server sync to fetch latest docs from server so other devices see updates
+let _serverSyncInterval = null;
+function startServerSync(){
+  // fetch immediately
+  try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); } }).catch(()=>{}); }catch(e){}
+  // poll every 5s
+  try{ if(_serverSyncInterval) clearInterval(_serverSyncInterval); _serverSyncInterval = setInterval(()=>{
+    try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => {
+      if(j && Array.isArray(j.docs)){
+        const remote = j.docs;
+        try{
+          const localStr = JSON.stringify(docs || []);
+          const remoteStr = JSON.stringify(remote || []);
+          if(localStr !== remoteStr){ docs = remote; renderDocs(); updateAdminInboxBadge(); announceStatus('Updated from server'); }
+        }catch(e){ docs = remote; renderDocs(); updateAdminInboxBadge(); }
+      }
+    }).catch(()=>{}); }catch(e){}
+  }, 5000); }catch(e){}
+}
 
 // Elements
 const loginSection = document.getElementById('login-section');
