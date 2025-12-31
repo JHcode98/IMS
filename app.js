@@ -600,6 +600,13 @@ function updateAdminInboxBadge(){
     if(counts.received) parts.push(`<span class="nav-badge badge-received" aria-label="${counts.received} received">${counts.received}</span>`);
     if(counts.returned) parts.push(`<span class="nav-badge badge-returned" aria-label="${counts.returned} returned">${counts.returned}</span>`);
     btn.innerHTML = parts.join(' ');
+    // update inbox box badges/menu counts if present
+    try{
+      const bf = document.getElementById('badge-forwarded-box'); if(bf) bf.textContent = counts.forwarded || '';
+      const bfm = document.getElementById('badge-forwarded-menu'); if(bfm) bfm.textContent = counts.forwarded || 0;
+      const brm = document.getElementById('badge-received-menu'); if(brm) brm.textContent = counts.received || 0;
+      const brrm = document.getElementById('badge-returned-menu'); if(brrm) brrm.textContent = counts.returned || 0;
+    }catch(e){}
   }catch(e){}
 }
 
