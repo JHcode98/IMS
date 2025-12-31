@@ -4,6 +4,8 @@
   --accent:#2752a7;
   --muted:#666;
 }
+/* Screen-reader only helper (visually hidden but available to assistive tech) */
+.sr-only{position:absolute!important;border:0!important;padding:0!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(1px,1px,1px,1px)!important;white-space:nowrap!important;clip-path:inset(50%)!important}
 *{box-sizing:border-box}
 html,body{height:100%;
   box-sizing: border-box;
@@ -184,31 +186,55 @@ body.full-view main{min-height:calc(100vh - 220px)}
 
 /* Navbar container */
 .navbar {
-  overflow: hidden;
-  background-color: #333;
-  font-family: Arial;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background: linear-gradient(90deg,#1f3f72,#16325a);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:8px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
+
+/* Navbar groups */
+.navbar .nav-left, .navbar .nav-right{display:flex;align-items:center;gap:8px}
 
 /* Links inside the navbar */
 .navbar a {
-  float: left;
-  font-size: 16px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:15px;
   color: white;
-  text-align: center;
-  padding: 14px 16px;
   text-decoration: none;
+  padding:8px 12px;
 }
 
 /* Navbar button-style link */
 .navbar .nav-btn{
   background: linear-gradient(45deg, #4a90e2, #2752a7);
-  border-radius:6px;
-  margin-left:8px;
+  border-radius:8px;
   color:#fff;
+  box-shadow:0 4px 12px rgba(16,40,80,0.24);
 }
-.navbar .nav-btn:hover{
-  background: linear-gradient(45deg, #2752a7, #4a90e2);
+.navbar .nav-btn:hover{ transform: translateY(-2px); }
+
+/* User dropdown in navbar (right side) */
+.nav-user{
+  position:relative;
 }
+.nav-user .user-btn{
+  background:transparent;color:#fff;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:8px
+}
+.nav-user .user-btn:hover{background:rgba(255,255,255,0.06)}
+.nav-user .user-menu{position:absolute;right:0;top:calc(100% + 8px);background:#fff;color:#111;border-radius:8px;box-shadow:0 8px 24px rgba(18,30,60,0.16);min-width:180px;display:none;z-index:3000;padding:8px;transform-origin:top right;transform:translateY(-6px) scale(0.98);opacity:0}
+.nav-user .user-menu a, .nav-user .user-menu button{display:block;width:100%;text-align:left;padding:8px;border-radius:6px;background:transparent;border:0;color:#16325a}
+.nav-user .user-menu a:hover, .nav-user .user-menu button:hover{background:#f1f5fb}
+.nav-user.open .user-menu{display:block;transform:translateY(0) scale(1);opacity:1;transition:transform 180ms cubic-bezier(.2,.9,.2,1), opacity 160ms ease}
+
+/* Clock styling inside navbar */
+.navbar .clock{background:transparent;padding:6px 8px;border-radius:6px;color:rgba(255,255,255,0.9)}
 
 /* Hide navbar when body has no-navbar (used during login view) */
 body.no-navbar .navbar{display:none}
@@ -222,6 +248,9 @@ body.no-navbar .navbar{display:none}
   .navbar .nav-btn {flex:1 1 auto;margin-left:0}
   .header-right {display:flex;justify-content:flex-end;gap:8px;padding:0 8px 8px}
   .clock{order:1}
+  /* hide left links by default and show hamburger */
+  .nav-left{display:none}
+  .nav-toggle{display:inline-flex}
 }
 
 @media (max-width: 420px) {
@@ -229,6 +258,14 @@ body.no-navbar .navbar{display:none}
   .header-right {justify-content:center}
   header h1 {text-align:left}
 }
+
+/* Hamburger toggle (hidden on larger screens) */
+.nav-toggle{display:none;border:0;background:transparent;color:#fff;padding:8px;border-radius:6px;cursor:pointer;align-items:center;justify-content:center}
+.nav-toggle .bar{display:block;width:18px;height:2px;background:#fff;margin:3px 0;border-radius:2px;transition:all 160ms ease}
+.navbar.open .nav-left{display:flex}
+.navbar.open .nav-toggle .bar:nth-child(1){transform:translateY(5px) rotate(45deg)}
+.navbar.open .nav-toggle .bar:nth-child(2){opacity:0}
+.navbar.open .nav-toggle .bar:nth-child(3){transform:translateY(-5px) rotate(-45deg)}
 
 /* Ensure navbar stays hidden on login even on small screens */
 body.no-navbar .navbar{display:none !important}
