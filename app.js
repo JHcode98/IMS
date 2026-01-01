@@ -863,6 +863,39 @@ function receiveDoc(controlNumber){
   try{ renderAdminInbox(); }catch(e){}
 }  
 
+// Batch receive: mark multiple forwarded docs as received (respects current adminInboxFilter/search)
+function batchReceiveForwarded(){
+  let isAdmin = (currentUserRole === 'admin');
+  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
+  // collect matching forwarded docs according to current inbox view
+  try{
+    loadDocs();
+    const searchVal = (document.getElementById('admin-inbox-search') && document.getElementById('admin-inbox-search').value) || adminInboxQuery || '';
+    const f = adminInboxFilter || 'all';
+    let list = (docs || []).slice();
+    if(f === 'forwarded') list = list.filter(d => d.forwarded === true);
+    else if(f === 'received') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'received');
+    else if(f === 'returned') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'returned');
+    else list = list.filter(d => d.forwarded || d.adminStatus);
+    if(searchVal) list = list.filter(d => ((d.controlNumber||'') + ' ' + (d.title||'') + ' ' + (d.owner||'')).toLowerCase().includes(searchVal.toLowerCase()));
+    const toReceive = list.filter(d => d.forwarded === true).map(d => d.controlNumber);
+    if(toReceive.length === 0){ alert('No forwarded documents matched the current view.'); return; }
+    if(!confirm('Mark ' + toReceive.length + ' forwarded document(s) as received?')) return;
+    toReceive.forEach(ctrl => {
+      const doc = docs.find(d => d.controlNumber === ctrl);
+      if(doc){ doc.forwarded = false; doc.forwardedHandledAt = Date.now(); try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; } doc.adminStatus = 'Received'; doc.updatedAt = Date.now(); }
+    });
+    saveDocs();
+    try{ renderAdminInbox(); }catch(e){}
+    try{ renderDocs(); }catch(e){}
+    try{ updateAdminInboxBadge(); }catch(e){}
+    try{ if(USE_SERVER) fetch(API_BASE + '/docs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docs })}).catch(()=>{}); }catch(e){}
+    announceStatus('Marked ' + toReceive.length + ' forwarded document(s) as received');
+  }catch(e){ console.error(e); alert('Error receiving documents'); }
+}
+window.batchReceiveForwarded = batchReceiveForwarded;
+
 // Auth
 function signIn(username, password){
   // Try server auth first
