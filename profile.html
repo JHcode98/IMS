@@ -19,11 +19,11 @@
           <span class="bar"></span>
           <span class="bar"></span>
         </button>
-        <div class="nav-right">
+          <div class="nav-right">
           <div id="clock" class="clock" aria-live="polite"></div>
           <div id="sr-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
           <div class="nav-user" id="nav-user">
-            <span class="user-btn" id="user-btn"><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></span>
+            <span class="user-btn" id="user-btn"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></span>
             <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
               <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
               <button id="logout-btn" role="menuitem">Logout</button>
@@ -99,9 +99,12 @@
         }
         renderAvatar();
         if(avatarUpload){ avatarUpload.addEventListener('change', (ev) => {
-          const f = ev.target.files && ev.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(){ try{ localStorage.setItem('dms_profile_avatar', r.result); renderAvatar(); alert('Avatar updated'); }catch(e){ alert('Unable to save avatar'); } }; r.readAsDataURL(f);
+          const f = ev.target.files && ev.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(){ try{ const data = r.result; localStorage.setItem('dms_profile_avatar', data); renderAvatar(); // also persist to server if available
+                  try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = localStorage.getItem('dms_auth_token_v1') || ''; const uname = localStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: data }) }).catch(()=>{}); } } }catch(e){}
+                  alert('Avatar updated'); }catch(e){ alert('Unable to save avatar'); } }; r.readAsDataURL(f);
         }); }
-        if(removeAvatar){ removeAvatar.addEventListener('click', () => { try{ localStorage.removeItem('dms_profile_avatar'); renderAvatar(); }catch(e){} }); }
+        if(removeAvatar){ removeAvatar.addEventListener('click', () => { try{ localStorage.removeItem('dms_profile_avatar'); renderAvatar(); // remove from server as well if possible
+            try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = localStorage.getItem('dms_auth_token_v1') || ''; const uname = localStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: null }) }).catch(()=>{}); } } }catch(e){} }catch(e){} }); }
       });
     </script>
   </body>
