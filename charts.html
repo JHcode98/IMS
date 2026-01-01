@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Documents Charts</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      .charts-wrap{max-width:1100px;margin:18px auto;padding:12px;display:grid;grid-template-columns:1fr;gap:18px}
+      .chart-card{background:#fff;border-radius:8px;padding:12px;border:1px solid #eef6ff}
+      .chart-row{display:flex;gap:14px;flex-wrap:wrap}
+      canvas{max-width:100%;height:360px}
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Document Visualizations</h1>
+      <nav>
+        <a href="index.html">Dashboard</a> •
+        <a href="documents_full.html">Full Docs</a>
+      </nav>
+    </header>
+
+    <main class="charts-wrap">
+      <section class="chart-card">
+        <h2>By Title</h2>
+        <canvas id="chart-title"></canvas>
+      </section>
+
+      <section class="chart-card">
+        <h2>By Owner</h2>
+        <canvas id="chart-owner"></canvas>
+      </section>
+    </main>
+
+    <footer style="text-align:center;margin-top:18px">
+      <small>Generated from local data or API.</small>
+    </footer>
+
+    <script>
+      const STORAGE_KEY = 'dms_docs_v1';
+      async function loadDocs(){
+        let docs = [];
+        // try API first if API_BASE is available
+        try{
+          if(typeof API_BASE !== 'undefined'){
+            const res = await fetch((API_BASE||'') + '/api/docs');
+            if(res.ok){ docs = await res.json(); }
+          }
+        }catch(e){}
+        if(!docs || !docs.length){
+          try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+          catch(e){ docs = []; }
+        }
+        return docs || [];
+      }
+
+      function aggregateCount(items, keyFn){
+        const map = Object.create(null);
+        items.forEach(it => {
+          const k = (keyFn(it) || 'Unknown');
+          map[k] = (map[k] || 0) + 1;
+        });
+        return map;
+      }
+
+      function renderBar(ctx, labels, data, title, color){
+        return new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{ label: title, data: data, backgroundColor: color || 'rgba(54,162,235,0.6)' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+      }
+
+      (async ()=>{
+        const docs = await loadDocs();
+        const byTitle = aggregateCount(docs, d => d.title);
+        const byOwner = aggregateCount(docs, d => d.owner);
+
+        const titleLabels = Object.keys(byTitle).sort((a,b)=>byTitle[b]-byTitle[a]);
+        const titleData = titleLabels.map(l => byTitle[l]);
+
+        const ownerLabels = Object.keys(byOwner).sort((a,b)=>byOwner[b]-byOwner[a]);
+        const ownerData = ownerLabels.map(l => byOwner[l]);
+
+        const ctxTitle = document.getElementById('chart-title').getContext('2d');
+        const ctxOwner = document.getElementById('chart-owner').getContext('2d');
+
+        renderBar(ctxTitle, titleLabels, titleData, 'Documents by Title', 'rgba(75,192,192,0.6)');
+        renderBar(ctxOwner, ownerLabels, ownerData, 'Documents by Owner', 'rgba(153,102,255,0.6)');
+      })();
+    </script>
+  </body>
+</html>
