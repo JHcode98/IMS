@@ -229,8 +229,10 @@ function renderDocs(filter){
       adminStatusHtml = `<span class="forwarded-label">Forwarded</span>`;
     } else if(doc.adminStatus === 'Received'){
       adminStatusHtml = `<span class="admin-status-label">Received</span>`;
+      if(doc.returnReason){ adminStatusHtml += `<div class="muted" style="font-size:11px;margin-top:4px">Note: ${escapeHtml(doc.returnReason)}</div>`; }
     } else if(doc.adminStatus === 'Returned'){
       adminStatusHtml = `<span class="returned-label">Returned</span>`;
+      if(doc.returnReason){ adminStatusHtml += `<div class="muted" style="font-size:11px;margin-top:4px">Reason: ${escapeHtml(doc.returnReason)}</div>`; }
     }
 
     tr.innerHTML = `
@@ -524,8 +526,10 @@ function renderAdminInbox(externalFilter){
     if(d.adminStatus){
       if(String(d.adminStatus).toLowerCase() === 'received'){
         adminHtml = ' <span class="admin-status-label">Admin: Received' + (d.forwardedHandledBy ? ' by ' + escapeHtml(d.forwardedHandledBy) + ' at ' + (d.forwardedHandledAt ? new Date(Number(d.forwardedHandledAt)).toLocaleString() : '') : '') + '</span>';
+        if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Note: ' + escapeHtml(d.returnReason) + '</div>'; }
       } else if(String(d.adminStatus).toLowerCase() === 'returned'){
         adminHtml = ' <span class="forwarded-label">Admin: Returned' + (d.returnedBy ? ' by ' + escapeHtml(d.returnedBy) + ' at ' + (d.returnedAt ? new Date(Number(d.returnedAt)).toLocaleString() : '') : '') + '</span>';
+        if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Reason: ' + escapeHtml(d.returnReason) + '</div>'; }
       }
     }
     left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
@@ -949,6 +953,10 @@ function returnToIC(controlNumber){
   doc.adminStatus = 'Returned';
   doc.returnedAt = Date.now();
   try{ doc.returnedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.returnedBy = ''; }
+  // keep optional reason
+  if(arguments.length > 1 && typeof arguments[1] === 'string'){
+    doc.returnReason = arguments[1];
+  }
   doc.forwarded = false;
   doc.updatedAt = Date.now();
   saveDocs();
@@ -1383,8 +1391,11 @@ docsTableBody.addEventListener('click', e => {
     let isAdmin = (currentUserRole === 'admin');
     try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
     if(!isAdmin){ alert('Only admin may return documents to IC.'); return; }
-    if(confirm(`Return document ${ctrl} to IC (Returned)?`)){
-      returnToIC(ctrl);
+    // prompt for optional reason when returning
+    const reason = prompt(`Return document ${ctrl} to IC (optional reason):`);
+    if(reason === null) return; // cancelled
+    if(confirm(`Confirm returning ${ctrl}${reason ? ' with reason: "' + reason + '"' : ''}?`)){
+      returnToIC(ctrl, String(reason || ''));
       renderDocs();
     }
     return;
@@ -1780,8 +1791,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const ret = ev.target.closest('button[data-return]');
       if(ret){
         const ctl = ret.getAttribute('data-return');
-        if(confirm(`Return document ${ctl} to IC (Returned)?`)){
-          returnToIC(ctl);
+        // prompt for optional reason
+        const reason = prompt(`Return document ${ctl} to IC (optional reason):`);
+        if(reason === null) return;
+        if(confirm(`Confirm returning ${ctl}${reason ? ' with reason: "' + reason + '"' : ''}?`)){
+          returnToIC(ctl, String(reason || ''));
           renderAdminInbox();
         }
         return;
