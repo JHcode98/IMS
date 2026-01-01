@@ -63,6 +63,55 @@ async function ensureDB(){
     return res.json({ ok:true, username: user.username, role: user.role, token });
   });
 
+  // Forgot password: create a short-lived reset token (demo - returns token)
+  app.post('/api/auth/forgot', async (req,res) => {
+    const { username } = req.body || {};
+    if(!username) return res.status(400).json({ error: 'username required' });
+    const db = await readDB();
+    const user = (db.users||[]).find(u => u.username === username);
+    if(!user) return res.status(404).json({ error: 'user not found' });
+    db.resetTokens = db.resetTokens || {};
+    const token = uuidv4();
+    db.resetTokens[token] = { username: user.username, expires: Date.now() + (60 * 60 * 1000) };
+    await writeDB(db);
+    // In a real app we'd email the token. For this demo, return it so UI can use it.
+    return res.json({ ok:true, token });
+  });
+
+  // Reset password using token
+  app.post('/api/auth/reset', async (req,res) => {
+    const { token, password } = req.body || {};
+    if(!token || !password) return res.status(400).json({ error: 'token and password required' });
+    const db = await readDB();
+    db.resetTokens = db.resetTokens || {};
+    const entry = db.resetTokens[token];
+    if(!entry) return res.status(400).json({ error: 'invalid token' });
+    if(entry.expires < Date.now()){ delete db.resetTokens[token]; await writeDB(db); return res.status(400).json({ error: 'token expired' }); }
+    const user = (db.users||[]).find(u => u.username === entry.username);
+    if(!user) return res.status(404).json({ error: 'user not found' });
+    user.passwordHash = bcrypt.hashSync(password, 10);
+    delete db.resetTokens[token];
+    await writeDB(db);
+    return res.json({ ok:true });
+  });
+
+  // Change password for authenticated session
+  app.post('/api/auth/change', async (req,res) => {
+    const token = getSessionFromReq(req);
+    const { oldPassword, newPassword } = req.body || {};
+    if(!token || !oldPassword || !newPassword) return res.status(400).json({ error: 'auth + old/new password required' });
+    const db = await readDB();
+    const session = db.sessions && db.sessions[token];
+    if(!session) return res.status(403).json({ error: 'invalid session' });
+    const user = (db.users||[]).find(u => u.username === session.username);
+    if(!user) return res.status(404).json({ error: 'user not found' });
+    const ok = bcrypt.compareSync(oldPassword, user.passwordHash);
+    if(!ok) return res.status(401).json({ error: 'invalid old password' });
+    user.passwordHash = bcrypt.hashSync(newPassword, 10);
+    await writeDB(db);
+    return res.json({ ok:true });
+  });
+
   // Register new user (persisted)
   app.post('/api/auth/register', async (req,res) => {
     const { username, password, role } = req.body || {};
