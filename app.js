@@ -1533,6 +1533,56 @@ document.addEventListener('DOMContentLoaded', () => {
       renderLeftSidebar();
     }, 250));
   }
+
+  // Add "Forgot password" link to login form (if present)
+  try{
+    if(loginForm){
+      let fp = document.getElementById('forgot-password-link');
+      if(!fp){
+        fp = document.createElement('button');
+        fp.type = 'button';
+        fp.id = 'forgot-password-link';
+        fp.className = 'icon-btn';
+        fp.style.background = 'transparent';
+        fp.style.color = 'var(--accent)';
+        fp.style.marginTop = '6px';
+        fp.textContent = 'Forgot password?';
+        loginForm.appendChild(fp);
+      }
+      fp.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        const user = prompt('Enter username to reset password:');
+        if(!user) return;
+        // If server available, call server reset endpoint
+        if(USE_SERVER){
+          try{
+            const r = await fetch(API_BASE + '/auth/reset', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user }) });
+            if(!r.ok){ const j = await r.json().catch(()=>null); alert('Reset failed: ' + (j && j.error ? j.error : r.status)); return; }
+            const j = await r.json().catch(()=>null);
+            alert('Password for ' + user + ' has been reset. Temporary password: ' + (j && j.tempPassword ? j.tempPassword : 'password'));
+            return;
+          }catch(e){ console.error(e); alert('Reset failed'); }
+        }
+        // fallback: local users or demo users
+        try{
+          const stored = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '{}');
+          if(stored && stored[user]){
+            stored[user].password = 'password';
+            saveUsers(stored);
+            alert('Local user password reset. Temporary password: password');
+            return;
+          }
+        }catch(e){}
+        // check built-in demo users
+        if(USERS[user]){
+          // nothing to persist for built-in demo, just inform
+          alert('Demo account. Default temporary password: password');
+          return;
+        }
+        alert('User not found');
+      });
+    }
+  }catch(e){}
   if(sidebarPageSizeEl){
     sidebarPageSizeEl.addEventListener('change', () => {
       sidebarPageSize = Number(sidebarPageSizeEl.value) || sidebarPageSize;
