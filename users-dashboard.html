@@ -40,7 +40,7 @@
     <div id="not-authorized" class="muted" style="display:none">Not authorized. Redirecting to login...</div>
     <table id="users-table">
       <thead>
-        <tr><th>Avatar</th><th>Username</th><th>Role</th><th>Created</th><th>Actions</th></tr>
+        <tr><th>Avatar</th><th>Username</th><th>Role</th><th>Points</th><th>Created</th><th>Actions</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -52,6 +52,8 @@
   <script>
     const AUTH_ROLE_KEY = 'dms_auth_role_v1';
     const USERS_STORAGE_KEY = 'dms_users_v1';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
+    const DOCS_STORAGE_KEY = 'dms_docs_v1';
     // Only allow admin
     const role = localStorage.getItem(AUTH_ROLE_KEY) || null;
     if(role !== 'admin'){
@@ -66,7 +68,7 @@
     async function fetchUsersFromServer(){
       try{
         const token = localStorage.getItem('dms_auth_token_v1') || '';
-        const r = await fetch('/api/users', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+        const r = await fetch(API_BASE + '/users', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
         if(!r.ok) return null;
         const j = await r.json();
         return j.users || null;
@@ -78,19 +80,27 @@
       const q = (document.getElementById('user-search') && document.getElementById('user-search').value || '').toLowerCase();
       const serverUsers = await fetchUsersFromServer();
       if(serverUsers){
+        // fetch docs to compute points per user (Approved docs count)
+        let docs = [];
+        try{ const dr = await fetch(API_BASE + '/docs'); if(dr && dr.ok){ const jd = await dr.json(); docs = jd.docs || []; } }catch(e){}
+        const pointsMap = {};
+        docs.forEach(d => {
+          try{ if(d && d.owner && String(d.status).toLowerCase() === 'approved'){ pointsMap[d.owner] = (pointsMap[d.owner] || 0) + 1; } }catch(e){}
+        });
         serverUsers.forEach(u => {
           if(q && !(u.username||'').toLowerCase().includes(q)) return;
           const tr = document.createElement('tr');
           const avatarHtml = u.avatar ? `<div class="avatar small"><img src="${u.avatar}" alt="avatar"></div>` : `<div class="avatar small">${(u.username||'').split(' ').map(s=>s[0]||'').join('').slice(0,2).toUpperCase() || '?'}</div>`;
-          tr.innerHTML = `<td style="width:56px">${avatarHtml}</td><td>${u.username}</td><td><select data-user="${u.username}"><option value="user" ${u.role==='user'?'selected':''}>User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></td><td>${u.createdAt?new Date(Number(u.createdAt)).toLocaleString():''}</td><td><button class="icon-btn" title="Delete user" data-delete="${u.username}" aria-label="Delete ${u.username}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></td>`;
+          const pts = pointsMap[u.username] || 0;
+          tr.innerHTML = `<td style="width:56px">${avatarHtml}</td><td>${u.username}</td><td><select data-user="${u.username}"><option value="user" ${u.role==='user'?'selected':''}>User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></td><td>${pts}</td><td>${u.createdAt?new Date(Number(u.createdAt)).toLocaleString():''}</td><td><button class="icon-btn" title="Delete user" data-delete="${u.username}" aria-label="Delete ${u.username}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></td>`;
           t.appendChild(tr);
         });
-        // wire server-side actions
+        // wire server-side actions (use API_BASE)
         document.querySelectorAll('select[data-user]').forEach(s => s.addEventListener('change', async ev => {
           const uname = s.getAttribute('data-user');
           const token = localStorage.getItem('dms_auth_token_v1') || '';
           const newRole = s.value;
-          const r = await fetch('/api/users/' + encodeURIComponent(uname), { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ role: newRole }) });
+          const r = await fetch(API_BASE + '/users/' + encodeURIComponent(uname), { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ role: newRole }) });
           if(!r.ok){ const j=await r.json().catch(()=>{}); alert((j && j.error) || 'Unable to update role'); render(); return; }
           alert('Role updated');
         }));
@@ -98,7 +108,7 @@
           const uname = b.getAttribute('data-delete');
           if(!confirm('Delete user ' + uname + '?')) return;
           const token = localStorage.getItem('dms_auth_token_v1') || '';
-          const r = await fetch('/api/users/' + encodeURIComponent(uname), { method: 'DELETE', headers: { 'Authorization': token ? ('Bearer ' + token) : '' } });
+          const r = await fetch(API_BASE + '/users/' + encodeURIComponent(uname), { method: 'DELETE', headers: { 'Authorization': token ? ('Bearer ' + token) : '' } });
           if(!r.ok){ const j=await r.json().catch(()=>{}); alert((j && j.error) || 'Unable to delete'); return; }
           render();
         }));
@@ -113,8 +123,11 @@
         if(q && !k.toLowerCase().includes(q)) return;
         const u = users[k];
         const tr = document.createElement('tr');
+        // compute points for local fallback from local docs storage
+        let localPoints = 0;
+        try{ const localDocs = JSON.parse(localStorage.getItem(DOCS_STORAGE_KEY) || '[]'); localDocs.forEach(d => { if(d && d.owner === k && String(d.status).toLowerCase() === 'approved') localPoints++; }); }catch(e){}
         const avatarHtml = u && u.avatar ? `<div class="avatar small"><img src="${u.avatar}" alt="avatar"></div>` : `<div class="avatar small">${(k||'').split(' ').map(s=>s[0]||'').join('').slice(0,2).toUpperCase() || '?'}</div>`;
-        tr.innerHTML = `<td style="width:56px">${avatarHtml}</td><td>${k}</td><td><select data-user="${k}"><option value="user" ${u.role==='user'?'selected':''}>User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></td><td>${u.createdAt?new Date(Number(u.createdAt)).toLocaleString():''}</td><td><button class="icon-btn" title="Delete user" data-delete="${k}" aria-label="Delete ${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></td>`;
+        tr.innerHTML = `<td style="width:56px">${avatarHtml}</td><td>${k}</td><td><select data-user="${k}"><option value="user" ${u.role==='user'?'selected':''}>User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></td><td>${localPoints}</td><td>${u.createdAt?new Date(Number(u.createdAt)).toLocaleString():''}</td><td><button class="icon-btn" title="Delete user" data-delete="${k}" aria-label="Delete ${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></td>`;
         t.appendChild(tr);
       });
       // wire selects and deletes (local)
