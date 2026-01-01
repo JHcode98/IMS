@@ -100,6 +100,19 @@ async function ensureDB(){
     return res.json({ ok:true });
   });
 
+  // simple password reset endpoint for demo: resets to a temporary password 'password'
+  app.post('/api/auth/reset', async (req,res) => {
+    const { username } = req.body || {};
+    if(!username) return res.status(400).json({ error: 'username required' });
+    const db = await readDB();
+    const user = (db.users||[]).find(u => u.username === username);
+    if(!user) return res.status(404).json({ error: 'not found' });
+    const temp = 'password';
+    user.passwordHash = bcrypt.hashSync(temp, 10);
+    await writeDB(db);
+    return res.json({ ok:true, username: user.username, tempPassword: temp });
+  });
+
   // docs endpoints (simple)
   app.get('/api/docs', async (req,res) => {
     const db = await readDB();
