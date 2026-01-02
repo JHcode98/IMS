@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Documents — Full View</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="full-view no-navbar">
+    <header>
+      <h1>Documents — Full View</h1>
+      <div class="navbar" role="navigation">
+        <div class="nav-left">
+          <a href="documents_full.html" id="documents-full-page-btn" class="nav-btn" title="Open Full Documents View">Full Docs</a>
+          <a href="admin_inbox.html" id="admin-inbox-page-btn" class="nav-btn" style="display:none" title="Open Admin Inbox Page">Admin Inbox</a>
+          <a href="recycle_bin.html" id="recycle-bin-page-btn" class="nav-btn" style="display:none" title="Open Recycle Bin">Recycle Bin</a>
+        </div>
+        <div class="nav-center"><div class="nav-title">Document Monitoring System</div></div>
+        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+          <div class="nav-right">
+          <div id="clock" class="clock" aria-live="polite"></div>
+          <div id="sr-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+          <div class="nav-user" id="nav-user">
+            <a class="user-btn" id="user-btn" href="profile.html"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></a>
+            <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+              <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+              <button id="logout-btn" role="menuitem">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="login-section" class="card">
+        <h2>Login</h2>
+        <form id="login-form">
+          <label for="username">Username</label>
+          <input id="username" name="username" required />
+
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required />
+
+          <button type="submit">Sign In</button>
+          <div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
+        </form>
+        <p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
+      </section>
+
+      <section id="dashboard" class="hidden">
+        <div style="max-width:100%;margin:18px auto;padding:0 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <a href="index.html">← Back to Dashboard</a>
+            </div>
+            <div>
+              <button id="refresh-docs" style="margin-left:8px">Refresh</button>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="left">
+              <button id="new-doc-btn">New Document</button>
+            </div>
+            <div class="right">
+              <input id="search-control" placeholder="Search control number..." />
+              <button id="search-btn">Search</button>
+              <button id="clear-search">Clear</button>
+              <button id="bulk-update">Update Selected</button>
+              <button id="bulk-delete">Delete Selected</button>
+              <input id="import-file" type="file" accept=".csv" />
+              <button id="download-template">Download Template</button>
+              <button id="export-csv">Export CSV</button>
+            </div>
+          </div>
+
+          <div id="new-doc-form" class="card hidden">
+            <h3>Add Document</h3>
+            <form id="doc-form">
+              <label for="control-number">Control Number</label>
+              <input id="control-number" name="controlNumber" placeholder="ECOM-20XX-XXXX" pattern="ECOM-[0-9]{4}-[0-9]{4}" title="Format: ECOM-YYYY-NNNN (e.g. ECOM-2026-0001)" required />
+
+              <label for="doc-title">Title</label>
+              <input id="doc-title" name="title" required />
+
+              <label for="doc-notes">Notes</label>
+              <textarea id="doc-notes" name="notes" rows="3"></textarea>
+
+              <label for="doc-owner">Owner</label>
+              <input id="doc-owner" name="owner" />
+
+              <label for="doc-status">Status</label>
+              <select id="doc-status" name="status">
+                <option>Revision</option>
+                <option>Routing</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
+
+              <label for="wins-status">WINS Status</label>
+              <select id="wins-status" name="winsStatus">
+                <option>Approved</option>
+                <option>Pending for Approve</option>
+                <option>Rejected</option>
+              </select>
+
+              <label for="created-at">Created (modify)</label>
+              <input id="created-at" name="createdAt" type="datetime-local" />
+
+              <div class="form-actions">
+                <button type="submit">Save</button>
+                <button type="button" id="cancel-new">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="results" class="card full-results">
+            <h3>Documents</h3>
+            <table id="docs-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="select-all" title="Select All"></th>
+                  <th>Control #</th>
+                  <th>Title</th>
+                  <th>Notes</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>WINS Status</th>
+                  <th>Created Date</th>
+                  <th>Updated Date</th>
+                  <th>Age (days)</th>
+                  <th>Admin Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>Local demo — data stored in your browser. <br> j.hutalla.</small>
+    </footer>
+
+    <!-- Document modal (same as main app so open/save works) -->
+    <div id="doc-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="modal-overlay"></div>
+      <div class="modal-content card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close" id="modal-close" title="Close">×</button>
+        <h2 id="modal-title">Document Details</h2>
+        <form id="modal-doc-form">
+          <label>Control Number</label>
+          <input id="modal-control" name="controlNumber" required />
+          <label>Owner</label>
+          <input id="modal-owner" name="owner" />
+          <!-- Title / Status / WINS removed from modal; use inline edit form instead -->
+          <label>Created</label>
+          <input id="modal-created" name="createdAt" type="datetime-local" />
+          <label>Notes</label>
+          <textarea id="modal-notes" name="notes" rows="4"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button type="submit">Save</button>
+            <button type="button" id="modal-open-new" title="Open in new tab">Open in new tab ↗</button>
+            <button type="button" id="modal-cancel">Cancel</button>
+          </div>
+          <input type="hidden" id="modal-original-control" />
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('refresh-docs');
+        if(btn) btn.addEventListener('click', () => { try{ window.renderDocs && window.renderDocs(); }catch(e){} });
+      });
+    </script>
+
+    <script src="app.js"></script>
+    <!-- profile moved to profile.html -->
+  </body>
+</html>
