@@ -2,23 +2,58 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<!-- <meta name="viewport" content="width=device-width,initial-scale=1" />-->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Document Monitoring System</title>
 		<link rel="stylesheet" href="styles.css" />
 	</head>
-	<body>
+	<body class="no-navbar">
 		<header>
 			<h1>Document Monitoring System </h1>
+<<<<<<< HEAD
 
 			<div class="header-right">
 				
+=======
+
+				<div class="navbar" role="navigation">
+					<div class="nav-left">
+						<a href="documents_full.html" id="documents-full-page-btn" class="nav-btn" title="Open Full Documents View">Full Docs</a>
+						<a href="charts.html" id="charts-page-btn" class="nav-btn" title="Open Charts">Charts</a>
+						<a href="admin_inbox.html" id="admin-inbox-page-btn" class="nav-btn" style="display:none" title="Open Admin Inbox Page">Admin Inbox</a>
+						<a href="recycle_bin.html" id="recycle-bin-page-btn" class="nav-btn" style="display:none" title="Open Recycle Bin">Recycle Bin</a>
+						<a href="users-dashboard.html" id="users-dashboard-page-btn" class="nav-btn" style="display:none" title="Open Users Dashboard">Users</a>
+					</div>
+					<button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+						<span class="bar"></span>
+						<span class="bar"></span>
+						<span class="bar"></span>
+					</button>
+							<div class="nav-right">
+								<div id="clock" class="clock" aria-live="polite"></div>
+								<div id="sr-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+								<div class="nav-user" id="nav-user">
+									<a class="user-btn" id="user-btn" href="profile.html"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></a>
+									<div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+										<a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+										<button id="logout-btn" role="menuitem">Logout</button>
+									</div>
+								</div>
+							</div>
+				</div>
+
+
+			<div class="header-right">
+>>>>>>> cdb4ade061465bba164788bd9855003b53095e88
 				<div id="clock" class="clock" aria-live="polite"></div>
 				<div id="user-info" class="hidden">
 					<span id="username-display"></span>
+					<span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span>
 					<button id="logout-btn">Logout</button>
 				</div>
 			</div>
 		</header>
+
 
 		<main>
 			<!-- Login Form -->
@@ -32,14 +67,61 @@
 					<input id="password" name="password" type="password" required />
 
 					<button type="submit">Sign In</button>
+					<div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
+				</form>
+
+				<!-- Registration (toggle) -->
+				<div style="margin-top:12px">
+					<button id="show-register" type="button">Create account</button>
+				</div>
+				<form id="register-form" class="hidden" style="margin-top:12px">
+					<h3>Create account</h3>
+					<label for="reg-username">Username</label>
+					<input id="reg-username" name="reg-username" />
+
+					<label for="reg-password">Password</label>
+					<input id="reg-password" name="reg-password" type="password" />
+
+					<label for="reg-password-confirm">Confirm Password</label>
+					<input id="reg-password-confirm" name="reg-password-confirm" type="password" />
+
+					<label for="reg-role">Role</label>
+					<select id="reg-role" name="reg-role">
+						<option value="user" selected>User</option>
+						<option value="admin">Admin</option>
+					</select>
+
+					<div class="form-actions" style="margin-top:8px">
+						<button id="register-btn" type="submit">Register</button>
+						<button id="cancel-register" type="button">Cancel</button>
+					</div>
 				</form>
 				<p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
 			</section>
 
+
 			<!-- Dashboard -->
 			<section id="dashboard" class="hidden">
 				<div class="layout">
-					<div class="main-column">
+					<aside id="left-sidebar" class="card left-sidebar">
+						<div class="sidebar-controls" style="margin-bottom:10px;display:flex;gap:8px;align-items:center;">
+							<input id="sidebar-search" placeholder="Search sidebar..." style="flex:1;padding:6px;border:1px solid #e6eef8;border-radius:6px" />
+							<select id="sidebar-page-size" style="padding:6px;border:1px solid #e6eef8;border-radius:6px">
+								<option value="5">5</option>
+								<option value="8" selected>8</option>
+								<option value="12">12</option>
+							</select>
+						</div>
+
+						<h3>Routing by Status</h3>
+						<div id="approved-by-status" class="approved-list"></div>
+						<div id="by-status-pagination" class="sidebar-pagination" style="margin-bottom:10px"></div>
+						<hr />
+						<h3>Revision by Status</h3>
+						<div id="approved-by-wins" class="approved-list"></div>
+						<div id="by-wins-pagination" class="sidebar-pagination" style="margin-bottom:10px"></div>
+					</aside>						<!-- Sidebar toggle placed as sibling so it remains clickable when sidebar is collapsed -->
+						<button id="sidebar-toggle" class="sidebar-toggle" aria-expanded="true" title="Hide sidebar">‹</button>					<div class="main-column">
 						<div class="controls">
 					<div class="left">
 						<button id="new-doc-btn">New Document</button>
@@ -57,44 +139,59 @@
 				</div>
 
 				<div id="new-doc-form" class="card hidden">
-					<h3>Add Document</h3>
-					<form id="doc-form">
-						<label for="control-number">Control Number</label>
-						<input id="control-number" name="controlNumber" placeholder="ECOM-20XX-XXXX" pattern="ECOM-[0-9]{4}-[0-9]{4}" title="Format: ECOM-YYYY-NNNN (e.g. ECOM-2025-0001)" required />
+            <h3>Add Document</h3>
+            <form id="doc-form">
+              <label for="control-number">Control Number</label>
+			  <input id="control-number" name="controlNumber" placeholder="ECOM-20XX-XXXX" pattern="ECOM-[0-9]{4}-[0-9]{4}" title="Format: ECOM-YYYY-NNNN (e.g. ECOM-2026-0001)" required />
 
-						<label for="doc-title">Title</label>
-						<input id="doc-title" name="title" required />
+							<label for="doc-title">Title</label>
+							<select id="doc-title" name="title">
+								<option>Cycle Count</option>
+								<option>Retrieval Concerns</option>
+								<option>B1T1 Adj</option>
+								<option>LBR</option>
+								<option>Rejected Claims</option>
+								<option>SIS</option>
+								<option>Expired</option>
+								<option>Damaged</option>
+								<option>Manual Picked</option>
+								<option>Receiving Error</option>
+								<option>Other</option>
+							</select>
+							<input id="doc-title-other" name="titleOther" placeholder="Other title" style="display:none;margin-top:6px" />
 
-						<label for="doc-notes">Notes</label>
-						<textarea id="doc-notes" name="notes" rows="3"></textarea>
+              <label for="doc-notes">Notes</label>
+              <textarea id="doc-notes" name="notes" rows="3"></textarea>
 
-						<label for="doc-owner">Owner</label>
-						<input id="doc-owner" name="owner" />
+              <label for="doc-owner">Owner</label>
+              <input id="doc-owner" name="owner" />
 
-						<label for="doc-status">Status</label>
-						<select id="doc-status" name="status">
-							<option>Revision</option>
-							<option>Routing</option>
-							<option>Approved</option>
-							<option>Rejected</option>
-						</select>
+              <label for="doc-status">Status</label>
+              <select id="doc-status" name="status">
+                <option>Revision</option>
+                <option>Routing</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
 
-						<label for="wins-status">WINS Status</label>
-						<select id="wins-status" name="winsStatus">
-							<option>Approved</option>
-							<option>Pending for Approve</option>
-							<option>Rejected</option>
-						</select>
+              <label for="wins-status">WINS Status</label>
+              <select id="wins-status" name="winsStatus">
+                <option>Approved</option>
+                <option>Pending for Approve</option>
+                <option>Rejected</option>
+              </select>
 
-						<label for="created-at">Created (modify)</label>
-						<input id="created-at" name="createdAt" type="datetime-local" />
+              <label for="created-at">Created (modify)</label>
+              <input id="created-at" name="createdAt" type="datetime-local" />
 
-						<div class="form-actions">
-							<button type="submit">Save</button>
-							<button type="button" id="cancel-new">Cancel</button>
-						</div>
-					</form>
-				</div>
+              <div class="form-actions">
+                <button type="submit">Save</button>
+                <button type="button" id="cancel-new">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+
 
 				<div id="results" class="card">
 					<h3>Documents</h3>
@@ -110,15 +207,13 @@
 								<th>WINS Status</th>
 								<th>Created Date</th>
 								<th>Updated Date</th>
-								<th>Age (days)</th>
-								<th>Actions</th>
+								<th>Age (days)</th>							<th>Admin Status</th>								<th>Actions</th>
 							</tr>
 						</thead>
 						<tbody></tbody>
 					</table>
 				</div>
 			</div>
-
 			<aside id="sidebar" class="card">
 				<h3>Total Documents</h3>
 				<div id="total-docs" class="total-docs-display" aria-hidden="false"></div>
@@ -148,12 +243,13 @@
 			</section>
 		</main>
 
-		<footer>
-			<small>Local demo — data stored in your browser. <br>
-			j.hutalla.</small>
-		</footer>
 
-		<script src="app.js"></script>
+
+<!-- Document details modal (opens from left sidebar) -->
+		
+
+			<script src="app.js"></script>
+			<!-- profile moved to profile.html -->
 	</body>
 </html>
 
