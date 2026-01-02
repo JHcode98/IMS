@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin Inbox — Document Monitoring System</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+    <body>
+    <header>
+      <h1>Admin Inbox</h1>
+      <div class="navbar" role="navigation">
+        <div class="nav-left">
+            <a href="documents_full.html" id="documents-full-page-btn" class="nav-btn" title="Open Full Documents View">Full Docs</a>
+            <a href="admin_inbox.html" id="admin-inbox-page-btn" class="nav-btn" title="Open Admin Inbox Page">Admin Inbox</a>
+            <a href="recycle_bin.html" id="recycle-bin-page-btn" class="nav-btn" title="Open Recycle Bin">Recycle Bin</a>
+          </div>
+        <div class="nav-center"><div class="nav-title">Document Monitoring System</div></div>
+        <div class="nav-right">
+          <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </button>
+          <div class="nav-user" id="nav-user" style="margin-left:12px">
+            <a class="user-btn" id="user-btn" href="profile.html"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></a>
+            <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+              <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+              <button id="logout-btn" role="menuitem">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Admin-only inbox page. If not signed in as admin, users are redirected to the main dashboard. -->
+      <section id="dashboard" class="hidden">
+        <div style="max-width:980px;margin:18px auto;padding:0 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <a href="index.html">← Back to Dashboard</a>
+            </div>
+           
+          </div>
+
+          <div id="admin-inbox" class="card">
+            <h3>Admin Inbox</h3>
+            <div class="small-nav" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <div style="position:relative">
+                <button id="admin-filter-btn-box" class="icon-btn" title="Inbox filters" aria-haspopup="true" aria-expanded="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="10" y1="21" x2="10" y2="10"></line><line x1="16" y1="21" x2="16" y2="6"></line></svg>
+                  <span id="badge-forwarded-box" class="nav-badge badge-forwarded" aria-hidden="true" style="margin-left:8px;display:inline-block"></span>
+                </button>
+                <button id="receive-all-btn" class="icon-btn" title="Receive all forwarded" style="margin-left:8px" aria-label="Receive all forwarded">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span class="btn-label" style="margin-left:6px;display:none">Receive All</span>
+                </button>
+                <div id="admin-filter-menu-box" class="card" style="position:absolute;right:0;top:44px;display:none;padding:8px;min-width:180px;box-shadow:0 6px 18px rgba(0,0,0,0.12)">
+                  <button class="icon-btn admin-filter-item-box" data-filter="forwarded" title="Show forwarded">Forwarded <span id="badge-forwarded-menu" class="nav-badge badge-forwarded" style="margin-left:8px">0</span></button>
+                  <button class="icon-btn admin-filter-item-box" data-filter="received" title="Show received">Received <span id="badge-received-menu" class="nav-badge badge-received" style="margin-left:8px">0</span></button>
+                  <button class="icon-btn admin-filter-item-box" data-filter="returned" title="Show returned">Returned <span id="badge-returned-menu" class="nav-badge badge-returned" style="margin-left:8px">0</span></button>
+                  <button class="icon-btn admin-filter-item-box" data-filter="all" title="Show all">All</button>
+                </div>
+              </div>
+                <input id="admin-inbox-search" placeholder="Search inbox..." style="flex:1;padding:6px;border:1px solid #e6eef8;border-radius:6px" />
+            </div>
+            <div id="admin-inbox-list"></div>
+            <div id="admin-inbox-pagination" class="sidebar-pagination"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>Local demo — data stored in your browser. <br>
+      j.hutalla.</small>
+    </footer>
+
+    <!-- Reuse modal so View works here too -->
+    <div id="doc-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="modal-overlay"></div>
+      <div class="modal-content card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close" id="modal-close" title="Close"></button>
+        <h2 id="modal-title">Document Details</h2>
+        <form id="modal-doc-form">
+          <label>Control Number</label>
+          <input id="modal-control" name="controlNumber" required />
+          <label>Owner</label>
+          <input id="modal-owner" name="owner" />
+          <!-- Title / Status / WINS removed from modal; use inline edit form instead -->
+          <label>Created</label>
+          <input id="modal-created" name="createdAt" type="datetime-local" />
+          <label>Notes</label>
+          <textarea id="modal-notes" name="notes" rows="4"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button type="submit">Save</button>
+            <button type="button" id="modal-open-new" title="Open in new tab">Open in new tab ↗</button>
+            <button type="button" id="modal-cancel">Cancel</button>
+          </div>
+          <input type="hidden" id="modal-original-control" />
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Admin-only landing: redirect non-admins back to the main dashboard and show inbox for admins
+      document.addEventListener('DOMContentLoaded', () => {
+        const role = localStorage.getItem('dms_auth_role_v1');
+        const user = localStorage.getItem('dms_auth_v1');
+        if(role !== 'admin'){
+          alert('Admin access required. Redirecting to Dashboard.');
+          window.location.href = 'index.html';
+          return;
+        }
+        // show dashboard immediately
+        const dash = document.getElementById('dashboard'); if(dash) dash.classList.remove('hidden');
+        const ui = document.getElementById('user-info'); if(ui) ui.classList.remove('hidden');
+        const uname = document.getElementById('username-display'); if(uname) uname.textContent = user || '';
+        // wire refresh
+        const btn = document.getElementById('refresh-inbox');
+        if(btn) btn.addEventListener('click', () => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} });
+        // render inbox once app is ready
+        setTimeout(() => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} }, 100);
+        // activate search input
+        const searchEl = document.getElementById('admin-inbox-search');
+        if(searchEl){ searchEl.addEventListener('input', (ev) => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} }); }
+        // wire filter menu (box version)
+        const filterBtnBox = document.getElementById('admin-filter-btn-box');
+        const menuBox = document.getElementById('admin-filter-menu-box');
+        if(filterBtnBox && menuBox){
+          filterBtnBox.addEventListener('click', (e) => { e.stopPropagation(); const open = menuBox.style.display !== 'block'; menuBox.style.display = open ? 'block' : 'none'; filterBtnBox.setAttribute('aria-expanded', open ? 'true' : 'false'); });
+          document.addEventListener('click', () => { menuBox.style.display = 'none'; filterBtnBox.setAttribute('aria-expanded','false'); });
+          menuBox.querySelectorAll('.admin-filter-item-box').forEach(b => b.addEventListener('click', (ev) => {
+            const f = b.getAttribute('data-filter');
+            try{ if(window.setAdminInboxFilter) window.setAdminInboxFilter(f); else { localStorage.setItem('dms_admin_inbox_filter', f); } }catch(e){}
+            menuBox.style.display = 'none'; filterBtnBox.setAttribute('aria-expanded','false');
+          }));
+          // wire receive-all button to batch function (if present)
+          const rbtn = document.getElementById('receive-all-btn');
+          if(rbtn){ rbtn.addEventListener('click', (ev) => { ev.preventDefault(); try{ if(window.batchReceiveForwarded) window.batchReceiveForwarded(); else alert('Batch receive not available'); }catch(e){ console.error(e); alert('Batch receive failed'); } }); }
+        }
+      });
+    </script>
+
+    <script src="app.js"></script>
+    <!-- Profile modal -->
+    <!-- profile moved to profile.html -->
+  </body>
+</html>
