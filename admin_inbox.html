@@ -127,6 +127,21 @@
         } catch(e) { console.error('Badge update error', e); }
       }
 
+      function updateAttentionIcons() {
+        setTimeout(() => {
+          const list = document.getElementById('admin-inbox-list');
+          if(!list) return;
+          const elements = list.querySelectorAll('*');
+          elements.forEach(el => {
+            if(el.children.length === 0 && (el.textContent.trim() === 'Need User Attention' || el.textContent.trim() === 'Need Intervention')) {
+              if(!el.querySelector('.attn-icon')) {
+                 el.innerHTML = `<svg class="attn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706;margin-right:4px;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>` + el.textContent;
+              }
+            }
+          });
+        }, 50);
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         const role = localStorage.getItem('dms_auth_role_v1');
         const user = localStorage.getItem('dms_auth_v1');
@@ -141,12 +156,12 @@
         const uname = document.getElementById('username-display'); if(uname) uname.textContent = user || '';
         // wire refresh
         const btn = document.getElementById('refresh-inbox');
-        if(btn) btn.addEventListener('click', () => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} });
+        if(btn) btn.addEventListener('click', () => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); updateAttentionIcons(); }catch(e){} });
         // render inbox once app is ready
-        setTimeout(() => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} }, 100);
+        setTimeout(() => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); updateAttentionIcons(); }catch(e){} }, 100);
         // activate search input
         const searchEl = document.getElementById('admin-inbox-search');
-        if(searchEl){ searchEl.addEventListener('input', (ev) => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} }); }
+        if(searchEl){ searchEl.addEventListener('input', (ev) => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); updateAttentionIcons(); }catch(e){} }); }
         // wire filter menu (box version)
         const filterBtnBox = document.getElementById('admin-filter-btn-box');
         const menuBox = document.getElementById('admin-filter-menu-box');
@@ -156,6 +171,7 @@
           menuBox.querySelectorAll('.admin-filter-item-box').forEach(b => b.addEventListener('click', (ev) => {
             const f = b.getAttribute('data-filter');
             try{ if(window.setAdminInboxFilter) window.setAdminInboxFilter(f); else { localStorage.setItem('dms_admin_inbox_filter', f); } }catch(e){}
+            updateAttentionIcons();
             menuBox.style.display = 'none'; filterBtnBox.setAttribute('aria-expanded','false');
           }));
           // wire receive-all button to batch function (if present)
