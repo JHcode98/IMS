@@ -13,6 +13,7 @@ const USERS = {
 const AUTH_KEY = 'dms_auth_v1';
 const AUTH_ROLE_KEY = 'dms_auth_role_v1';
 const AUTH_TOKEN_KEY = 'dms_auth_token_v1';
+const DARK_MODE_KEY = 'dms_dark_mode_v1';
 let currentUserRole = null;
 // Optional server API for shared DB
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
@@ -108,6 +109,7 @@ const cancelNew = document.getElementById('cancel-new');
 const docsTableBody = document.querySelector('#docs-table tbody');
 const searchInput = document.getElementById('search-control');
 const searchBtn = document.getElementById('search-btn');
+const filter30DaysBtn = document.getElementById('filter-30-days');
 const clearSearchBtn = document.getElementById('clear-search');
 const importFileInput = document.getElementById('import-file');
 const exportCsvBtn = document.getElementById('export-csv');
@@ -118,6 +120,7 @@ const notesInput = document.getElementById('doc-notes');
 let docs = [];
 let statusFilter = null; // e.g. 'Revision', 'Approved', etc.
 let winsFilter = null; // e.g. 'Approved', 'Pending for Approve', 'Rejected'
+let dateFilter30Days = false;
 let ageStatusFilter = null; // will mirror statusFilter when filtering by age row clicks
 
 // Sidebar search & pagination state
@@ -182,7 +185,7 @@ function saveDocs(){
 
 function renderDocs(filter){
   if(selectAll) selectAll.checked = false;
-  docsTableBody.innerHTML = '';
+  if(docsTableBody) docsTableBody.innerHTML = '';
   const q = filter ? filter.toLowerCase() : '';
   let list = docs.slice();
   if(q){
@@ -202,14 +205,22 @@ function renderDocs(filter){
   if(ageStatusFilter){
     list = list.filter(d => d.status === ageStatusFilter);
   }
+  if(dateFilter30Days){
+    const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    list = list.filter(d => d.createdAt && Number(d.createdAt) >= cutoff);
+  }
   if(list.length === 0){
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
-    docsTableBody.appendChild(tr);
+    if(docsTableBody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
+      docsTableBody.appendChild(tr);
+    }
+    renderDashboardSummaries(list);
     return;
   }
 
-  list.forEach(doc => {
+  if(docsTableBody){
+    list.forEach(doc => {
     const tr = document.createElement('tr');
     const createdText = doc.createdAt ? msToDatetimeLocal(doc.createdAt).replace('T',' ') : '';
     const updatedText = doc.updatedAt ? new Date(doc.updatedAt).toLocaleString() : '';
@@ -270,14 +281,121 @@ function renderDocs(filter){
       </td> 
     `;
     docsTableBody.appendChild(tr);
-  });
+    });
+  }
   renderTotalDocs();
   renderStatusChart();
   renderWinsChart();
   renderAdminStatusOverview();
   renderAgeOverview();
-  renderLeftSidebar();}
+  renderLeftSidebar();
+  renderDashboardSummaries(list);
+}
   try{ updateAdminInboxBadge(); }catch(e){}
+
+function drawPieChart(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const total = Object.values(data).reduce((a, b) => a + b, 0);
+  if(total === 0) return;
+
+  let startAngle = 0;
+  const colors = ['#2752a7', '#4a90e2', '#f39c12', '#e74c3c', '#2ecc71', '#9b59b6', '#34495e', '#95a5a6'];
+  const sorted = Object.entries(data).sort((a,b) => b[1] - a[1]);
+
+  sorted.forEach(([key, value], index) => {
+    const sliceAngle = (value / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, canvas.height / 2);
+    ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 5, startAngle, startAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fill();
+    startAngle += sliceAngle;
+  });
+}
+
+function drawBarChart(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+
+  const entries = Object.entries(data).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8
+  if (entries.length === 0) return;
+
+  const maxVal = Math.max(...entries.map(e => e[1]));
+  const barWidth = (width - 40) / entries.length;
+  const gap = 5;
+  const chartHeight = height - 20;
+
+  entries.forEach((entry, i) => {
+    const val = entry[1];
+    const barH = maxVal > 0 ? (val / maxVal) * (chartHeight - 20) : 0;
+    const x = 20 + i * barWidth;
+    const y = chartHeight - barH;
+    
+    ctx.fillStyle = '#2752a7';
+    ctx.fillRect(x, y, barWidth - gap, barH);
+    
+    ctx.fillStyle = '#333';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(val, x + (barWidth - gap)/2, y - 5);
+    
+    // Simple label truncation
+    const label = entry[0].length > 6 ? entry[0].substring(0,6)+'..' : entry[0];
+    ctx.fillText(label, x + (barWidth - gap)/2, chartHeight + 12);
+  });
+}
+
+function renderDashboardSummaries(currentList){
+  const titleContainer = document.getElementById('summary-by-title');
+  const ownerContainer = document.getElementById('summary-by-owner');
+  if(!titleContainer || !ownerContainer) return;
+
+  const list = currentList || docs;
+  const byTitle = {};
+  const byOwner = {};
+  
+  list.forEach(d => {
+    const t = d.title || 'Unknown';
+    byTitle[t] = (byTitle[t] || 0) + 1;
+    const o = d.owner || 'Unknown';
+    byOwner[o] = (byOwner[o] || 0) + 1;
+  });
+
+  const colors = ['#2752a7', '#4a90e2', '#f39c12', '#e74c3c', '#2ecc71', '#9b59b6', '#34495e', '#95a5a6'];
+
+  // Helper to render list
+  const render = (map, container, isTitle) => {
+    const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]);
+    if(sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
+    
+    let html = '';
+    if(isTitle) html += '<div style="text-align:center;margin-bottom:12px"><canvas id="title-pie-chart" width="160" height="160"></canvas></div>';
+    else html += '<div style="text-align:center;margin-bottom:12px"><canvas id="owner-bar-chart" width="280" height="160"></canvas></div>';
+    
+    html += '<ul class="approved-ul">';
+    sorted.forEach(([k, v], idx) => {
+      const color = colors[idx % colors.length];
+      const dot = isTitle ? `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:8px;"></span>` : '';
+      html += `<li style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;cursor:pointer" onclick="window.location.href='documents_full.html?q=${encodeURIComponent(k)}'" title="Filter by ${escapeHtml(k)}"><span>${dot}${escapeHtml(k)}</span> <span class="nav-badge" style="background:#eef4ff;color:#2752a7">${v}</span></li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+    if(isTitle) setTimeout(() => drawPieChart('title-pie-chart', map), 0);
+    else setTimeout(() => drawBarChart('owner-bar-chart', map), 0);
+  };
+
+  render(byTitle, titleContainer, true);
+  render(byOwner, ownerContainer, false);
+}
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
@@ -532,7 +650,8 @@ function renderAdminInbox(externalFilter){
         if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Reason: ' + escapeHtml(d.returnReason) + '</div>'; }
       }
     }
-    left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
+    const chk = `<input type="checkbox" class="admin-inbox-check" value="${escapeHtml(d.controlNumber||d.control)}" style="margin-right:10px;cursor:pointer">`;
+    left.innerHTML = `<div style="display:flex;align-items:center">${chk}<div><strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div></div></div>`;
     const actions = document.createElement('div');
     // view (eye icon)
     const view = document.createElement('button'); view.type = 'button'; view.className = 'icon-btn'; view.title = 'Open details'; view.setAttribute('aria-label','Open details for ' + (d.controlNumber||d.control));
@@ -923,6 +1042,44 @@ function batchReceiveForwarded(){
 }
 window.batchReceiveForwarded = batchReceiveForwarded;
 
+// Batch receive selected documents in Admin Inbox
+function batchReceiveSelected(){
+  let isAdmin = (currentUserRole === 'admin');
+  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
+
+  const checks = document.querySelectorAll('.admin-inbox-check:checked');
+  if(checks.length === 0){ alert('No documents selected.'); return; }
+
+  if(!confirm('Mark ' + checks.length + ' selected document(s) as received?')) return;
+
+  const toReceive = Array.from(checks).map(c => c.value);
+  let count = 0;
+  toReceive.forEach(ctrl => {
+    const doc = docs.find(d => d.controlNumber === ctrl);
+    // Only receive if it is currently forwarded
+    if(doc && doc.forwarded){
+      doc.forwarded = false;
+      doc.forwardedHandledAt = Date.now();
+      try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
+      doc.adminStatus = 'Received';
+      doc.updatedAt = Date.now();
+      count++;
+    }
+  });
+
+  if(count > 0){
+    saveDocs();
+    renderAdminInbox();
+    try{ renderDocs(); }catch(e){}
+    try{ updateAdminInboxBadge(); }catch(e){}
+    announceStatus('Received ' + count + ' documents');
+  } else {
+    alert('Selected documents were not in a state to be received (e.g. already received or not forwarded).');
+  }
+}
+window.batchReceiveSelected = batchReceiveSelected;
+
 // Auth
 function signIn(username, password){
   // Try server auth first
@@ -999,7 +1156,13 @@ function showDashboard(userName){
   // restore role from storage if available
   try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
   loadDocs();
-  renderDocs();
+  
+  // Check for URL query param 'q' to filter docs immediately
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get('q');
+  if(q && searchInput){ searchInput.value = q; renderDocs(q); }
+  else { renderDocs(); }
+
   adjustUIForRole();
   try{ renderNavAvatar(); }catch(e){}
   // wire title selects to show/hide 'Other' input if present
@@ -1181,6 +1344,24 @@ document.addEventListener('keydown', (e) => {
     try{ if(navbar && navbar.classList.contains('open')){ navbar.classList.remove('open'); if(navToggle) navToggle.setAttribute('aria-expanded','false'); } }catch(ex){}
   }
 });
+
+// Dark Mode Logic
+function initDarkMode(){
+  const isDark = localStorage.getItem(DARK_MODE_KEY) === '1';
+  document.body.classList.toggle('dark-mode', isDark);
+  const btn = document.getElementById('dark-mode-toggle');
+  if(btn) btn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+}
+
+const darkModeToggle = document.getElementById('dark-mode-toggle');
+if(darkModeToggle){
+  darkModeToggle.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent menu close
+    const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem(DARK_MODE_KEY, isDark ? '1' : '0');
+    darkModeToggle.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+  });
+}
 
 // Profile is a standalone page now (profile.html); inline modal handlers removed.
 
@@ -1365,7 +1546,7 @@ docForm.addEventListener('submit', e => {
   renderDocs();
 });
 
-docsTableBody.addEventListener('click', e => {
+if(docsTableBody) docsTableBody.addEventListener('click', e => {
   // Quick-edit notes handling
   const noteEditBtn = e.target.closest('button[data-note-edit]');
   if(noteEditBtn){
@@ -1536,7 +1717,7 @@ docsTableBody.addEventListener('click', e => {
       });
     }
 
-docsTableBody.addEventListener('change', e => {
+if(docsTableBody) docsTableBody.addEventListener('change', e => {
   const sel = e.target.closest('.status-select');
   if(sel){
     const ctl = sel.getAttribute('data-control');
@@ -1567,6 +1748,14 @@ searchBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
   renderDocs(q);
 });
+
+if(filter30DaysBtn){
+  filter30DaysBtn.addEventListener('click', () => {
+    dateFilter30Days = !dateFilter30Days;
+    filter30DaysBtn.classList.toggle('active-filter', dateFilter30Days);
+    renderDocs(searchInput.value.trim());
+  });
+}
 
 clearSearchBtn.addEventListener('click', () => {
   searchInput.value = '';
@@ -1645,6 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   try{ renderNavAvatar(); }catch(e){}
+  try{ initDarkMode(); }catch(e){}
 
   // Sidebar search & page size
   const sidebarSearch = document.getElementById('sidebar-search');
@@ -1831,6 +2021,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminPagination = document.getElementById('admin-inbox-pagination');
   if(adminFilter){ adminFilter.addEventListener('change', () => { adminInboxFilter = adminFilter.value; adminInboxPage = 1; renderAdminInbox(); }); }
   if(adminSearch){ adminSearch.addEventListener('input', debounce(() => { adminInboxQuery = adminSearch.value.trim(); adminInboxPage = 1; renderAdminInbox(); }, 250)); }
+  
+  // Admin inbox selection controls
+  const adminSelAll = document.getElementById('admin-select-all');
+  if(adminSelAll){ adminSelAll.addEventListener('change', () => { document.querySelectorAll('.admin-inbox-check').forEach(c => c.checked = adminSelAll.checked); }); }
+  const btnReceiveSel = document.getElementById('receive-selected-btn');
+  if(btnReceiveSel){ btnReceiveSel.addEventListener('click', () => { if(window.batchReceiveSelected) window.batchReceiveSelected(); }); }
 
   // delegate clicks inside admin inbox (receive)
   const adminList = document.getElementById('admin-inbox-list');
@@ -2163,7 +2359,7 @@ selectAll && selectAll.addEventListener('change', () => {
 });
 
 bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
-  const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+  const selected = docsTableBody ? Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value) : [];
   if(selected.length === 0){
     alert('No documents selected.');
     return;
@@ -2175,7 +2371,7 @@ bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
 });
 
 bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
-  const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+  const selected = docsTableBody ? Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value) : [];
   if(selected.length === 0){
     alert('No documents selected.');
     return;
@@ -2194,7 +2390,7 @@ bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
   }
 });
 
-docsTableBody.addEventListener('change', e => {
+if(docsTableBody) docsTableBody.addEventListener('change', e => {
   if(e.target.classList.contains('row-checkbox')){
     e.target.closest('tr').classList.toggle('selected-row', e.target.checked);
   }
