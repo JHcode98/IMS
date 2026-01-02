@@ -60,7 +60,7 @@
                 </button>
                 <div id="admin-filter-menu-box" class="card" style="position:absolute;right:0;top:44px;display:none;padding:8px;min-width:180px;box-shadow:0 6px 18px rgba(0,0,0,0.12)">
                   <button class="icon-btn admin-filter-item-box" data-filter="forwarded" title="Show forwarded">Forwarded <span id="badge-forwarded-menu" class="nav-badge badge-forwarded" style="margin-left:8px">0</span></button>
-                  <button class="icon-btn admin-filter-item-box" data-filter="intervention" title="Show needing intervention">Need Intervention <span id="badge-intervention-menu" class="nav-badge badge-intervention" style="margin-left:8px">0</span></button>
+                  <button class="icon-btn admin-filter-item-box" data-filter="intervention" title="Show needing user attention">Need User Attention <span id="badge-intervention-menu" class="nav-badge badge-intervention" style="margin-left:8px">0</span></button>
                   <button class="icon-btn admin-filter-item-box" data-filter="received" title="Show received">Received <span id="badge-received-menu" class="nav-badge badge-received" style="margin-left:8px">0</span></button>
                   <button class="icon-btn admin-filter-item-box" data-filter="returned" title="Show returned">Returned <span id="badge-returned-menu" class="nav-badge badge-returned" style="margin-left:8px">0</span></button>
                   <button class="icon-btn admin-filter-item-box" data-filter="all" title="Show all">All</button>
@@ -108,6 +108,25 @@
 
     <script>
       // Admin-only landing: redirect non-admins back to the main dashboard and show inbox for admins
+      function updateAdminBadges() {
+        try {
+          const docs = JSON.parse(localStorage.getItem('dms_documents_v1') || '[]');
+          // Count statuses
+          const forwarded = docs.filter(d => d.status === 'Forwarded').length;
+          const intervention = docs.filter(d => d.status === 'Need User Attention' || d.status === 'Need Intervention').length;
+          
+          const bFwd = document.getElementById('badge-forwarded-box');
+          const bInt = document.getElementById('badge-intervention-box');
+          const mFwd = document.getElementById('badge-forwarded-menu');
+          const mInt = document.getElementById('badge-intervention-menu');
+
+          if(bFwd) { bFwd.textContent = forwarded; bFwd.style.display = forwarded > 0 ? 'inline-block' : 'none'; }
+          if(bInt) { bInt.textContent = intervention; bInt.style.display = intervention > 0 ? 'inline-block' : 'none'; }
+          if(mFwd) mFwd.textContent = forwarded;
+          if(mInt) mInt.textContent = intervention;
+        } catch(e) { console.error('Badge update error', e); }
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         const role = localStorage.getItem('dms_auth_role_v1');
         const user = localStorage.getItem('dms_auth_v1');
@@ -122,12 +141,12 @@
         const uname = document.getElementById('username-display'); if(uname) uname.textContent = user || '';
         // wire refresh
         const btn = document.getElementById('refresh-inbox');
-        if(btn) btn.addEventListener('click', () => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} });
+        if(btn) btn.addEventListener('click', () => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} });
         // render inbox once app is ready
-        setTimeout(() => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} }, 100);
+        setTimeout(() => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} }, 100);
         // activate search input
         const searchEl = document.getElementById('admin-inbox-search');
-        if(searchEl){ searchEl.addEventListener('input', (ev) => { try{ window.renderAdminInbox && window.renderAdminInbox(); }catch(e){} }); }
+        if(searchEl){ searchEl.addEventListener('input', (ev) => { try{ window.renderAdminInbox && window.renderAdminInbox(); updateAdminBadges(); }catch(e){} }); }
         // wire filter menu (box version)
         const filterBtnBox = document.getElementById('admin-filter-btn-box');
         const menuBox = document.getElementById('admin-filter-menu-box');
