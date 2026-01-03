@@ -16,7 +16,7 @@ const AUTH_TOKEN_KEY = 'dms_auth_token_v1';
 const DARK_MODE_KEY = 'dms_dark_mode_v1';
 let currentUserRole = null;
 // Optional server API for shared DB
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
+const API_BASE = (location.port === '3000') ? '/api' : (location.protocol + '//' + location.hostname + ':3000/api');
 let USE_SERVER = false;
 let WS_CLIENT = null;
 let WS_RECONNECT_TIMER = null;
@@ -39,8 +39,8 @@ let WS_RECONNECT_TIMER = null;
 function startWebsocket(){
   try{
     if(WS_CLIENT && (WS_CLIENT.readyState === WebSocket.OPEN || WS_CLIENT.readyState === WebSocket.CONNECTING)) return;
-    const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = scheme + '//' + location.hostname + (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ':3000' : '') + '/ws';
+    const wsHost = (location.port === '3000') ? location.host : (location.hostname + ':3000');
+    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + wsHost + '/ws';
     WS_CLIENT = new WebSocket(wsUrl);
     WS_CLIENT.addEventListener('open', () => { announceStatus('Realtime sync connected'); if(WS_RECONNECT_TIMER){ clearTimeout(WS_RECONNECT_TIMER); WS_RECONNECT_TIMER = null; } });
     WS_CLIENT.addEventListener('message', (ev) => {
