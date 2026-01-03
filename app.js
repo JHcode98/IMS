@@ -176,10 +176,14 @@ function loadDocs(){
   }catch(e){}
 }
 
-function saveDocs(){
+function saveDocs(singleDoc){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
   if(USE_SERVER){
-    try{ fetch(API_BASE + '/docs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docs }) }).catch(()=>{}); }catch(e){}
+    if(singleDoc && singleDoc.controlNumber){
+      try{ fetch(API_BASE + '/docs/' + encodeURIComponent(singleDoc.controlNumber), {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(singleDoc) }).catch(()=>{}); }catch(e){}
+    } else {
+      try{ fetch(API_BASE + '/docs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docs }) }).catch(()=>{}); }catch(e){}
+    }
   }
 }
 
@@ -921,13 +925,14 @@ function addOrUpdateDoc(doc){
     doc.createdAt = existing.createdAt || existing.createdAt === 0 ? existing.createdAt : existing.createdAt;
     doc.updatedAt = Date.now();
     docs[idx] = doc;
+    saveDocs(doc);
   } else {
     // if caller provided createdAt (e.g. rename preserving original), keep it; otherwise set now
     if(!doc.createdAt) doc.createdAt = Date.now();
     doc.updatedAt = Date.now();
     docs.unshift(doc);
+    saveDocs();
   }
-  saveDocs();
 }
 
 function deleteDocInternal(controlNumber){
@@ -986,7 +991,7 @@ function forwardDoc(controlNumber){
   doc.forwardedAt = Date.now();
   try{ doc.forwardedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
   doc.updatedAt = Date.now();
-  saveDocs();
+  saveDocs(doc);
   renderDocs();
 }
 
@@ -1003,7 +1008,7 @@ function receiveDoc(controlNumber){
   // mark adminStatus (Received) when admin handles it
   doc.adminStatus = 'Received';
   doc.updatedAt = Date.now();
-  saveDocs();
+  saveDocs(doc);
   renderDocs();
   // refresh admin inbox view as well
   try{ renderAdminInbox(); }catch(e){}
@@ -1139,7 +1144,7 @@ function returnToIC(controlNumber){
   }
   doc.forwarded = false;
   doc.updatedAt = Date.now();
-  saveDocs();
+  saveDocs(doc);
   renderDocs();
   try{ renderAdminInbox(); }catch(e){}
 } 
@@ -1574,7 +1579,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const newNotes = notesTa ? notesTa.value.trim() : '';
     doc.notes = newNotes;
     doc.updatedAt = Date.now();
-    saveDocs();
+    saveDocs(doc);
     // restore cell
     const notesCell = tr.querySelector('.notes-cell');
     notesCell.innerHTML = `<span class="notes-text" title="${escapeHtml(doc.notes || '')}">${escapeHtml(doc.notes || '')}</span><button type="button" class="note-edit-btn" data-note-edit="${escapeHtml(doc.controlNumber)}">✎</button>`;
@@ -1725,7 +1730,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     if(doc){
       doc.status = sel.value;
       doc.updatedAt = Date.now();
-      saveDocs();
+      saveDocs(doc);
       renderDocs(searchInput.value.trim());
     }
     return;
@@ -1737,7 +1742,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     if(doc){
       doc.winsStatus = winsSel.value;
       doc.updatedAt = Date.now();
-      saveDocs();
+      saveDocs(doc);
       renderDocs(searchInput.value.trim());
     }
     return;
