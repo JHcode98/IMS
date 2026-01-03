@@ -76,7 +76,7 @@
     </main>
 
     <footer>
-      <small>Local demo — data stored in your browser. <br>
+      <small>Connected to Database Server. <br>
       j.hutalla.</small>
     </footer>
 
@@ -108,9 +108,16 @@
 
     <script>
       // Admin-only landing: redirect non-admins back to the main dashboard and show inbox for admins
-      function updateAdminBadges() {
+      async function updateAdminBadges() {
         try {
-          const docs = JSON.parse(localStorage.getItem('dms_documents_v1') || '[]');
+          let docs = [];
+          try {
+            const res = await fetch('/api/docs');
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data.docs)) docs = data.docs;
+            }
+          } catch (e) { console.error('Fetch error', e); }
           // Count statuses
           const forwarded = docs.filter(d => d.status === 'Forwarded').length;
           const intervention = docs.filter(d => d.status === 'Need User Attention' || d.status === 'Need Intervention').length;
