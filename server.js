@@ -43,6 +43,7 @@ async function ensureDB(){
   const app = express();
   app.use(cors());
   app.use(express.json());
+  app.use(express.static(__dirname));
   // middleware: update lastSeen on requests that provide a valid session token
   app.use(async (req, res, next) => {
     try{
@@ -336,6 +337,7 @@ async function ensureDB(){
 
   server.listen(PORT, ()=>{
     console.log('Monitoring System API (with WS) listening on port', PORT);
+    console.log(`Access via http://localhost:${PORT} or http://<YOUR_IP>:${PORT}`);
   });
 
 })();
