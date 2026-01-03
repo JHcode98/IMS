@@ -47,7 +47,7 @@ function startWebsocket(){
       try{
         const msg = JSON.parse(ev.data);
         if(msg && msg.type === 'docs_updated'){
-          try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); announceStatus('Realtime update received'); } }).catch(()=>{}); }catch(e){}
+          try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} announceStatus('Realtime update received'); } }).catch(()=>{}); }catch(e){}
         }
       }catch(e){}
     });
@@ -64,7 +64,7 @@ function startWebsocket(){
 let _serverSyncInterval = null;
 function startServerSync(){
   // fetch immediately
-  try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); } }).catch(()=>{}); }catch(e){}
+  try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} } }).catch(()=>{}); }catch(e){}
   // poll every 5s
   try{ if(_serverSyncInterval) clearInterval(_serverSyncInterval); _serverSyncInterval = setInterval(()=>{
     try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => {
@@ -73,7 +73,7 @@ function startServerSync(){
         try{
           const localStr = JSON.stringify(docs || []);
           const remoteStr = JSON.stringify(remote || []);
-          if(localStr !== remoteStr){ docs = remote; renderDocs(); updateAdminInboxBadge(); announceStatus('Updated from server'); }
+          if(localStr !== remoteStr){ docs = remote; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} announceStatus('Updated from server'); }
         }catch(e){ docs = remote; renderDocs(); updateAdminInboxBadge(); }
       }
     }).catch(()=>{}); }catch(e){}
@@ -161,7 +161,7 @@ function stopInactivityWatcher(){
 function loadDocs(){
   if(USE_SERVER){
     // fetch docs from server (async but keep previous docs if any)
-    fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); } }).catch(()=>{});
+    fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} } }).catch(()=>{});
   }
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
@@ -616,8 +616,6 @@ function renderAdminInbox(externalFilter){
   const paginationEl = document.getElementById('admin-inbox-pagination');
   if(!container) return;
   container.innerHTML = '';
-  // ensure docs loaded
-  loadDocs();
   const f = externalFilter || adminInboxFilter || 'all';
   const q = (document.getElementById('admin-inbox-search') && document.getElementById('admin-inbox-search').value) || adminInboxQuery || '';
   adminInboxQuery = q;
