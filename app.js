@@ -140,7 +140,7 @@ function resetInactivityTimer(){
   if(inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
     // Only sign out if dashboard is visible (i.e., user is logged in)
-    if(!dashboard.classList.contains('hidden')){
+    if(dashboard && !dashboard.classList.contains('hidden')){
       try{ alert('You have been logged out due to 1 hour of inactivity.'); }catch(e){}
       signOut();
     }
@@ -989,9 +989,11 @@ function returnToIC(controlNumber){
 
 function showDashboard(userName){
   // remove centered login if present
-  loginSection.classList.remove('centered');
-  loginSection.classList.add('hidden');
-  dashboard.classList.remove('hidden');
+  if(loginSection) {
+    loginSection.classList.remove('centered');
+    loginSection.classList.add('hidden');
+  }
+  if(dashboard) dashboard.classList.remove('hidden');
   try{ if(navUser) navUser.style.display = ''; }catch(e){}
   // ensure navbar is visible on the dashboard
   try{ document.body.classList.remove('no-navbar'); }catch(e){}
@@ -1024,9 +1026,11 @@ function showDashboard(userName){
 }
 
 function signOut(){
-  loginSection.classList.remove('hidden');
-  loginSection.classList.add('centered');
-  dashboard.classList.add('hidden');
+  if(loginSection) {
+    loginSection.classList.remove('hidden');
+    loginSection.classList.add('centered');
+  }
+  if(dashboard) dashboard.classList.add('hidden');
   try{ if(navUser) navUser.style.display = 'none'; }catch(e){}
   // hide navbar on the login screen
   try{ document.body.classList.add('no-navbar'); }catch(e){}
