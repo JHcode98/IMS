@@ -89,6 +89,10 @@
         <h2>Cycle Count Records</h2>
         <div class="tools" style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <input type="text" id="search-item-code" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+          <select id="date-filter-type" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
+            <option value="updated">Updated Date</option>
+            <option value="created">Created Date</option>
+          </select>
           <label for="start-date" style="font-size:13px;color:var(--muted);margin-left:8px;">From:</label>
           <input type="date" id="start-date" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
           <label for="end-date" style="font-size:13px;color:var(--muted)">To:</label>
@@ -117,7 +121,7 @@
         <thead>
           <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
             <th style="padding: 8px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-cc"></th>
-            <th style="padding: 8px; text-align: left;">Timestamp</th>
+            <th style="padding: 8px; text-align: left;">Updated Date</th>
             <th style="padding: 8px; text-align: left;">Created Date</th>
             <th style="padding: 8px; text-align: left;">Item</th>
             <th style="padding: 8px; text-align: left;">Location</th>
@@ -150,6 +154,7 @@
     const endDateInput = document.getElementById('end-date');
     const clearDateFilterBtn = document.getElementById('clear-date-filter-btn');
     const filterDateBtn = document.getElementById('filter-date-btn');
+    const dateFilterType = document.getElementById('date-filter-type');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     
     let currentPage = 1;
@@ -170,14 +175,21 @@
       // Date range filter
       const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
       const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+      const filterType = dateFilterType ? dateFilterType.value : 'updated';
 
       if (startDate) {
         startDate.setHours(0, 0, 0, 0);
-        filteredData = filteredData.filter(item => new Date(item.date) >= startDate);
+        filteredData = filteredData.filter(item => {
+          const d = filterType === 'created' ? (item.createdDate ? new Date(item.createdDate) : null) : new Date(item.date);
+          return d && d >= startDate;
+        });
       }
       if (endDate) {
         endDate.setHours(23, 59, 59, 999);
-        filteredData = filteredData.filter(item => new Date(item.date) <= endDate);
+        filteredData = filteredData.filter(item => {
+          const d = filterType === 'created' ? (item.createdDate ? new Date(item.createdDate) : null) : new Date(item.date);
+          return d && d <= endDate;
+        });
       }
 
       const totalRows = filteredData.length;
@@ -356,7 +368,7 @@
         return;
       }
 
-      const headers = ['Timestamp', 'Created Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
+      const headers = ['Updated Date', 'Created Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
       const csvRows = [headers.join(',')];
 
       const csvEscape = (field) => {
@@ -391,8 +403,8 @@
     }
 
     function downloadTemplate() {
-      const headers = ['Timestamp', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
-      const sample = [new Date().toISOString(), '10000001', '12345678', '10', '8', 'Sample Note'];
+      const headers = ['Created Date', 'Updated Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
+      const sample = [new Date().toISOString(), new Date().toISOString(), '10000001', '12345678', '10', '8', 'Sample Note'];
       const csvContent = headers.join(',') + '\n' + sample.join(',');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -434,12 +446,27 @@
             if (!lines[i]) continue;
             const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
             
-            let dateVal = new Date().toISOString();
-            // Allow Timestamp or Date column for historical records
-            const dateIdx = headers.indexOf('Timestamp') !== -1 ? headers.indexOf('Timestamp') : headers.indexOf('Date');
-            if (dateIdx !== -1) {
-                const ts = values[dateIdx];
-                if (ts) { const d = new Date(ts); if (!isNaN(d.getTime())) dateVal = d.toISOString(); }
+            let createdDateVal = new Date().toISOString();
+            let updatedDateVal = new Date().toISOString();
+
+            // 1. Resolve Created Date (Prioritize 'Created Date', then 'Date', then 'Timestamp')
+            let cIdx = headers.indexOf('Created Date');
+            if (cIdx === -1) cIdx = headers.indexOf('Date');
+            if (cIdx === -1) cIdx = headers.indexOf('Timestamp');
+            
+            if (cIdx !== -1 && values[cIdx]) {
+                const d = new Date(values[cIdx]);
+                if (!isNaN(d.getTime())) {
+                    createdDateVal = d.toISOString();
+                    updatedDateVal = d.toISOString(); // Default updated to created for history
+                }
+            }
+
+            // 2. Resolve Updated Date (override if explicit)
+            const uIdx = headers.indexOf('Updated Date');
+            if (uIdx !== -1 && values[uIdx]) {
+                 const d = new Date(values[uIdx]);
+                 if (!isNaN(d.getTime())) updatedDateVal = d.toISOString();
             }
 
             const newItem = {
@@ -448,8 +475,8 @@
               system: Number(values[headers.indexOf('System Qty')]),
               physical: Number(values[headers.indexOf('Physical Qty')]),
               notes: headers.includes('Notes') ? values[headers.indexOf('Notes')] : '',
-              date: dateVal,
-              createdDate: new Date().toISOString()
+              date: updatedDateVal,
+              createdDate: createdDateVal
             };
             if (newItem.itemCode && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
               data.unshift(newItem);
@@ -477,6 +504,7 @@
     cycleCountSearchInput.addEventListener('input', loadData);
     startDateInput.addEventListener('change', loadData);
     endDateInput.addEventListener('change', loadData);
+    if(dateFilterType) dateFilterType.addEventListener('change', loadData);
     if(filterDateBtn) filterDateBtn.addEventListener('click', loadData);
     clearDateFilterBtn.addEventListener('click', () => {
         startDateInput.value = '';
