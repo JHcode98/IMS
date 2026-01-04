@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       .charts-wrap{max-width:1100px;margin:18px auto;padding:12px;display:grid;grid-template-columns:1fr;gap:18px}
+      @media(min-width: 768px) { .charts-wrap { grid-template-columns: 1fr 1fr; } }
       .chart-card{background:#fff;border-radius:8px;padding:12px;border:1px solid #eef6ff}
       .chart-row{display:flex;gap:14px;flex-wrap:wrap}
       canvas{max-width:100%;height:360px}
@@ -23,6 +24,16 @@
     </header>
 
     <main class="charts-wrap">
+      <section class="chart-card">
+        <h2>Status Distribution (Pie)</h2>
+        <canvas id="chart-status"></canvas>
+      </section>
+
+      <section class="chart-card">
+        <h2>Creation Timeline (Line)</h2>
+        <canvas id="chart-timeline"></canvas>
+      </section>
+
       <section class="chart-card">
         <h2>By Title</h2>
         <canvas id="chart-title"></canvas>
@@ -94,6 +105,51 @@
         });
       }
 
+      function renderPie(ctx, labels, data, title){
+        return new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: title,
+              data: data,
+              backgroundColor: [
+                '#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#1abc9c'
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right' } }
+          }
+        });
+      }
+
+      function renderLine(ctx, labels, data, title){
+        return new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: title,
+              data: data,
+              borderColor: '#3498db',
+              backgroundColor: 'rgba(52, 152, 219, 0.2)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, ticks: { precision:0 } }
+            }
+          }
+        });
+      }
+
       (async ()=>{
         const docs = await loadDocs();
         // Match app.js migration logic for consistency
@@ -105,6 +161,25 @@
             }
           });
         }catch(e){}
+
+        // 1. Status (Pie)
+        const byStatus = aggregateCount(docs, d => d.status || 'Revision');
+        const statusLabels = Object.keys(byStatus);
+        const statusData = Object.values(byStatus);
+
+        // 2. Timeline (Line) - Group by Created Date (YYYY-MM-DD)
+        const byDate = {};
+        docs.forEach(d => {
+            if(!d.createdAt) return;
+            const date = new Date(Number(d.createdAt));
+            if(isNaN(date.getTime())) return;
+            const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            byDate[key] = (byDate[key] || 0) + 1;
+        });
+        const sortedDates = Object.keys(byDate).sort();
+        const dateData = sortedDates.map(k => byDate[k]);
+
+        // 3. Title & Owner (Bar)
         const byTitle = aggregateCount(docs, d => d.title || 'Unknown');
         const byOwner = aggregateCount(docs, d => d.owner || 'Unknown');
 
@@ -116,9 +191,13 @@
         const ownerLabels = topOwners.map(e => e[0]);
         const ownerData = topOwners.map(e => e[1]);
 
+        const ctxStatus = document.getElementById('chart-status').getContext('2d');
+        const ctxTimeline = document.getElementById('chart-timeline').getContext('2d');
         const ctxTitle = document.getElementById('chart-title').getContext('2d');
         const ctxOwner = document.getElementById('chart-owner').getContext('2d');
 
+        renderPie(ctxStatus, statusLabels, statusData, 'Status Distribution');
+        renderLine(ctxTimeline, sortedDates, dateData, 'Documents Created');
         renderBar(ctxTitle, titleLabels, titleData, 'Documents by Title', 'rgba(75,192,192,0.6)');
         renderBar(ctxOwner, ownerLabels, ownerData, 'Documents by Owner', 'rgba(153,102,255,0.6)');
       })();
