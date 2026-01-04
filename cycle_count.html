@@ -512,6 +512,7 @@
 
           const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
           let addedCount = 0;
+          let duplicateCount = 0;
 
           for (let i = 1; i < lines.length; i++) {
             if (!lines[i]) continue;
@@ -548,13 +549,21 @@
             };
             // Validate Item Code (exactly 8 digits)
             if (newItem.itemCode && /^\d{8}$/.test(newItem.itemCode) && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
-              data.unshift(newItem);
-              addedCount++;
+              // Check for duplicates (Item Code + Location + Created Date)
+              const exists = data.some(d => d.itemCode === newItem.itemCode && d.location === newItem.location && d.createdDate === newItem.createdDate);
+              if (exists) {
+                duplicateCount++;
+              } else {
+                data.unshift(newItem);
+                addedCount++;
+              }
             }
           }
-          if (addedCount > 0) {
+          if (addedCount > 0 || duplicateCount > 0) {
             localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
-            alert(`${addedCount} entries imported successfully.`);
+            let msg = `${addedCount} entries imported successfully.`;
+            if (duplicateCount > 0) msg += ` ${duplicateCount} duplicates skipped.`;
+            alert(msg);
             loadData();
           } else {
             alert('No valid entries found to import.');
