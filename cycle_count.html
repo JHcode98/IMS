@@ -64,7 +64,7 @@
         </div>
         <div>
           <label for="location">Location</label>
-          <input type="text" id="location" required pattern="[0-9]{8}" title="Exactly 8 digits" inputmode="numeric" maxlength="8" style="width:100%">
+          <input type="text" id="location" required pattern=".{8}" title="Exactly 8 characters" maxlength="8" style="width:100%">
         </div>
         <div>
           <label for="system-qty">System Qty</label>
@@ -115,6 +115,7 @@
           <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
             <th style="padding: 8px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-cc"></th>
             <th style="padding: 8px; text-align: left;">Timestamp</th>
+            <th style="padding: 8px; text-align: left;">Created Date</th>
             <th style="padding: 8px; text-align: left;">Item</th>
             <th style="padding: 8px; text-align: left;">Location</th>
             <th style="padding: 8px; text-align: left;">System</th>
@@ -189,7 +190,7 @@
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No records found for your search.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center; padding: 20px;">No records found for your search.</td></tr>`;
         return;
       }
       data.forEach((item) => {
@@ -199,10 +200,12 @@
         if (variance < 0) varianceClass = 'age-bad'; // Negative (Red)
         else if (variance > 0) varianceClass = 'age-warn'; // Positive (Orange)
         const timestamp = new Date(item.date).toLocaleString();
+        const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : '';
         
         tr.innerHTML = `
           <td style="padding:8px;border-bottom:1px solid #eee"><input type="checkbox" class="row-checkbox"></td>
           <td style="padding:8px;border-bottom:1px solid #eee">${timestamp}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${createdDate}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.itemCode}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.location}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.system}</td>
@@ -226,7 +229,8 @@
         system: Number(document.getElementById('system-qty').value),
         physical: Number(document.getElementById('physical-qty').value),
         notes: document.getElementById('notes').value,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        createdDate: new Date().toISOString()
       };
 
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
@@ -332,7 +336,7 @@
         return;
       }
 
-      const headers = ['Timestamp', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
+      const headers = ['Timestamp', 'Created Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
       const csvRows = [headers.join(',')];
 
       const csvEscape = (field) => {
@@ -347,8 +351,9 @@
       data.forEach(item => {
         const variance = item.physical - item.system;
         const timestamp = new Date(item.date).toLocaleString();
+        const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : '';
         const row = [
-          timestamp, item.itemCode, item.location, item.system, item.physical, variance, item.notes || ''
+          timestamp, createdDate, item.itemCode, item.location, item.system, item.physical, variance, item.notes || ''
         ];
         csvRows.push(row.map(csvEscape).join(','));
       });
@@ -421,7 +426,8 @@
               system: Number(values[headers.indexOf('System Qty')]),
               physical: Number(values[headers.indexOf('Physical Qty')]),
               notes: headers.includes('Notes') ? values[headers.indexOf('Notes')] : '',
-              date: dateVal
+              date: dateVal,
+              createdDate: new Date().toISOString()
             };
             if (newItem.itemCode && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
               data.unshift(newItem);
