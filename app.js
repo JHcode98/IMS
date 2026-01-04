@@ -747,7 +747,7 @@ function renderStatusChart(){
   const container = document.getElementById('status-chart');
   if(!container) return;
   container.innerHTML = '';
-  const counts = computeStatusCounts();
+  const counts = computeStatusCounts() || {};
   const total = Object.values(counts).reduce((a,b) => a + b, 0) || 1;
   const statuses = [
     { key: 'Revision', cls: 'status-revision' },
