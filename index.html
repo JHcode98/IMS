@@ -454,17 +454,6 @@
 							}, 300);
 						});
 					}
-
-					// Main Sidebar Toggle
-					const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
-					if (mainSidebarToggle) {
-						mainSidebarToggle.addEventListener('click', () => {
-							document.body.classList.toggle('sidebar-collapsed');
-							setTimeout(() => {
-								Object.values(Chart.instances).forEach(c => c.resize());
-							}, 300);
-						});
-					}
 				});
 			</script>
 			<!-- profile moved to profile.html -->
