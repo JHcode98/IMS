@@ -212,12 +212,12 @@ function renderDocs(filter){
     list = list.filter(d => d.status === ageStatusFilter);
   }
 
-  renderTotalDocs();
-  renderStatusChart();
-  renderWinsChart();
-  renderAdminStatusOverview();
-  renderAgeOverview();
-  renderLeftSidebar();
+  try{ renderTotalDocs(); }catch(e){}
+  try{ renderStatusChart(); }catch(e){}
+  try{ renderWinsChart(); }catch(e){}
+  try{ renderAdminStatusOverview(); }catch(e){}
+  try{ renderAgeOverview(); }catch(e){}
+  try{ renderLeftSidebar(); }catch(e){}
 
   if(list.length === 0){
     const tr = document.createElement('tr');
@@ -1013,7 +1013,7 @@ function showDashboard(userName){
   // restore role from storage if available
   try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
   loadDocs();
-  renderDocs();
+  try{ renderDocs(); }catch(e){}
   adjustUIForRole();
   try{ renderNavAvatar(); }catch(e){}
   // wire title selects to show/hide 'Other' input if present
