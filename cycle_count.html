@@ -59,7 +59,7 @@
   </header>
 
   <main>
-    <div class="card">
+    <div class="card" id="form-card">
       <h2>New Cycle Count Entry</h2>
       <form id="cycle-count-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
         <div>
@@ -90,7 +90,12 @@
 
     <div class="card" style="margin-top: 20px;">
       <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <h2>Cycle Count Records</h2>
+        <div style="display:flex; align-items:center; gap:8px">
+          <h2>Cycle Count Records</h2>
+          <button id="toggle-form-btn" class="icon-btn" title="Full View (Hide Form)" style="color:#666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+        </div>
         <div class="tools" style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <input type="text" id="search-item-code" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
           <select id="date-filter-type" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
@@ -134,7 +139,7 @@
             <th style="padding: 8px; text-align: left;">Location</th>
             <th style="padding: 8px; text-align: left;">System</th>
             <th style="padding: 8px; text-align: left;">Physical</th>
-            <th style="padding: 8px; text-align: left;">Variance</th>
+            <th style="padding: 8px; text-align: left; cursor:pointer; user-select:none" id="sort-variance-header" title="Click to sort by Variance">Variance <span id="sort-variance-icon" style="font-size:12px; color:#666"></span></th>
             <th style="padding: 8px; text-align: left;">Notes</th>
             <th style="padding: 8px; text-align: left;">Action</th>
           </tr>
@@ -168,6 +173,8 @@
     
     let currentPage = 1;
     let rowsPerPage = 10;
+    let sortField = null;
+    let sortDirection = 'asc';
 
     function getCandidateDates(dateStr) {
       if (!dateStr) return [];
@@ -251,6 +258,14 @@
           const dateStr = filterType === 'created' ? item.createdDate : item.date;
           const dates = getCandidateDates(dateStr);
           return dates.some(d => d <= endDate);
+        });
+      }
+
+      if (sortField === 'variance') {
+        filteredData.sort((a, b) => {
+          const varA = (a.physical || 0) - (a.system || 0);
+          const varB = (b.physical || 0) - (b.system || 0);
+          return sortDirection === 'asc' ? varA - varB : varB - varA;
         });
       }
 
@@ -603,6 +618,33 @@
       mainSidebarToggle.addEventListener('click', () => {
         document.body.classList.toggle('sidebar-collapsed');
         document.getElementById('app-sidebar').classList.toggle('collapsed');
+      });
+    }
+
+    // Sort Variance Logic
+    const sortVarianceHeader = document.getElementById('sort-variance-header');
+    if(sortVarianceHeader){
+      sortVarianceHeader.addEventListener('click', () => {
+        if(sortField === 'variance'){
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortField = 'variance';
+          sortDirection = 'asc';
+        }
+        document.getElementById('sort-variance-icon').textContent = sortDirection === 'asc' ? '↑' : '↓';
+        loadData();
+      });
+    }
+
+    // Toggle Form Logic
+    const toggleFormBtn = document.getElementById('toggle-form-btn');
+    const formCard = document.getElementById('form-card');
+    if(toggleFormBtn && formCard){
+      toggleFormBtn.addEventListener('click', () => {
+        const isHidden = formCard.classList.toggle('hidden');
+        toggleFormBtn.title = isHidden ? "Show Form" : "Full View (Hide Form)";
+        // Change icon based on state
+        toggleFormBtn.innerHTML = isHidden ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
       });
     }
   </script>
