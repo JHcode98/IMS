@@ -410,6 +410,16 @@
 							}
 						});
 					}
+
+					// Ensure charts resize when sidebar is toggled
+					const sidebarToggle = document.getElementById('sidebar-toggle');
+					if(sidebarToggle){
+						sidebarToggle.addEventListener('click', () => {
+							setTimeout(() => {
+								Object.values(Chart.instances).forEach(c => c.resize());
+							}, 300);
+						});
+					}
 				});
 			</script>
 			<!-- profile moved to profile.html -->
