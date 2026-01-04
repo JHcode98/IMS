@@ -102,6 +102,9 @@
           </button>
           <button id="clear-date-filter-btn" class="icon-btn" title="Clear Date Filter" style="margin-left:-4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
+          <button id="clear-all-filters-btn" class="icon-btn" title="Clear All Filters" style="margin-left: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+          </button>
           <button id="delete-selected-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; margin-left: 4px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
           </button>
@@ -155,6 +158,7 @@
     const clearDateFilterBtn = document.getElementById('clear-date-filter-btn');
     const filterDateBtn = document.getElementById('filter-date-btn');
     const dateFilterType = document.getElementById('date-filter-type');
+    const clearAllFiltersBtn = document.getElementById('clear-all-filters-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     
     let currentPage = 1;
@@ -166,7 +170,7 @@
       data = data.map((item, index) => ({ ...item, originalIndex: index }));
       
       const searchTerms = cycleCountSearchInput.value.toLowerCase().split(' ').filter(Boolean);
-      const filteredData = data.filter(item => {
+      let filteredData = data.filter(item => {
         if (searchTerms.length === 0) return true;
         const itemText = [item.itemCode, item.location, item.notes || ''].join(' ').toLowerCase();
         return searchTerms.every(term => itemText.includes(term));
@@ -517,6 +521,14 @@
         endDateInput.value = '';
         loadData();
     });
+    if(clearAllFiltersBtn) {
+      clearAllFiltersBtn.addEventListener('click', () => {
+        cycleCountSearchInput.value = '';
+        startDateInput.value = '';
+        endDateInput.value = '';
+        loadData();
+      });
+    }
 
     loadData();
   </script>
