@@ -25,6 +25,85 @@
   </main>
   <script src="app.js"></script>
   <script>
+    // Fix for Recycle Bin: Ensure restore/delete operations handle localStorage correctly
+    const DOCS_KEY = 'dms_docs_v1';
+    const BIN_KEY = 'dms_recycle_bin_v1';
+
+    window.renderRecycleBin = function() {
+      const list = document.getElementById('recycle-list');
+      if(!list) return;
+      list.innerHTML = '';
+
+      let bin = [];
+      try { bin = JSON.parse(localStorage.getItem(BIN_KEY) || '[]'); } catch(e) {}
+
+      if(bin.length === 0) {
+        list.innerHTML = '<div class="muted" style="text-align:center;padding:20px">Recycle bin is empty.</div>';
+        return;
+      }
+
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.innerHTML = `
+        <thead>
+          <tr style="text-align:left;border-bottom:1px solid #eee">
+            <th style="padding:8px">Control #</th>
+            <th style="padding:8px">Title</th>
+            <th style="padding:8px">Deleted Date</th>
+            <th style="padding:8px">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector('tbody');
+
+      bin.forEach((doc, index) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #eee';
+        tr.innerHTML = `
+          <td style="padding:8px">${doc.controlNumber || 'N/A'}</td>
+          <td style="padding:8px">${doc.title || 'Untitled'}</td>
+          <td style="padding:8px">${doc.deletedAt ? new Date(doc.deletedAt).toLocaleString() : ''}</td>
+          <td style="padding:8px">
+            <button onclick="window.restoreDoc(${index})" style="margin-right:8px;background:#2b8a2b;color:#fff;border:0;padding:4px 8px;border-radius:4px;cursor:pointer">Restore</button>
+            <button onclick="window.permDeleteDoc(${index})" style="background:#d9534f;color:#fff;border:0;padding:4px 8px;border-radius:4px;cursor:pointer">Delete Forever</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      list.appendChild(table);
+    };
+
+    window.restoreDoc = function(index) {
+      let bin = JSON.parse(localStorage.getItem(BIN_KEY) || '[]');
+      let docs = JSON.parse(localStorage.getItem(DOCS_KEY) || '[]');
+      
+      if(index < 0 || index >= bin.length) return;
+      const item = bin[index];
+      delete item.deletedAt; // Remove deleted marker
+      
+      docs.unshift(item); // Add back to active docs
+      localStorage.setItem(DOCS_KEY, JSON.stringify(docs)); // Save active docs safely
+
+      bin.splice(index, 1); // Remove from bin
+      localStorage.setItem(BIN_KEY, JSON.stringify(bin)); // Save bin
+      
+      alert('Document restored successfully.');
+      window.renderRecycleBin();
+    };
+
+    window.permDeleteDoc = function(index) {
+      if(!confirm('Permanently delete this document? This cannot be undone.')) return;
+      let bin = JSON.parse(localStorage.getItem(BIN_KEY) || '[]');
+      if(index < 0 || index >= bin.length) return;
+      
+      bin.splice(index, 1);
+      localStorage.setItem(BIN_KEY, JSON.stringify(bin)); // Only update bin
+      window.renderRecycleBin();
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       try{ window.renderRecycleBin && window.renderRecycleBin(); }catch(e){}
     });
