@@ -2426,6 +2426,25 @@ if(navDmsBtn && navInventoryBtn){
   });
 }
 
+// --- Main Sidebar Toggle Logic ---
+const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
+const appSidebar = document.getElementById('app-sidebar');
+
+if(mainSidebarToggle && appSidebar){
+  // Restore state
+  const isCollapsed = localStorage.getItem('dms_main_sidebar_collapsed') === '1';
+  if(isCollapsed){
+    appSidebar.classList.add('collapsed');
+    document.body.classList.add('main-sidebar-collapsed');
+  }
+
+  mainSidebarToggle.addEventListener('click', () => {
+    const collapsed = appSidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('main-sidebar-collapsed', collapsed);
+    localStorage.setItem('dms_main_sidebar_collapsed', collapsed ? '1' : '0');
+  });
+}
+
 const selectAll = document.getElementById('select-all');
 const bulkUpdateBtn = document.getElementById('bulk-update');
 const bulkDeleteBtn = document.getElementById('bulk-delete');
