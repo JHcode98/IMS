@@ -127,6 +127,45 @@
     let varianceChartInstance = null;
     let dailyChartInstance = null;
 
+    function getCandidateDates(dateStr) {
+      if (!dateStr) return [];
+      const candidates = [];
+      
+      // 1. Standard parse (handles ISO, MM/DD/YYYY, etc.)
+      let s = dateStr;
+      // Fix ISO UTC issue: treat YYYY-MM-DD as local
+      if (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
+      
+      const d1 = new Date(s);
+      if (!isNaN(d1.getTime())) candidates.push(d1);
+
+      // 2. Try parsing as DD/MM/YYYY explicitly if it contains slashes
+      if (typeof dateStr === 'string' && dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+           // Assume YYYY is last or first. 
+           let d, m, y;
+           if (parts[2].length === 4) { 
+             y = parseInt(parts[2], 10);
+             // Try DD/MM/YYYY
+             m = parseInt(parts[1], 10); d = parseInt(parts[0], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+             // Try MM/DD/YYYY
+             m = parseInt(parts[0], 10); d = parseInt(parts[1], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+           }
+           else if (parts[0].length === 4) { 
+             y = parseInt(parts[0], 10); m = parseInt(parts[1], 10); d = parseInt(parts[2], 10); 
+             if (y && m && d) {
+               const d2 = new Date(y, m - 1, d); // Month is 0-indexed
+               if (!isNaN(d2.getTime()) && d2.getDate() === d) candidates.push(d2);
+             }
+           }
+        }
+      }
+      return candidates;
+    }
+
     function renderReports(reportData) {
         // 1. Summary Metrics
         const totalCounts = reportData.length;
@@ -220,21 +259,31 @@
         
         let filtered = data;
         
+        let startDate = null;
         if (startVal) {
-            const startDate = new Date(startVal);
-            startDate.setHours(0,0,0,0);
+            const parts = startVal.split('-');
+            startDate = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+        
+        let endDate = null;
+        if (endVal) {
+            const parts = endVal.split('-');
+            endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+        }
+        
+        if (startDate) {
             filtered = filtered.filter(item => {
-                const d = new Date(item.createdDate || item.date);
-                return d >= startDate;
+                const dateStr = item.createdDate || item.date;
+                const dates = getCandidateDates(dateStr);
+                return dates.some(d => d >= startDate);
             });
         }
         
-        if (endVal) {
-            const endDate = new Date(endVal);
-            endDate.setHours(23,59,59,999);
+        if (endDate) {
             filtered = filtered.filter(item => {
-                const d = new Date(item.createdDate || item.date);
-                return d <= endDate;
+                const dateStr = item.createdDate || item.date;
+                const dates = getCandidateDates(dateStr);
+                return dates.some(d => d <= endDate);
             });
         }
         
