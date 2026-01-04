@@ -70,6 +70,7 @@
       function aggregateCount(items, keyFn){
         const map = Object.create(null);
         items.forEach(it => {
+          if(!it) return;
           const k = (keyFn(it) || 'Unknown').trim() || 'Unknown';
           map[k] = (map[k] || 0) + 1;
         });
@@ -170,7 +171,7 @@
         // 2. Timeline (Line) - Group by Created Date (YYYY-MM-DD)
         const byDate = {};
         docs.forEach(d => {
-            if(!d.createdAt) return;
+            if(!d || !d.createdAt) return;
             const date = new Date(Number(d.createdAt));
             if(isNaN(date.getTime())) return;
             const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
