@@ -182,12 +182,21 @@
         if (parts.length === 3) {
            // Assume YYYY is last or first. 
            let d, m, y;
-           if (parts[2].length === 4) { y = parseInt(parts[2], 10); m = parseInt(parts[1], 10); d = parseInt(parts[0], 10); } // DD/MM/YYYY
-           else if (parts[0].length === 4) { y = parseInt(parts[0], 10); m = parseInt(parts[1], 10); d = parseInt(parts[2], 10); } // YYYY/MM/DD
-           
-           if (y && m && d) {
-             const d2 = new Date(y, m - 1, d); // Month is 0-indexed
-             if (!isNaN(d2.getTime()) && d2.getDate() === d) candidates.push(d2);
+           if (parts[2].length === 4) { 
+             y = parseInt(parts[2], 10);
+             // Try DD/MM/YYYY
+             m = parseInt(parts[1], 10); d = parseInt(parts[0], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+             // Try MM/DD/YYYY
+             m = parseInt(parts[0], 10); d = parseInt(parts[1], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+           }
+           else if (parts[0].length === 4) { 
+             y = parseInt(parts[0], 10); m = parseInt(parts[1], 10); d = parseInt(parts[2], 10); 
+             if (y && m && d) {
+               const d2 = new Date(y, m - 1, d); // Month is 0-indexed
+               if (!isNaN(d2.getTime()) && d2.getDate() === d) candidates.push(d2);
+             }
            }
         }
       }
