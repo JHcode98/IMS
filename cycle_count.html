@@ -169,7 +169,7 @@
       if (endDate) {
         endDate.setHours(23, 59, 59, 999);
         filteredData = filteredData.filter(item => new Date(item.date) <= endDate);
-      });
+      }
 
       const totalRows = filteredData.length;
       const totalPages = Math.ceil(totalRows / rowsPerPage);
