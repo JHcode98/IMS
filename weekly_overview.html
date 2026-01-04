@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Documents Overview</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      padding: 2rem; 
+      background: #f4f6f8; 
+      color: #333; 
+    }
+    .card { 
+      background: white; 
+      padding: 2rem; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+      max-width: 900px; 
+      margin: 0 auto; 
+    }
+    h2 { margin-top: 0; }
+    .controls { 
+      margin-bottom: 1.5rem; 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+    }
+    select { 
+      padding: 0.5rem; 
+      font-size: 1rem; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+    }
+    .chart-wrapper { 
+      position: relative; 
+      height: 400px; 
+      width: 100%; 
+    }
+  </style>
+  <!-- Load Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="card">
+  <h2>Documents Created per Week</h2>
+  <div class="controls">
+    <label for="owner-select">Filter by Owner: </label>
+    <select id="owner-select">
+      <option value="ALL">All Owners</option>
+    </select>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="weeklyChart"></canvas>
+  </div>
+</div>
+
+<script>
+  const API_URL = '/api/docs';
+  let allDocs = [];
+  let chartInstance = null;
+
+  async function init() {
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const data = await res.json();
+      allDocs = data.docs || [];
+
+      // Populate Owner Select
+      const owners = [...new Set(allDocs.map(d => d.owner).filter(Boolean))].sort();
+      const select = document.getElementById('owner-select');
+      owners.forEach(owner => {
+        const opt = document.createElement('option');
+        opt.value = owner;
+        opt.textContent = owner;
+        select.appendChild(opt);
+      });
+
+      // Initial Render
+      updateChart('ALL');
+
+      // Listener
+      select.addEventListener('change', (e) => {
+        updateChart(e.target.value);
+      });
+
+    } catch (e) {
+      console.error('Failed to load data', e);
+      document.querySelector('.card').innerHTML += `<p style="color:red">Error loading data: ${e.message}. Ensure the server is running.</p>`;
+    }
+  }
+
+  function getWeeklyData(docs) {
+    const weeklyCounts = {};
+    
+    docs.forEach(doc => {
+      if (!doc.createdAt) return;
+      const date = new Date(parseInt(doc.createdAt));
+      // Get start of week (Sunday)
+      const startOfWeek = new Date(date);
+      startOfWeek.setDate(date.getDate() - date.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const label = startOfWeek.toLocaleDateString();
+      weeklyCounts[label] = (weeklyCounts[label] || 0) + 1;
+    });
+
+    // Sort by date
+    const sortedLabels = Object.keys(weeklyCounts).sort((a, b) => new Date(a) - new Date(b));
+    const data = sortedLabels.map(label => weeklyCounts[label]);
+
+    return { labels: sortedLabels, data };
+  }
+
+  function updateChart(selectedOwner) {
+    const filteredDocs = (selectedOwner === 'ALL') 
+      ? allDocs 
+      : allDocs.filter(d => d.owner === selectedOwner);
+
+    const { labels, data } = getWeeklyData(filteredDocs);
+    const ctx = document.getElementById('weeklyChart').getContext('2d');
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: selectedOwner === 'ALL' ? 'Documents (All Users)' : `Documents by ${selectedOwner}`,
+          data: data,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Number of Documents' },
+            ticks: { stepSize: 1 }
+          },
+          x: {
+            title: { display: true, text: 'Week Starting' }
+          }
+        }
+      }
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>
