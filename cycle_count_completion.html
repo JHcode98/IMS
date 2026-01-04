@@ -13,6 +13,7 @@
     .summary-label { color: #666; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
     .progress-container { background: #e9ecef; border-radius: 8px; height: 30px; width: 100%; overflow: hidden; margin-bottom: 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
     .completion-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease, background-color 0.3s ease; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px; text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+    .chart-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eef2f6; position: relative; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -181,6 +182,12 @@
         <p id="uncounted-loc-msg" class="muted" style="margin-top:5px; font-size:13px"></p>
       </div>
 
+      <!-- Overall Chart -->
+      <h3 style="margin-top:40px; border-bottom:2px solid #eee; padding-bottom:10px;">Overall Completion Chart</h3>
+      <div class="chart-container" style="height: 250px; margin-top: 15px;">
+        <canvas id="completion-chart"></canvas>
+      </div>
+
     </div>
   </main>
 
@@ -202,6 +209,7 @@
     const STORAGE_KEY_MASTER_LOC = 'ims_master_loc_list_v1';
     let currentUncounted = [];
     let currentUncountedLoc = [];
+    let completionChartInstance = null;
 
     function loadCompletionData() {
         const masterList = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER) || '[]');
@@ -355,6 +363,59 @@
         }
     }
 
+    function renderOverallCompletionChart() {
+        const skuPctText = document.getElementById('completion-bar').textContent || '0%';
+        const locPctText = document.getElementById('completion-loc-bar').textContent || '0%';
+        
+        const skuPct = parseFloat(skuPctText.replace('%', ''));
+        const locPct = parseFloat(locPctText.replace('%', ''));
+
+        const ctx = document.getElementById('completion-chart').getContext('2d');
+        if (completionChartInstance) {
+            completionChartInstance.destroy();
+        }
+        completionChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['SKU Completion', 'Location Completion'],
+                datasets: [{
+                    label: 'Completion %',
+                    data: [skuPct, locPct],
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.8)',
+                        'rgba(28, 200, 138, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(28, 200, 138, 1)'
+                    ],
+                    borderWidth: 1,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'SKU vs. Location Completion' }
+                }
+            }
+        });
+    }
+
     // Upload Handler
     document.getElementById('upload-master-btn').addEventListener('click', () => {
         const fileInput = document.getElementById('master-list-file');
@@ -381,6 +442,7 @@
             localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(uniqueMaster));
             alert(`Master list uploaded successfully. ${uniqueMaster.length} unique items found.`);
             loadCompletionData();
+            renderOverallCompletionChart();
             fileInput.value = '';
         };
         reader.readAsText(file);
@@ -390,6 +452,7 @@
         if(confirm('Clear the master SKU list?')) {
             localStorage.removeItem(STORAGE_KEY_MASTER);
             loadCompletionData();
+            renderOverallCompletionChart();
         }
     });
 
@@ -418,6 +481,7 @@
             localStorage.setItem(STORAGE_KEY_MASTER_LOC, JSON.stringify(uniqueMaster));
             alert(`Master location list uploaded successfully. ${uniqueMaster.length} unique locations found.`);
             loadLocationCompletionData();
+            renderOverallCompletionChart();
             fileInput.value = '';
         };
         reader.readAsText(file);
@@ -427,6 +491,7 @@
         if(confirm('Clear the master Location list?')) {
             localStorage.removeItem(STORAGE_KEY_MASTER_LOC);
             loadLocationCompletionData();
+            renderOverallCompletionChart();
         }
     });
 
@@ -500,6 +565,7 @@
 
     loadCompletionData();
     loadLocationCompletionData();
+    renderOverallCompletionChart();
   </script>
 </body>
 </html>
