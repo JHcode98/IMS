@@ -55,7 +55,7 @@
       async function loadDocs(){
         try{ 
           const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-          return Array.isArray(d) ? d : [];
+          return Array.isArray(d) ? d.filter(x => x && typeof x === 'object') : [];
         }
         catch(e){ return []; }
       }
@@ -193,15 +193,17 @@
         const ownerLabels = topOwners.map(e => e[0]);
         const ownerData = topOwners.map(e => e[1]);
 
-        const ctxStatus = document.getElementById('chart-status').getContext('2d');
-        const ctxTimeline = document.getElementById('chart-timeline').getContext('2d');
-        const ctxTitle = document.getElementById('chart-title').getContext('2d');
-        const ctxOwner = document.getElementById('chart-owner').getContext('2d');
-
-        renderPie(ctxStatus, statusLabels, statusData, 'Status Distribution');
-        renderLine(ctxTimeline, sortedDates, dateData, 'Documents Created');
-        renderBar(ctxTitle, titleLabels, titleData, 'Documents by Title', 'rgba(75,192,192,0.6)');
-        renderBar(ctxOwner, ownerLabels, ownerData, 'Documents by Owner', 'rgba(153,102,255,0.6)');
+        const cStatus = document.getElementById('chart-status');
+        if(cStatus) renderPie(cStatus.getContext('2d'), statusLabels, statusData, 'Status Distribution');
+        
+        const cTimeline = document.getElementById('chart-timeline');
+        if(cTimeline) renderLine(cTimeline.getContext('2d'), sortedDates, dateData, 'Documents Created');
+        
+        const cTitle = document.getElementById('chart-title');
+        if(cTitle) renderBar(cTitle.getContext('2d'), titleLabels, titleData, 'Documents by Title', 'rgba(75,192,192,0.6)');
+        
+        const cOwner = document.getElementById('chart-owner');
+        if(cOwner) renderBar(cOwner.getContext('2d'), ownerLabels, ownerData, 'Documents by Owner', 'rgba(153,102,255,0.6)');
       })();
     </script>
   </body>
