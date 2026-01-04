@@ -163,6 +163,7 @@ function loadDocs(){
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
   if(!Array.isArray(docs)) docs = [];
+  docs = docs.filter(d => d && typeof d === 'object');
   // migrate legacy 'Received' status: preserve as adminStatus and set a sane status value
   try{
     docs.forEach(d => {
@@ -487,11 +488,11 @@ function renderLeftSidebar(){
   }
 
   // Routing by Status
-  const routingByStatusDocs = docs.filter(d => d.status === 'Routing');
+  const routingByStatusDocs = docs.filter(d => d && d.status === 'Routing');
   renderList(byStatus, routingByStatusDocs, byStatusPage, byStatusPagination);
 
   // Revision by Status
-  const revisionByStatusDocs = docs.filter(d => d.status === 'Revision');
+  const revisionByStatusDocs = docs.filter(d => d && d.status === 'Revision');
   renderList(byWins, revisionByStatusDocs, byWinsPage, byWinsPagination);
 
 
@@ -517,10 +518,10 @@ function renderAdminInbox(externalFilter){
   adminInboxQuery = q;
   let list = (docs || []).slice();
   // Apply filter
-  if(f === 'forwarded') list = list.filter(d => d.forwarded === true);
-  else if(f === 'received') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'received');
-  else if(f === 'returned') list = list.filter(d => String(d.adminStatus).toLowerCase() === 'returned');
-  else list = list.filter(d => d.forwarded || d.adminStatus);
+  if(f === 'forwarded') list = list.filter(d => d && d.forwarded === true);
+  else if(f === 'received') list = list.filter(d => d && String(d.adminStatus).toLowerCase() === 'received');
+  else if(f === 'returned') list = list.filter(d => d && String(d.adminStatus).toLowerCase() === 'returned');
+  else list = list.filter(d => d && (d.forwarded || d.adminStatus));
   // Apply search query
   if(adminInboxQuery){
     const ql = adminInboxQuery.toLowerCase();
