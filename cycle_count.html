@@ -98,6 +98,9 @@
           </button>
           <button id="clear-date-filter-btn" class="icon-btn" title="Clear Date Filter" style="margin-left:-4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
+          <button id="delete-selected-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; margin-left: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+          </button>
           <button id="export-csv-btn" class="icon-btn" title="Export to CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           </button>
@@ -147,6 +150,7 @@
     const endDateInput = document.getElementById('end-date');
     const clearDateFilterBtn = document.getElementById('clear-date-filter-btn');
     const filterDateBtn = document.getElementById('filter-date-btn');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     
     let currentPage = 1;
     let rowsPerPage = 10;
@@ -203,7 +207,7 @@
         const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : '';
         
         tr.innerHTML = `
-          <td style="padding:8px;border-bottom:1px solid #eee"><input type="checkbox" class="row-checkbox"></td>
+          <td style="padding:8px;border-bottom:1px solid #eee"><input type="checkbox" class="row-checkbox" data-index="${item.originalIndex}"></td>
           <td style="padding:8px;border-bottom:1px solid #eee">${timestamp}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${createdDate}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.itemCode}</td>
@@ -277,6 +281,22 @@
         }
       }
     });
+
+    if(deleteSelectedBtn) {
+      deleteSelectedBtn.addEventListener('click', () => {
+        const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+        if(!selected.length) { alert('No items selected'); return; }
+        if(!confirm(`Are you sure you want to delete ${selected.length} records?`)) return;
+        
+        const indices = selected.map(cb => parseInt(cb.dataset.index));
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+        const newData = data.filter((_, idx) => !indices.includes(idx));
+        
+        localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(newData));
+        loadData();
+        if(selectAllCc) selectAllCc.checked = false;
+      });
+    }
 
     // Checkbox highlight logic
     tableBody.addEventListener('change', (e) => {
@@ -415,8 +435,10 @@
             const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
             
             let dateVal = new Date().toISOString();
-            if (headers.includes('Timestamp')) {
-                const ts = values[headers.indexOf('Timestamp')];
+            // Allow Timestamp or Date column for historical records
+            const dateIdx = headers.indexOf('Timestamp') !== -1 ? headers.indexOf('Timestamp') : headers.indexOf('Date');
+            if (dateIdx !== -1) {
+                const ts = values[dateIdx];
                 if (ts) { const d = new Date(ts); if (!isNaN(d.getTime())) dateVal = d.toISOString(); }
             }
 
