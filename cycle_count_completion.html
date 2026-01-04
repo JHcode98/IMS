@@ -12,7 +12,7 @@
     .summary-value { font-size: 2.5em; font-weight: bold; color: #2752a7; margin-bottom: 5px; }
     .summary-label { color: #666; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
     .progress-container { background: #e9ecef; border-radius: 8px; height: 30px; width: 100%; overflow: hidden; margin-bottom: 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
-    #completion-bar { height: 100%; width: 0%; transition: width 0.5s ease, background-color 0.3s ease; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px; text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+    .completion-bar-fill { height: 100%; width: 0%; transition: width 0.5s ease, background-color 0.3s ease; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px; text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
   </style>
 </head>
 <body class="inventory-mode">
@@ -71,9 +71,10 @@
       <h2>Completion Status</h2>
       <p class="muted">This module will track the completion progress of cycle counts against the master inventory list.</p>
       
-      <!-- Master List Section -->
+      <!-- SKU Completion Section -->
+      <h3 style="margin-top:20px; border-bottom:2px solid #eee; padding-bottom:10px;">SKU Completion</h3>
       <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #eef2f6; margin-top: 15px;">
-        <h3>1. Master SKU List</h3>
+        <h4>Master SKU List</h4>
         <p class="muted">Upload a CSV file containing the full list of Item Codes to track progress against.</p>
         <div style="display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap: wrap;">
           <input type="file" id="master-list-file" accept=".csv" style="padding: 6px; background: #fff;">
@@ -84,11 +85,10 @@
         <p id="master-status" style="margin-top:10px; font-weight:bold; color:#2752a7"></p>
       </div>
 
-      <!-- Progress Section -->
       <div style="margin-bottom: 20px;">
-        <h3>2. Completion Progress</h3>
+        <h4>SKU Progress</h4>
         <div class="progress-container">
-          <div id="completion-bar">0%</div>
+          <div id="completion-bar" class="completion-bar-fill">0%</div>
         </div>
         
         <div class="report-grid">
@@ -107,10 +107,9 @@
         </div>
       </div>
 
-      <!-- Uncounted SKUs Section -->
       <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-            <h3>3. Uncounted SKUs Details</h3>
+            <h4>Uncounted SKUs Details</h4>
             <button id="export-uncounted-btn">Export Uncounted CSV</button>
         </div>
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; background: #fff;">
@@ -126,6 +125,62 @@
         </div>
         <p id="uncounted-msg" class="muted" style="margin-top:5px; font-size:13px"></p>
       </div>
+
+      <!-- Location Completion Section -->
+      <h3 style="margin-top:40px; border-bottom:2px solid #eee; padding-bottom:10px;">Location Completion</h3>
+      <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #eef2f6; margin-top: 15px;">
+        <h4>Master Location List</h4>
+        <p class="muted">Upload a CSV file containing the full list of Locations to track progress against.</p>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap: wrap;">
+          <input type="file" id="master-loc-file" accept=".csv" style="padding: 6px; background: #fff;">
+          <button id="upload-master-loc-btn">Upload Master Locations</button>
+          <button id="clear-master-loc-btn" style="background:#d9534f; color: white;">Clear Master Locations</button>
+          <button id="download-master-loc-template-btn" style="background:#fff; color:#333; border:1px solid #ccc;">Download Template</button>
+        </div>
+        <p id="master-loc-status" style="margin-top:10px; font-weight:bold; color:#2752a7"></p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h4>Location Progress</h4>
+        <div class="progress-container">
+          <div id="completion-loc-bar" class="completion-bar-fill">0%</div>
+        </div>
+        
+        <div class="report-grid">
+          <div class="summary-card">
+            <div class="summary-value" id="stat-total-loc-master">0</div>
+            <div class="summary-label">Total Master Locations</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" id="stat-loc-counted">0</div>
+            <div class="summary-label">Locations Counted</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" id="stat-loc-remaining">0</div>
+            <div class="summary-label">Remaining Locations</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+            <h4>Uncounted Locations Details</h4>
+            <button id="export-uncounted-loc-btn">Export Uncounted CSV</button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; background: #fff;">
+            <table id="uncounted-loc-table" style="width:100%; border-collapse: collapse;">
+                <thead style="position:sticky; top:0; background:#f9fbfd; z-index:1;">
+                    <tr>
+                        <th style="padding:10px; text-align:left; border-bottom:1px solid #ddd;">Location</th>
+                        <th style="padding:10px; text-align:left; border-bottom:1px solid #ddd;">Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <p id="uncounted-loc-msg" class="muted" style="margin-top:5px; font-size:13px"></p>
+      </div>
+
     </div>
   </main>
 
@@ -144,7 +199,9 @@
 
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const STORAGE_KEY_MASTER = 'ims_master_sku_list_v1';
+    const STORAGE_KEY_MASTER_LOC = 'ims_master_loc_list_v1';
     let currentUncounted = [];
+    let currentUncountedLoc = [];
 
     function loadCompletionData() {
         const masterList = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER) || '[]');
@@ -194,6 +251,49 @@
         renderUncountedTable(uncounted);
     }
 
+    function loadLocationCompletionData() {
+        const masterLocList = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER_LOC) || '[]');
+        const cycleData = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+        
+        const countedLocSet = new Set(cycleData.map(item => String(item.location).trim()));
+        
+        const totalMaster = masterLocList.length;
+        let countedFromMaster = 0;
+        let uncounted = [];
+        
+        if (totalMaster > 0) {
+             uncounted = masterLocList.filter(loc => !countedLocSet.has(String(loc).trim()));
+             countedFromMaster = totalMaster - uncounted.length;
+        }
+        currentUncountedLoc = uncounted;
+        
+        const percentage = totalMaster > 0 ? ((countedFromMaster / totalMaster) * 100).toFixed(1) : 0;
+        const remaining = totalMaster - countedFromMaster;
+        
+        document.getElementById('stat-total-loc-master').textContent = totalMaster;
+        document.getElementById('stat-loc-counted').textContent = countedFromMaster;
+        document.getElementById('stat-loc-remaining').textContent = remaining;
+        
+        const bar = document.getElementById('completion-loc-bar');
+        bar.style.width = percentage + '%';
+        bar.textContent = percentage + '%';
+        
+        if(percentage < 30) bar.style.backgroundColor = '#e74c3c';
+        else if(percentage < 70) bar.style.backgroundColor = '#f1c40f';
+        else bar.style.backgroundColor = '#2ecc71';
+        
+        const statusText = document.getElementById('master-loc-status');
+        if(totalMaster === 0) {
+            statusText.textContent = 'No Master Location List loaded.';
+            statusText.style.color = '#e74c3c';
+        } else {
+            statusText.textContent = `Master Location List Loaded: ${totalMaster} locations.`;
+            statusText.style.color = '#2752a7';
+        }
+        
+        renderUncountedLocTable(uncounted);
+    }
+
     function renderUncountedTable(list) {
         const tbody = document.querySelector('#uncounted-table tbody');
         const msg = document.getElementById('uncounted-msg');
@@ -222,6 +322,36 @@
             msg.textContent = `Showing first ${displayLimit} of ${list.length} uncounted items. Use Export to see full list.`;
         } else {
             msg.textContent = `Showing all ${list.length} uncounted items.`;
+        }
+    }
+
+    function renderUncountedLocTable(list) {
+        const tbody = document.querySelector('#uncounted-loc-table tbody');
+        const msg = document.getElementById('uncounted-loc-msg');
+        tbody.innerHTML = '';
+        
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="padding:15px; text-align:center; color:#666;">No uncounted locations found (or no master list loaded).</td></tr>';
+            msg.textContent = '';
+            return;
+        }
+
+        const displayLimit = 500;
+        const displayList = list.slice(0, displayLimit);
+        
+        displayList.forEach(loc => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding:8px; border-bottom:1px solid #eee;">${loc}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><span style="background:#fdecea; color:#e74c3c; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">Pending</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (list.length > displayLimit) {
+            msg.textContent = `Showing first ${displayLimit} of ${list.length} uncounted locations. Use Export to see full list.`;
+        } else {
+            msg.textContent = `Showing all ${list.length} uncounted locations.`;
         }
     }
 
@@ -263,6 +393,43 @@
         }
     });
 
+    // Upload Location Master
+    document.getElementById('upload-master-loc-btn').addEventListener('click', () => {
+        const fileInput = document.getElementById('master-loc-file');
+        const file = fileInput.files[0];
+        if(!file) { alert('Please select a CSV file first.'); return; }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            const lines = text.split(/\r\n|\n/);
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            let colIdx = headers.indexOf('Location');
+            if(colIdx === -1) colIdx = 0;
+
+            const newMaster = [];
+            for(let i=1; i<lines.length; i++) {
+                if(!lines[i].trim()) continue;
+                const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+                if(cols[colIdx]) newMaster.push(cols[colIdx]);
+            }
+
+            const uniqueMaster = [...new Set(newMaster)];
+            localStorage.setItem(STORAGE_KEY_MASTER_LOC, JSON.stringify(uniqueMaster));
+            alert(`Master location list uploaded successfully. ${uniqueMaster.length} unique locations found.`);
+            loadLocationCompletionData();
+            fileInput.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('clear-master-loc-btn').addEventListener('click', () => {
+        if(confirm('Clear the master Location list?')) {
+            localStorage.removeItem(STORAGE_KEY_MASTER_LOC);
+            loadLocationCompletionData();
+        }
+    });
+
     // Download Template
     document.getElementById('download-master-template-btn').addEventListener('click', () => {
         const headers = ['Item Code', 'Description (Optional)'];
@@ -275,6 +442,24 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = 'master_sku_list_template.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // Download Location Template
+    document.getElementById('download-master-loc-template-btn').addEventListener('click', () => {
+        const headers = ['Location', 'Description (Optional)'];
+        const sample = ['A-01-01', 'Aisle A'];
+        const sample2 = ['A-01-02', 'Aisle A'];
+        const csvContent = headers.join(',') + '\n' + sample.join(',') + '\n' + sample2.join(',');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'master_location_list_template.csv';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -297,7 +482,24 @@
         URL.revokeObjectURL(url);
     });
 
+    // Export Uncounted Locations
+    document.getElementById('export-uncounted-loc-btn').addEventListener('click', () => {
+        if(currentUncountedLoc.length === 0) { alert('No uncounted locations to export.'); return; }
+        
+        const csvContent = "Location,Status\n" + currentUncountedLoc.map(loc => `"${loc}",Pending`).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'uncounted_locations.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
     loadCompletionData();
+    loadLocationCompletionData();
   </script>
 </body>
 </html>
