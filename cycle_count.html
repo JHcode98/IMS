@@ -143,6 +143,7 @@
 
   <script src="app.js"></script>
   <script>
+    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
     // Cycle Count Logic
     const form = document.getElementById('cycle-count-form');
     const tableBody = document.querySelector('#cycle-count-table tbody');
