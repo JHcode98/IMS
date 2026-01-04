@@ -360,16 +360,20 @@ function drawBarChart(canvasId, data) {
 
 function renderDashboardSummaries(currentList){
   const titleContainer = document.getElementById('summary-by-title');
-  const ownerContainer = document.getElementById('summary-by-owner');
-  if(!titleContainer || !ownerContainer) return;
+  const weekContainer = document.getElementById('summary-by-week');
+  const ownerContainer = document.getElementById('summary-by-owner-bar');
+  if(!titleContainer || !weekContainer) return;
 
   const list = currentList || docs;
   const byTitle = {};
   const byWeek = {};
+  const byOwner = {};
   
   list.forEach(d => {
     const t = d.title || 'Unknown';
     byTitle[t] = (byTitle[t] || 0) + 1;
+    const o = d.owner || 'Unknown';
+    byOwner[o] = (byOwner[o] || 0) + 1;
     if(d.createdAt){
       const date = new Date(Number(d.createdAt));
       const startOfWeek = new Date(date);
@@ -399,6 +403,13 @@ function renderDashboardSummaries(currentList){
     html += '</ul>';
     container.innerHTML = html;
     setTimeout(() => drawPieChart('title-pie-chart', map), 0);
+  };
+
+  // Render Owner (Bar Chart)
+  const renderOwner = (map, container) => {
+    if(!container) return;
+    container.innerHTML = '<div style="text-align:center;margin-bottom:12px"><canvas id="owner-bar-chart" width="280" height="160"></canvas></div>';
+    setTimeout(() => drawBarChart('owner-bar-chart', map), 0);
   };
 
   // Render Week (Line Chart)
@@ -435,7 +446,8 @@ function renderDashboardSummaries(currentList){
   };
 
   renderTitle(byTitle, titleContainer);
-  renderWeek(byWeek, ownerContainer);
+  renderWeek(byWeek, weekContainer);
+  renderOwner(byOwner, ownerContainer);
 }
 
 function computeWinsCounts(){
