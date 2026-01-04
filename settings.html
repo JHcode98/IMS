@@ -35,8 +35,6 @@
     <h1>Settings</h1>
     <div class="navbar" role="navigation">
       <div class="nav-left">
-        <!-- DMS specific links hidden here or can be links back to index -->
-        <a href="index.html" class="nav-btn">Dashboard</a>
       </div>
       <div class="nav-right">
         <div id="clock" class="clock" aria-live="polite"></div>
@@ -91,6 +89,26 @@
 
         <button type="button" onclick="alert('Settings saved!')">Save Changes</button>
       </form>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h2>System Logs</h2>
+      <p class="muted">Recent system activities and audit trails.</p>
+      <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+        <thead>
+          <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+            <th style="padding: 8px; text-align: left;">Timestamp</th>
+            <th style="padding: 8px; text-align: left;">User</th>
+            <th style="padding: 8px; text-align: left;">Action</th>
+            <th style="padding: 8px; text-align: left;">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+           <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">2023-10-27 10:30</td><td style="padding: 8px; border-bottom: 1px solid #eee;">admin</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Login</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Successful login</td></tr>
+           <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">2023-10-27 10:35</td><td style="padding: 8px; border-bottom: 1px solid #eee;">admin</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Update Doc</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Updated ECOM-2023-001 status to Approved</td></tr>
+           <tr><td style="padding: 8px; border-bottom: 1px solid #eee;">2023-10-27 11:00</td><td style="padding: 8px; border-bottom: 1px solid #eee;">user1</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Create Doc</td><td style="padding: 8px; border-bottom: 1px solid #eee;">Created new document ECOM-2023-005</td></tr>
+        </tbody>
+      </table>
     </div>
   </main>
 
