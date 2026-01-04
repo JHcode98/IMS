@@ -87,8 +87,14 @@
     <div class="card" style="margin-top: 20px;">
       <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h2>Cycle Count Records</h2>
-        <div class="tools" style="display:flex; gap: 8px; align-items: center;">
-          <input type="text" id="search-item-code" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc; flex: 1;">
+        <div class="tools" style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="search-item-code" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+          <label for="start-date" style="font-size:13px;color:var(--muted);margin-left:8px;">From:</label>
+          <input type="date" id="start-date" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
+          <label for="end-date" style="font-size:13px;color:var(--muted)">To:</label>
+          <input type="date" id="end-date" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
+          <button id="clear-date-filter-btn" class="icon-btn" title="Clear Date Filter" style="margin-left:-4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+          
           <button id="export-csv-btn" class="icon-btn" title="Export to CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           </button>
@@ -129,10 +135,13 @@
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const cycleCountSearchInput = document.getElementById('search-item-code');
     const exportBtn = document.getElementById('export-csv-btn');
-    const downloadTemplateBtn = document.getElementById('download-template-btn');
+    const ccDownloadTemplateBtn = document.getElementById('download-template-btn');
     const importBtn = document.getElementById('import-csv-btn');
-    const importFile = document.getElementById('import-csv-file');
+    const ccImportFile = document.getElementById('import-csv-file');
     const selectAllCc = document.getElementById('select-all-cc');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const clearDateFilterBtn = document.getElementById('clear-date-filter-btn');
     
     let currentPage = 1;
     let rowsPerPage = 10;
@@ -147,6 +156,19 @@
         if (searchTerms.length === 0) return true;
         const itemText = [item.itemCode, item.location, item.notes || ''].join(' ').toLowerCase();
         return searchTerms.every(term => itemText.includes(term));
+      });
+
+      // Date range filter
+      const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+      const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+
+      if (startDate) {
+        startDate.setHours(0, 0, 0, 0);
+        filteredData = filteredData.filter(item => new Date(item.date) >= startDate);
+      }
+      if (endDate) {
+        endDate.setHours(23, 59, 59, 999);
+        filteredData = filteredData.filter(item => new Date(item.date) <= endDate);
       });
 
       const totalRows = filteredData.length;
@@ -298,8 +320,6 @@
       };
     }
 
-    cycleCountSearchInput.addEventListener('input', loadData);
-
     function exportToCSV() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
       if (data.length === 0) {
@@ -356,11 +376,11 @@
     }
 
     exportBtn.addEventListener('click', exportToCSV);
-    if(downloadTemplateBtn) downloadTemplateBtn.addEventListener('click', downloadTemplate);
+    if(ccDownloadTemplateBtn) ccDownloadTemplateBtn.addEventListener('click', downloadTemplate);
 
-    importBtn.addEventListener('click', () => importFile.click());
+    importBtn.addEventListener('click', () => ccImportFile.click());
 
-    importFile.addEventListener('change', (e) => {
+    ccImportFile.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -407,10 +427,20 @@
           console.error('Import error:', error);
           alert('Failed to import CSV file. Please check the file format.');
         } finally {
-          importFile.value = '';
+          ccImportFile.value = '';
         }
       };
       reader.readAsText(file);
+    });
+
+    // Event Listeners
+    cycleCountSearchInput.addEventListener('input', loadData);
+    startDateInput.addEventListener('change', loadData);
+    endDateInput.addEventListener('change', loadData);
+    clearDateFilterBtn.addEventListener('click', () => {
+        startDateInput.value = '';
+        endDateInput.value = '';
+        loadData();
     });
 
     loadData();
