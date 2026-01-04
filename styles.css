@@ -542,3 +542,37 @@ body { transition: padding-left 0.3s ease; }
 
 body.main-sidebar-collapsed { padding-left: 60px; }
 body.main-sidebar-collapsed .navbar { left: 60px; }
+
+/* Tooltips for collapsed sidebar */
+#app-sidebar.collapsed .sidebar-menu li button {
+  position: relative;
+}
+#app-sidebar.collapsed .sidebar-menu li button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #2c3e50;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 1000;
+  margin-left: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+#app-sidebar.collapsed .sidebar-menu li button:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hide DMS nav items when in inventory mode */
+body.inventory-mode .navbar .nav-left {
+  display: none !important;
+}
