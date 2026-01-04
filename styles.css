@@ -272,6 +272,7 @@ body{padding-top:64px}
 
 /* Navbar groups */
 .navbar .nav-left, .navbar .nav-right{display:flex;align-items:center;gap:8px}
+.navbar .nav-right{margin-left:auto}
 
 /* Links inside the navbar */
 .navbar a {
