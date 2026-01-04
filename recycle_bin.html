@@ -25,6 +25,9 @@
   </main>
   <script src="app.js"></script>
   <script>
+    // Auth check: redirect to login if not signed in
+    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+
     // Fix for Recycle Bin: Ensure restore/delete operations handle localStorage correctly
     const DOCS_KEY = 'dms_docs_v1';
     const BIN_KEY = 'dms_recycle_v1';
