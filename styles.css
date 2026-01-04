@@ -577,3 +577,35 @@ body.main-sidebar-collapsed .navbar { left: 60px; }
 body.inventory-mode .navbar .nav-left {
   display: none !important;
 }
+
+/* Sidebar Submenu */
+.sidebar-submenu {
+  display: none;
+  list-style: none;
+  padding: 0;
+  background: #0f161d;
+}
+.sidebar-menu li:hover .sidebar-submenu {
+  display: block;
+}
+.sidebar-submenu li button {
+  padding: 12px 20px 12px 52px; /* Indent */
+  font-size: 14px;
+  color: #a0aab5;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.sidebar-submenu li button:hover {
+  color: #fff;
+  background: #1a252f;
+}
+
+/* Collapsed Sidebar Submenu overrides */
+#app-sidebar.collapsed .sidebar-menu li:hover .sidebar-submenu {
+  position: absolute; left: 100%; top: 0; width: 200px;
+  display: block; background: #1a252f; box-shadow: 4px 0 8px rgba(0,0,0,0.2); border-left: 1px solid #2c3e50;
+}
+#app-sidebar.collapsed .sidebar-submenu li button { padding: 12px 20px; }
