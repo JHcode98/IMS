@@ -2402,6 +2402,30 @@ downloadTemplateBtn && downloadTemplateBtn.addEventListener('click', () => {
   downloadTemplate();
 });
 
+// --- Main Sidebar Navigation Logic ---
+const navDmsBtn = document.getElementById('nav-dms-btn');
+const navInventoryBtn = document.getElementById('nav-inventory-btn');
+const inventorySection = document.getElementById('inventory-system');
+
+if(navDmsBtn && navInventoryBtn){
+  navDmsBtn.addEventListener('click', () => {
+    // Show DMS
+    navDmsBtn.classList.add('active');
+    navInventoryBtn.classList.remove('active');
+    if(dashboard) dashboard.classList.remove('hidden');
+    if(inventorySection) inventorySection.classList.add('hidden');
+    // Ensure header title reflects current system if needed, or keep global title
+  });
+
+  navInventoryBtn.addEventListener('click', () => {
+    // Show Inventory
+    navInventoryBtn.classList.add('active');
+    navDmsBtn.classList.remove('active');
+    if(dashboard) dashboard.classList.add('hidden');
+    if(inventorySection) inventorySection.classList.remove('hidden');
+  });
+}
+
 const selectAll = document.getElementById('select-all');
 const bulkUpdateBtn = document.getElementById('bulk-update');
 const bulkDeleteBtn = document.getElementById('bulk-delete');
