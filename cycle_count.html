@@ -118,7 +118,7 @@
     const form = document.getElementById('cycle-count-form');
     const tableBody = document.querySelector('#cycle-count-table tbody');
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
-    const searchInput = document.getElementById('search-item-code');
+    const cycleCountSearchInput = document.getElementById('search-item-code');
     const exportBtn = document.getElementById('export-csv-btn');
     const importBtn = document.getElementById('import-csv-btn');
     const importFile = document.getElementById('import-csv-file');
@@ -128,7 +128,7 @@
       // Add original index to handle deletion after filtering
       data = data.map((item, index) => ({ ...item, originalIndex: index }));
       
-      const searchTerm = searchInput.value.toLowerCase();
+      const searchTerm = cycleCountSearchInput.value.toLowerCase();
       const filteredData = searchTerm
         ? data.filter(item => item.itemCode.toLowerCase().includes(searchTerm))
         : data;
@@ -191,7 +191,7 @@
       }
     });
 
-    searchInput.addEventListener('input', loadData);
+    cycleCountSearchInput.addEventListener('input', loadData);
 
     function exportToCSV() {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
