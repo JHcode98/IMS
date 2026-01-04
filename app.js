@@ -365,40 +365,77 @@ function renderDashboardSummaries(currentList){
 
   const list = currentList || docs;
   const byTitle = {};
-  const byOwner = {};
+  const byWeek = {};
   
   list.forEach(d => {
     const t = d.title || 'Unknown';
     byTitle[t] = (byTitle[t] || 0) + 1;
-    const o = d.owner || 'Unknown';
-    byOwner[o] = (byOwner[o] || 0) + 1;
+    if(d.createdAt){
+      const date = new Date(Number(d.createdAt));
+      const startOfWeek = new Date(date);
+      startOfWeek.setDate(date.getDate() - date.getDay());
+      startOfWeek.setHours(0,0,0,0);
+      const k = startOfWeek.toLocaleDateString();
+      byWeek[k] = (byWeek[k] || 0) + 1;
+    }
   });
 
   const colors = ['#2752a7', '#4a90e2', '#f39c12', '#e74c3c', '#2ecc71', '#9b59b6', '#34495e', '#95a5a6'];
 
-  // Helper to render list
-  const render = (map, container, isTitle) => {
+  // Render Title (Pie + List)
+  const renderTitle = (map, container) => {
     const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]);
     if(sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
     
     let html = '';
-    if(isTitle) html += '<div style="text-align:center;margin-bottom:12px"><canvas id="title-pie-chart" width="160" height="160"></canvas></div>';
-    else html += '<div style="text-align:center;margin-bottom:12px"><canvas id="owner-bar-chart" width="280" height="160"></canvas></div>';
+    html += '<div style="text-align:center;margin-bottom:12px"><canvas id="title-pie-chart" width="160" height="160"></canvas></div>';
     
     html += '<ul class="approved-ul">';
     sorted.forEach(([k, v], idx) => {
       const color = colors[idx % colors.length];
-      const dot = isTitle ? `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:8px;"></span>` : '';
+      const dot = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:8px;"></span>`;
       html += `<li style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;cursor:pointer" onclick="window.location.href='documents_full.html?q=${encodeURIComponent(k)}'" title="Filter by ${escapeHtml(k)}"><span>${dot}${escapeHtml(k)}</span> <span class="nav-badge" style="background:#eef4ff;color:#2752a7">${v}</span></li>`;
     });
     html += '</ul>';
     container.innerHTML = html;
-    if(isTitle) setTimeout(() => drawPieChart('title-pie-chart', map), 0);
-    else setTimeout(() => drawBarChart('owner-bar-chart', map), 0);
+    setTimeout(() => drawPieChart('title-pie-chart', map), 0);
   };
 
-  render(byTitle, titleContainer, true);
-  render(byOwner, ownerContainer, false);
+  // Render Week (Line Chart)
+  const renderWeek = (map, container) => {
+    const sortedLabels = Object.keys(map).sort((a, b) => new Date(a) - new Date(b));
+    if(sortedLabels.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
+    
+    container.innerHTML = '<div style="position:relative;height:250px;width:100%"><canvas id="weekly-line-chart"></canvas></div>';
+    setTimeout(() => {
+      const ctx = document.getElementById('weekly-line-chart');
+      if(ctx && typeof Chart !== 'undefined'){
+        if(window.weeklyChartInstance) { window.weeklyChartInstance.destroy(); window.weeklyChartInstance = null; }
+        window.weeklyChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: sortedLabels,
+            datasets: [{
+              label: 'Documents Created',
+              data: sortedLabels.map(l => map[l]),
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              tension: 0.1,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+          }
+        });
+      }
+    }, 0);
+  };
+
+  renderTitle(byTitle, titleContainer);
+  renderWeek(byWeek, ownerContainer);
 }
 
 function computeWinsCounts(){
