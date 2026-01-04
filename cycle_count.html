@@ -164,6 +164,36 @@
     let currentPage = 1;
     let rowsPerPage = 10;
 
+    function getCandidateDates(dateStr) {
+      if (!dateStr) return [];
+      const candidates = [];
+      
+      // 1. Standard parse (handles ISO, MM/DD/YYYY, etc.)
+      let s = dateStr;
+      // Fix ISO UTC issue: treat YYYY-MM-DD as local
+      if (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
+      
+      const d1 = new Date(s);
+      if (!isNaN(d1.getTime())) candidates.push(d1);
+
+      // 2. Try parsing as DD/MM/YYYY explicitly if it contains slashes
+      if (typeof dateStr === 'string' && dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+           // Assume YYYY is last or first. 
+           let d, m, y;
+           if (parts[2].length === 4) { y = parseInt(parts[2], 10); m = parseInt(parts[1], 10); d = parseInt(parts[0], 10); } // DD/MM/YYYY
+           else if (parts[0].length === 4) { y = parseInt(parts[0], 10); m = parseInt(parts[1], 10); d = parseInt(parts[2], 10); } // YYYY/MM/DD
+           
+           if (y && m && d) {
+             const d2 = new Date(y, m - 1, d); // Month is 0-indexed
+             if (!isNaN(d2.getTime()) && d2.getDate() === d) candidates.push(d2);
+           }
+        }
+      }
+      return candidates;
+    }
+
     function loadData() {
       let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
       // Add original index to handle deletion after filtering
@@ -192,17 +222,15 @@
       if (startDate) {
         filteredData = filteredData.filter(item => {
           const dateStr = filterType === 'created' ? item.createdDate : item.date;
-          if (!dateStr) return false;
-          const d = new Date(dateStr);
-          return !isNaN(d.getTime()) && d >= startDate;
+          const dates = getCandidateDates(dateStr);
+          return dates.some(d => d >= startDate);
         });
       }
       if (endDate) {
         filteredData = filteredData.filter(item => {
           const dateStr = filterType === 'created' ? item.createdDate : item.date;
-          if (!dateStr) return false;
-          const d = new Date(dateStr);
-          return !isNaN(d.getTime()) && d <= endDate;
+          const dates = getCandidateDates(dateStr);
+          return dates.some(d => d <= endDate);
         });
       }
 
