@@ -228,6 +228,7 @@ function renderDocs(filter){
   }
 
   list.forEach(doc => {
+    if(!doc) return;
     const tr = document.createElement('tr');
     const createdText = doc.createdAt ? msToDatetimeLocal(doc.createdAt).replace('T',' ') : '';
     const updatedText = doc.updatedAt ? new Date(doc.updatedAt).toLocaleString() : '';
@@ -295,6 +296,7 @@ try{ updateAdminInboxBadge(); }catch(e){}
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
   docs.forEach(d => {
+    if(!d) return;
     const w = d.winsStatus || 'Pending for Approve';
     if(!(w in counts)) counts[w] = 0;
     counts[w]++;
@@ -351,7 +353,7 @@ function computeAgeOverview(){
   const now = Date.now();
   const out = {};
   statuses.forEach(status => {
-    const docsFor = docs.filter(d => d.status === status && d.createdAt);
+    const docsFor = docs.filter(d => d && d.status === status && d.createdAt);
     const ages = docsFor.map(d => Math.max(0, Math.floor((now - Number(d.createdAt)) / msDay)));
     const total = docsFor.length;
     const avg = total ? Math.round(ages.reduce((a,b)=>a+b,0)/total) : 0;
@@ -669,6 +671,7 @@ function renderTotalDocs(){
 function computeStatusCounts(){
   const counts = { 'Revision':0, 'Routing':0, 'Approved':0, 'Rejected':0 };
   docs.forEach(d => {
+    if(!d) return;
     const s = d.status || 'Revision';
     if(!(s in counts)) counts[s] = 0;
     counts[s]++;
@@ -679,6 +682,7 @@ function computeStatusCounts(){
 function computeAdminStatusCounts(){
   const res = { Received:0, Returned:0 };
   docs.forEach(d => {
+    if(!d) return;
     if(d.adminStatus === 'Received') res.Received++;
     else if(d.adminStatus === 'Returned') res.Returned++;
   });
@@ -688,6 +692,7 @@ function computeAdminStatusCounts(){
 function computeAdminInboxCounts(){
   const res = { forwarded:0, received:0, returned:0 };
   docs.forEach(d => {
+    if(!d) return;
     if(d.forwarded) res.forwarded++;
     if(d.adminStatus === 'Received') res.received++;
     if(d.adminStatus === 'Returned') res.returned++;
