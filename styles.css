@@ -609,3 +609,126 @@ body.inventory-mode .navbar .nav-left {
   display: block; background: #1a252f; box-shadow: 4px 0 8px rgba(0,0,0,0.2); border-left: 1px solid #2c3e50;
 }
 #app-sidebar.collapsed .sidebar-submenu li button { padding: 12px 20px; }
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Main App Sidebar */
+#app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background: #1a252f;
+  color: #ecf0f1;
+  transition: width 0.3s ease;
+  z-index: 1000;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+body {
+  padding-left: 240px;
+  transition: padding-left 0.3s ease;
+}
+#app-sidebar.collapsed {
+  width: 60px;
+}
+body.sidebar-collapsed {
+  padding-left: 60px;
+}
+/* Hide sidebar on login/no-navbar pages */
+body.no-navbar #app-sidebar {
+  display: none;
+}
+body.no-navbar {
+  padding-left: 0;
+}
+
+.sidebar-brand {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #151e26;
+  flex-shrink: 0;
+}
+.brand-text {
+  font-weight: bold;
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.3s;
+}
+#app-sidebar.collapsed .brand-text {
+  opacity: 0;
+  width: 0;
+}
+.sidebar-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+.sidebar-menu li button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: #b8c7ce;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-size: 14px;
+}
+.sidebar-menu li button:hover, .sidebar-menu li button.active {
+  background: #2c3b41;
+  color: #fff;
+}
+.menu-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.menu-text {
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.3s;
+}
+#app-sidebar.collapsed .menu-text {
+  opacity: 0;
+  width: 0;
+  display: none;
+}
+.sidebar-submenu {
+  list-style: none;
+  padding: 0;
+  background: #222d32;
+  display: none;
+}
+.sidebar-menu li:hover .sidebar-submenu, .sidebar-menu li button.active + .sidebar-submenu {
+  display: block;
+}
+#app-sidebar.collapsed .sidebar-submenu {
+  display: none !important;
+}
+.sidebar-submenu li button {
+  padding-left: 48px;
+  font-size: 13px;
+}
