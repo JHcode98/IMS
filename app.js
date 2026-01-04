@@ -1089,7 +1089,7 @@ function adjustUIForRole(){
 }
 
 // Events
-loginForm.addEventListener('submit', e => {
+if(loginForm) loginForm.addEventListener('submit', e => {
   e.preventDefault();
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
