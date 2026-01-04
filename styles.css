@@ -259,6 +259,7 @@ body.full-view main{min-height:calc(100vh - 220px)}
   top:0;
   left:0;
   right:0;
+  left: 240px; /* Shifted for main sidebar */
   z-index:9999;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
@@ -319,7 +320,7 @@ body{padding-top:64px}
 
 /* Hide navbar when body has no-navbar (used during login view) */
 /* Disabled so navbar remains visible across pages */
-/* body.no-navbar .navbar{display:none} */
+body.no-navbar .navbar{display:none}
 
 /* Responsive: stack navbar and header-right on small screens */
 @media (max-width: 720px) {
@@ -327,6 +328,7 @@ body{padding-top:64px}
   header h1 {font-size:16px}
   .navbar {display:flex;flex-wrap:wrap;gap:8px;padding:8px;background-color:#333}
   .navbar a {float:none;display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:6px;text-align:center}
+  .navbar { left: 0; position: relative; } /* Reset fixed pos on mobile */
   .navbar .nav-btn {flex:1 1 auto;margin-left:0}
   .header-right {display:flex;justify-content:flex-end;gap:8px;padding:0 8px 8px}
   .clock{order:1}
@@ -365,7 +367,7 @@ body{padding-top:64px}
 
 /* Ensure navbar stays hidden on login even on small screens */
 /* Disabled so navbar remains visible across pages */
-/* body.no-navbar .navbar{display:none !important} */
+body.no-navbar .navbar{display:none !important}
 
 /* Badge used on admin inbox nav button */
 .nav-badge{display:inline-block;margin-left:8px;padding:2px 6px;border-radius:999px;font-size:12px;font-weight:700;color:#fff}
@@ -455,4 +457,65 @@ body{padding-top:64px}
 /* Show the dropdown menu on hover */
 .dropdown:hover .dropdown-content {
   display: block;
+}
+
+/* --- Main App Sidebar --- */
+#app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background: #1a252f;
+  color: #ecf0f1;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+}
+
+.sidebar-brand {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  background: #151e26;
+  border-bottom: 1px solid #2c3e50;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.sidebar-menu li button {
+  width: 100%;
+  text-align: left;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  color: #bdc3c7;
+  font-size: 15px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sidebar-menu li button:hover { background: #2c3e50; color: #fff; transform: none; }
+.sidebar-menu li button.active { background: #2752a7; color: #fff; border-left: 4px solid #64b5f6; }
+
+/* Adjust body to make room for sidebar */
+body { padding-left: 240px; }
+
+/* Hide sidebar on login */
+body.no-navbar #app-sidebar { display: none; }
+body.no-navbar { padding-left: 0; }
+
+/* Mobile adjustments for main sidebar */
+@media (max-width: 720px) {
+  #app-sidebar { display: none; } /* Hide main sidebar on mobile for now */
+  body { padding-left: 0; }
 }
