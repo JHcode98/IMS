@@ -202,6 +202,14 @@ function renderDocs(filter){
   if(ageStatusFilter){
     list = list.filter(d => d.status === ageStatusFilter);
   }
+
+  renderTotalDocs();
+  renderStatusChart();
+  renderWinsChart();
+  renderAdminStatusOverview();
+  renderAgeOverview();
+  renderLeftSidebar();
+
   if(list.length === 0){
     const tr = document.createElement('tr');
     tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
@@ -271,13 +279,8 @@ function renderDocs(filter){
     `;
     docsTableBody.appendChild(tr);
   });
-  renderTotalDocs();
-  renderStatusChart();
-  renderWinsChart();
-  renderAdminStatusOverview();
-  renderAgeOverview();
-  renderLeftSidebar();}
-  try{ updateAdminInboxBadge(); }catch(e){}
+}
+try{ updateAdminInboxBadge(); }catch(e){}
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
