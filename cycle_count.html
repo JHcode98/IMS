@@ -90,6 +90,7 @@
         <div class="tools" style="display:flex; gap: 8px;">
           <input type="text" id="search-item-code" placeholder="Search by Item Code..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
           <button id="export-csv-btn">Export to CSV</button>
+          <button id="download-template-btn">Download Template</button>
           <button id="import-csv-btn">Import CSV</button>
           <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
         </div>
@@ -97,6 +98,7 @@
       <table id="cycle-count-table" style="width:100%; border-collapse: collapse; margin-top: 10px;">
         <thead>
           <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+            <th style="padding: 8px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-cc"></th>
             <th style="padding: 8px; text-align: left;">Timestamp</th>
             <th style="padding: 8px; text-align: left;">Item</th>
             <th style="padding: 8px; text-align: left;">Location</th>
@@ -120,8 +122,10 @@
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const cycleCountSearchInput = document.getElementById('search-item-code');
     const exportBtn = document.getElementById('export-csv-btn');
+    const downloadTemplateBtn = document.getElementById('download-template-btn');
     const importBtn = document.getElementById('import-csv-btn');
     const importFile = document.getElementById('import-csv-file');
+    const selectAllCc = document.getElementById('select-all-cc');
 
     function loadData() {
       let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
@@ -139,7 +143,7 @@
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>';
         return;
       }
       data.forEach((item) => {
@@ -150,6 +154,7 @@
         const timestamp = new Date(item.date).toLocaleString();
         
         tr.innerHTML = `
+          <td style="padding:8px;border-bottom:1px solid #eee"><input type="checkbox" class="row-checkbox"></td>
           <td style="padding:8px;border-bottom:1px solid #eee">${timestamp}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.itemCode}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.location}</td>
@@ -157,7 +162,10 @@
           <td style="padding:8px;border-bottom:1px solid #eee">${item.physical}</td>
           <td style="padding:8px;border-bottom:1px solid #eee"><span class="age ${varianceClass}">${variance > 0 ? '+'+variance : variance}</span></td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.notes || ''}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee"><button class="icon-btn delete-btn" data-index="${item.originalIndex}" style="color:#d9534f">&times;</button></td>
+          <td style="padding:8px;border-bottom:1px solid #eee">
+            <button class="icon-btn edit-btn" data-index="${item.originalIndex}" title="Edit" style="margin-right:4px">✎</button>
+            <button class="icon-btn delete-btn" data-index="${item.originalIndex}" title="Delete" style="color:#d9534f">&times;</button>
+          </td>
         `;
         tableBody.appendChild(tr);
       });
@@ -173,8 +181,20 @@
         notes: document.getElementById('notes').value,
         date: new Date().toISOString()
       };
+
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
-      data.unshift(newItem);
+      
+      const editingIndex = form.dataset.editingIndex;
+      if (editingIndex !== undefined) {
+        // Update existing entry
+        data[editingIndex] = { ...data[editingIndex], ...newItem };
+        delete form.dataset.editingIndex;
+        form.querySelector('button[type="submit"]').textContent = 'Add Entry';
+      } else {
+        // Add new entry
+        data.unshift(newItem);
+      }
+
       localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
       form.reset();
       loadData();
@@ -189,7 +209,44 @@
         localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
         loadData();
       }
+      if (e.target.classList.contains('edit-btn')) {
+        const originalIndex = e.target.dataset.index;
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+        const item = data[originalIndex];
+        if(item){
+          document.getElementById('item-code').value = item.itemCode;
+          document.getElementById('location').value = item.location;
+          document.getElementById('system-qty').value = item.system;
+          document.getElementById('physical-qty').value = item.physical;
+          document.getElementById('notes').value = item.notes || '';
+          
+          form.dataset.editingIndex = originalIndex;
+          form.querySelector('button[type="submit"]').textContent = 'Update Entry';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
     });
+
+    // Checkbox highlight logic
+    tableBody.addEventListener('change', (e) => {
+      if(e.target.classList.contains('row-checkbox')){
+        const tr = e.target.closest('tr');
+        if(e.target.checked) tr.classList.add('selected-row');
+        else tr.classList.remove('selected-row');
+      }
+    });
+
+    if(selectAllCc){
+      selectAllCc.addEventListener('change', () => {
+        const checkboxes = tableBody.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = selectAllCc.checked;
+          const tr = cb.closest('tr');
+          if(cb.checked) tr.classList.add('selected-row');
+          else tr.classList.remove('selected-row');
+        });
+      });
+    }
 
     cycleCountSearchInput.addEventListener('input', loadData);
 
@@ -233,7 +290,23 @@
       URL.revokeObjectURL(url);
     }
 
+    function downloadTemplate() {
+      const headers = ['Item Code', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
+      const sample = ['ITEM-001', 'A-01-01', '10', '8', 'Sample Note'];
+      const csvContent = headers.join(',') + '\n' + sample.join(',');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cycle_count_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     exportBtn.addEventListener('click', exportToCSV);
+    if(downloadTemplateBtn) downloadTemplateBtn.addEventListener('click', downloadTemplate);
 
     importBtn.addEventListener('click', () => importFile.click());
 
