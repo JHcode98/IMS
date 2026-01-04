@@ -215,8 +215,17 @@
         let varianceClass = 'age-good'; // Zero variance (Green)
         if (variance < 0) varianceClass = 'age-bad'; // Negative (Red)
         else if (variance > 0) varianceClass = 'age-warn'; // Positive (Orange)
-        const timestamp = new Date(item.date).toLocaleString();
-        const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : '';
+        
+        const formatOrRaw = (val) => {
+            if(!val) return '';
+            // If it looks like a system ISO string, format it. Otherwise display raw.
+            if(typeof val === 'string' && val.includes('T') && val.endsWith('Z') && !isNaN(new Date(val).getTime())) {
+                return new Date(val).toLocaleString();
+            }
+            return val;
+        };
+        const timestamp = formatOrRaw(item.date);
+        const createdDate = formatOrRaw(item.createdDate);
         
         tr.innerHTML = `
           <td style="padding:8px;border-bottom:1px solid #eee"><input type="checkbox" class="row-checkbox" data-index="${item.originalIndex}"></td>
@@ -455,18 +464,15 @@
             if (cIdx === -1) cIdx = headers.indexOf('Timestamp');
             
             if (cIdx !== -1 && values[cIdx]) {
-                const d = new Date(values[cIdx]);
-                if (!isNaN(d.getTime())) {
-                    createdDateVal = d.toISOString();
-                    updatedDateVal = d.toISOString(); // Default updated to created for history
-                }
+                // Use raw value from file to preserve format
+                createdDateVal = values[cIdx];
+                updatedDateVal = values[cIdx];
             }
 
             // 2. Resolve Updated Date (override if explicit)
             const uIdx = headers.indexOf('Updated Date');
             if (uIdx !== -1 && values[uIdx]) {
-                 const d = new Date(values[uIdx]);
-                 if (!isNaN(d.getTime())) updatedDateVal = d.toISOString();
+                 updatedDateVal = values[uIdx];
             }
 
             const newItem = {
