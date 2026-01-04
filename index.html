@@ -299,6 +299,20 @@
 						return map;
 					}
 
+					function handleChartClick(evt, elements, chart) {
+						if (elements.length > 0) {
+							const i = elements[0].index;
+							const label = chart.data.labels[i];
+							const searchBox = document.getElementById('search-control');
+							if(searchBox){
+								searchBox.value = label;
+								if(typeof renderDocs === 'function') renderDocs(label);
+								const results = document.getElementById('results');
+								if(results) results.scrollIntoView({behavior: 'smooth'});
+							}
+						}
+					}
+
 					const docs = loadDocs();
 					// Migration logic to match app behavior
 					docs.forEach(d => {
@@ -324,7 +338,8 @@
 							options: {
 								responsive: true,
 								maintainAspectRatio: false,
-								plugins: { title: { display: true, text: 'By Title' } }
+								plugins: { title: { display: true, text: 'By Title' } },
+								onClick: handleChartClick
 							}
 						});
 					}
@@ -349,7 +364,8 @@
 								responsive: true,
 								maintainAspectRatio: false,
 								plugins: { title: { display: true, text: 'By Owner' }, legend: { display: false } },
-								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+								onClick: handleChartClick
 							}
 						});
 					}
@@ -389,7 +405,8 @@
 								responsive: true,
 								maintainAspectRatio: false,
 								plugins: { title: { display: true, text: 'By Week Created' } },
-								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+								onClick: handleChartClick
 							}
 						});
 					}
