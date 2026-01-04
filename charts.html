@@ -53,16 +53,6 @@
       const STORAGE_KEY = 'dms_docs_v1';
 
       async function loadDocs(){
-        // Prefer API if available, otherwise fallback to localStorage
-        try{
-          const base = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
-          const res = await fetch(base + '/api/docs', {cache: 'no-store'});
-          if(res && res.ok){
-            const json = await res.json();
-            if(Array.isArray(json) && json.length) return json;
-          }
-        }catch(e){ /* ignore and fallback */ }
-
         try{ 
           const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
           return Array.isArray(d) ? d : [];
@@ -160,6 +150,10 @@
            return;
         }
         const docs = await loadDocs();
+        if(!docs || docs.length === 0){
+           document.querySelector('.charts-wrap').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#666">No documents found. Add some documents in the dashboard to see charts here.</div>';
+           return;
+        }
         // Match app.js migration logic for consistency
         try{
           docs.forEach(d => {
