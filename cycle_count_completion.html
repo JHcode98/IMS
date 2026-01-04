@@ -79,6 +79,7 @@
           <input type="file" id="master-list-file" accept=".csv" style="padding: 6px; background: #fff;">
           <button id="upload-master-btn">Upload Master List</button>
           <button id="clear-master-btn" style="background:#d9534f; color: white;">Clear Master List</button>
+          <button id="download-master-template-btn" style="background:#fff; color:#333; border:1px solid #ccc;">Download Template</button>
         </div>
         <p id="master-status" style="margin-top:10px; font-weight:bold; color:#2752a7"></p>
       </div>
@@ -105,6 +106,26 @@
           </div>
         </div>
       </div>
+
+      <!-- Uncounted SKUs Section -->
+      <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+            <h3>3. Uncounted SKUs Details</h3>
+            <button id="export-uncounted-btn">Export Uncounted CSV</button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; background: #fff;">
+            <table id="uncounted-table" style="width:100%; border-collapse: collapse;">
+                <thead style="position:sticky; top:0; background:#f9fbfd; z-index:1;">
+                    <tr>
+                        <th style="padding:10px; text-align:left; border-bottom:1px solid #ddd;">Item Code</th>
+                        <th style="padding:10px; text-align:left; border-bottom:1px solid #ddd;">Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <p id="uncounted-msg" class="muted" style="margin-top:5px; font-size:13px"></p>
+      </div>
     </div>
   </main>
 
@@ -123,6 +144,7 @@
 
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const STORAGE_KEY_MASTER = 'ims_master_sku_list_v1';
+    let currentUncounted = [];
 
     function loadCompletionData() {
         const masterList = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER) || '[]');
@@ -134,11 +156,14 @@
         // Calculate stats
         const totalMaster = masterList.length;
         let countedFromMaster = 0;
+        let uncounted = [];
         
         if (totalMaster > 0) {
             // Count how many master items are in the counted set
-            countedFromMaster = masterList.filter(sku => countedSet.has(String(sku).trim())).length;
+            uncounted = masterList.filter(sku => !countedSet.has(String(sku).trim()));
+            countedFromMaster = totalMaster - uncounted.length;
         }
+        currentUncounted = uncounted;
 
         const percentage = totalMaster > 0 ? ((countedFromMaster / totalMaster) * 100).toFixed(1) : 0;
         const remaining = totalMaster - countedFromMaster;
@@ -164,6 +189,39 @@
         } else {
             statusText.textContent = `Master List Loaded: ${totalMaster} items.`;
             statusText.style.color = '#2752a7';
+        }
+        
+        renderUncountedTable(uncounted);
+    }
+
+    function renderUncountedTable(list) {
+        const tbody = document.querySelector('#uncounted-table tbody');
+        const msg = document.getElementById('uncounted-msg');
+        tbody.innerHTML = '';
+        
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="padding:15px; text-align:center; color:#666;">No uncounted items found (or no master list loaded).</td></tr>';
+            msg.textContent = '';
+            return;
+        }
+
+        // Limit display for performance if list is huge
+        const displayLimit = 500;
+        const displayList = list.slice(0, displayLimit);
+        
+        displayList.forEach(sku => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding:8px; border-bottom:1px solid #eee;">${sku}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;"><span style="background:#fdecea; color:#e74c3c; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold;">Pending</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (list.length > displayLimit) {
+            msg.textContent = `Showing first ${displayLimit} of ${list.length} uncounted items. Use Export to see full list.`;
+        } else {
+            msg.textContent = `Showing all ${list.length} uncounted items.`;
         }
     }
 
@@ -203,6 +261,40 @@
             localStorage.removeItem(STORAGE_KEY_MASTER);
             loadCompletionData();
         }
+    });
+
+    // Download Template
+    document.getElementById('download-master-template-btn').addEventListener('click', () => {
+        const headers = ['Item Code', 'Description (Optional)'];
+        const sample = ['10000001', 'Sample Item A'];
+        const sample2 = ['10000002', 'Sample Item B'];
+        const csvContent = headers.join(',') + '\n' + sample.join(',') + '\n' + sample2.join(',');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'master_sku_list_template.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // Export Uncounted
+    document.getElementById('export-uncounted-btn').addEventListener('click', () => {
+        if(currentUncounted.length === 0) { alert('No uncounted items to export.'); return; }
+        
+        const csvContent = "Item Code,Status\n" + currentUncounted.map(sku => `"${sku}",Pending`).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'uncounted_skus.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     });
 
     loadCompletionData();
