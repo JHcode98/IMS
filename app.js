@@ -199,10 +199,12 @@ function renderDocs(filter){
   let list = docs.slice();
   if(q){
     list = docs.filter(d => {
+      const created = d.createdAt ? msToDatetimeLocal(d.createdAt).replace('T',' ') : '';
       return (d.controlNumber || '').toLowerCase().includes(q)
         || (d.title || '').toLowerCase().includes(q)
         || (d.notes || '').toLowerCase().includes(q)
-        || (d.owner || '').toLowerCase().includes(q);
+        || (d.owner || '').toLowerCase().includes(q)
+        || created.toLowerCase().includes(q);
     });
   }
   if(statusFilter){
