@@ -85,10 +85,19 @@
     </div>
 
     <div class="card" style="margin-top: 20px;">
-      <h2>Cycle Count Records</h2>
+      <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2>Cycle Count Records</h2>
+        <div class="tools" style="display:flex; gap: 8px;">
+          <input type="text" id="search-item-code" placeholder="Search by Item Code..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+          <button id="export-csv-btn">Export to CSV</button>
+          <button id="import-csv-btn">Import CSV</button>
+          <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
+        </div>
+      </div>
       <table id="cycle-count-table" style="width:100%; border-collapse: collapse; margin-top: 10px;">
         <thead>
           <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+            <th style="padding: 8px; text-align: left;">Timestamp</th>
             <th style="padding: 8px; text-align: left;">Item</th>
             <th style="padding: 8px; text-align: left;">Location</th>
             <th style="padding: 8px; text-align: left;">System</th>
@@ -109,32 +118,46 @@
     const form = document.getElementById('cycle-count-form');
     const tableBody = document.querySelector('#cycle-count-table tbody');
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
+    const searchInput = document.getElementById('search-item-code');
+    const exportBtn = document.getElementById('export-csv-btn');
+    const importBtn = document.getElementById('import-csv-btn');
+    const importFile = document.getElementById('import-csv-file');
 
     function loadData() {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
-      renderTable(data);
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+      // Add original index to handle deletion after filtering
+      data = data.map((item, index) => ({ ...item, originalIndex: index }));
+      
+      const searchTerm = searchInput.value.toLowerCase();
+      const filteredData = searchTerm
+        ? data.filter(item => item.itemCode.toLowerCase().includes(searchTerm))
+        : data;
+
+      renderTable(filteredData);
     }
 
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>';
         return;
       }
-      data.forEach((item, index) => {
+      data.forEach((item) => {
         const tr = document.createElement('tr');
         const variance = item.physical - item.system;
         let varianceClass = 'age-good';
         if(variance !== 0) varianceClass = Math.abs(variance) > 5 ? 'age-bad' : 'age-warn';
+        const timestamp = new Date(item.date).toLocaleString();
         
         tr.innerHTML = `
+          <td style="padding:8px;border-bottom:1px solid #eee">${timestamp}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.itemCode}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.location}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.system}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.physical}</td>
           <td style="padding:8px;border-bottom:1px solid #eee"><span class="age ${varianceClass}">${variance > 0 ? '+'+variance : variance}</span></td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.notes || ''}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee"><button class="icon-btn delete-btn" data-index="${index}" style="color:#d9534f">&times;</button></td>
+          <td style="padding:8px;border-bottom:1px solid #eee"><button class="icon-btn delete-btn" data-index="${item.originalIndex}" style="color:#d9534f">&times;</button></td>
         `;
         tableBody.appendChild(tr);
       });
@@ -154,18 +177,117 @@
       data.unshift(newItem);
       localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
       form.reset();
-      renderTable(data);
+      loadData();
     });
 
     tableBody.addEventListener('click', (e) => {
       if (e.target.classList.contains('delete-btn')) {
         if(!confirm('Delete this entry?')) return;
-        const index = e.target.dataset.index;
+        const originalIndex = e.target.dataset.index;
         const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
-        data.splice(index, 1);
+        data.splice(originalIndex, 1);
         localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
-        renderTable(data);
+        loadData();
       }
+    });
+
+    searchInput.addEventListener('input', loadData);
+
+    function exportToCSV() {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+      if (data.length === 0) {
+        alert('No data to export.');
+        return;
+      }
+
+      const headers = ['Timestamp', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
+      const csvRows = [headers.join(',')];
+
+      const csvEscape = (field) => {
+        if (field == null) return '""';
+        const s = String(field);
+        if (/[,"\n]/.test(s)) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return '"' + s + '"';
+      };
+
+      data.forEach(item => {
+        const variance = item.physical - item.system;
+        const timestamp = new Date(item.date).toLocaleString();
+        const row = [
+          timestamp, item.itemCode, item.location, item.system, item.physical, variance, item.notes || ''
+        ];
+        csvRows.push(row.map(csvEscape).join(','));
+      });
+
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cycle_count_export.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    exportBtn.addEventListener('click', exportToCSV);
+
+    importBtn.addEventListener('click', () => importFile.click());
+
+    importFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const csv = event.target.result;
+          const lines = csv.split(/\r\n|\n/);
+          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          
+          const requiredHeaders = ['Item Code', 'Location', 'System Qty', 'Physical Qty'];
+          if (!requiredHeaders.every(h => headers.includes(h))) {
+            alert(`Import failed: CSV must contain headers: ${requiredHeaders.join(', ')}.`);
+            return;
+          }
+
+          const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+          let addedCount = 0;
+
+          for (let i = 1; i < lines.length; i++) {
+            if (!lines[i]) continue;
+            const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+            const newItem = {
+              itemCode: values[headers.indexOf('Item Code')],
+              location: values[headers.indexOf('Location')],
+              system: Number(values[headers.indexOf('System Qty')]),
+              physical: Number(values[headers.indexOf('Physical Qty')]),
+              notes: headers.includes('Notes') ? values[headers.indexOf('Notes')] : '',
+              date: new Date().toISOString()
+            };
+            if (newItem.itemCode && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
+              data.unshift(newItem);
+              addedCount++;
+            }
+          }
+          if (addedCount > 0) {
+            localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
+            alert(`${addedCount} entries imported successfully.`);
+            loadData();
+          } else {
+            alert('No valid entries found to import.');
+          }
+        } catch (error) {
+          console.error('Import error:', error);
+          alert('Failed to import CSV file. Please check the file format.');
+        } finally {
+          importFile.value = '';
+        }
+      };
+      reader.readAsText(file);
     });
 
     loadData();
