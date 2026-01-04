@@ -184,15 +184,19 @@
       if (startDate) {
         startDate.setHours(0, 0, 0, 0);
         filteredData = filteredData.filter(item => {
-          const d = filterType === 'created' ? (item.createdDate ? new Date(item.createdDate) : null) : new Date(item.date);
-          return d && d >= startDate;
+          const dateStr = filterType === 'created' ? item.createdDate : item.date;
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          return !isNaN(d.getTime()) && d >= startDate;
         });
       }
       if (endDate) {
         endDate.setHours(23, 59, 59, 999);
         filteredData = filteredData.filter(item => {
-          const d = filterType === 'created' ? (item.createdDate ? new Date(item.createdDate) : null) : new Date(item.date);
-          return d && d <= endDate;
+          const dateStr = filterType === 'created' ? item.createdDate : item.date;
+          if (!dateStr) return false;
+          const d = new Date(dateStr);
+          return !isNaN(d.getTime()) && d <= endDate;
         });
       }
 
