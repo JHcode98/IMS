@@ -96,6 +96,15 @@
 
       (async ()=>{
         const docs = await loadDocs();
+        // Match app.js migration logic for consistency
+        try{
+          docs.forEach(d => {
+            if(d && d.status === 'Received'){
+              if(!d.adminStatus) d.adminStatus = 'Received';
+              d.status = 'Routing';
+            }
+          });
+        }catch(e){}
         const byTitle = aggregateCount(docs, d => d.title || 'Unknown');
         const byOwner = aggregateCount(docs, d => d.owner || 'Unknown');
 
