@@ -177,12 +177,19 @@
       });
 
       // Date range filter
-      const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
-      const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+      let startDate = null;
+      if (startDateInput.value) {
+        const parts = startDateInput.value.split('-');
+        startDate = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+      }
+      let endDate = null;
+      if (endDateInput.value) {
+        const parts = endDateInput.value.split('-');
+        endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+      }
       const filterType = dateFilterType ? dateFilterType.value : 'updated';
 
       if (startDate) {
-        startDate.setHours(0, 0, 0, 0);
         filteredData = filteredData.filter(item => {
           const dateStr = filterType === 'created' ? item.createdDate : item.date;
           if (!dateStr) return false;
@@ -191,7 +198,6 @@
         });
       }
       if (endDate) {
-        endDate.setHours(23, 59, 59, 999);
         filteredData = filteredData.filter(item => {
           const dateStr = filterType === 'created' ? item.createdDate : item.date;
           if (!dateStr) return false;
@@ -516,9 +522,6 @@
 
     // Event Listeners
     cycleCountSearchInput.addEventListener('input', loadData);
-    startDateInput.addEventListener('change', loadData);
-    endDateInput.addEventListener('change', loadData);
-    if(dateFilterType) dateFilterType.addEventListener('change', loadData);
     if(filterDateBtn) filterDateBtn.addEventListener('click', loadData);
     clearDateFilterBtn.addEventListener('click', () => {
         startDateInput.value = '';
