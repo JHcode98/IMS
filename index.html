@@ -322,23 +322,35 @@
 						}
 					});
 
+					// Enhanced Chart Configuration
+					Chart.defaults.font.family = "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
+					Chart.defaults.color = '#858796';
+
 					// 1. By Title (Pie)
 					const byTitle = aggregateCount(docs, d => d.title);
+					const sortedTitles = Object.entries(byTitle).sort((a,b) => b[1] - a[1]);
 					const ctxTitle = document.getElementById('dash-pie-title');
 					if (ctxTitle) {
 						new Chart(ctxTitle, {
 							type: 'pie',
 							data: {
-								labels: Object.keys(byTitle),
+								labels: sortedTitles.map(e => e[0]),
 								datasets: [{
-									data: Object.values(byTitle),
-									backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#1abc9c']
+									data: sortedTitles.map(e => e[1]),
+									backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#5a5c69'],
+									hoverOffset: 4,
+									borderColor: '#ffffff',
+									borderWidth: 2
 								}]
 							},
 							options: {
 								responsive: true,
 								maintainAspectRatio: false,
 								plugins: { title: { display: true, text: 'By Title' } },
+								plugins: { 
+									title: { display: true, text: 'Documents by Title', font: { size: 16, weight: 'bold' }, color: '#5a5c69' },
+									legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 10 } }
+								},
 								onClick: handleChartClick
 							}
 						});
@@ -357,7 +369,9 @@
 								datasets: [{
 									label: 'Documents',
 									data: sortedOwners.map(e => e[1]),
-									backgroundColor: 'rgba(54, 162, 235, 0.6)'
+									backgroundColor: '#4e73df',
+									borderRadius: 4,
+									barPercentage: 0.6
 								}]
 							},
 							options: {
@@ -365,6 +379,14 @@
 								maintainAspectRatio: false,
 								plugins: { title: { display: true, text: 'By Owner' }, legend: { display: false } },
 								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+								plugins: { 
+									title: { display: true, text: 'Documents by Owner', font: { size: 16, weight: 'bold' }, color: '#5a5c69' }, 
+									legend: { display: false } 
+								},
+								scales: { 
+									y: { beginAtZero: true, ticks: { precision: 0 }, grid: { borderDash: [2], drawBorder: false, color: '#e3e6f0' } },
+									x: { grid: { display: false, drawBorder: false } }
+								},
 								onClick: handleChartClick
 							}
 						});
@@ -393,12 +415,16 @@
 							data: {
 								labels: sortedWeeks,
 								datasets: [{
-									label: 'Created',
+									label: 'New Documents',
 									data: sortedWeeks.map(k => byWeek[k]),
-									borderColor: '#3498db',
-									backgroundColor: 'rgba(52, 152, 219, 0.2)',
+									borderColor: '#36b9cc',
+									backgroundColor: 'rgba(54, 185, 204, 0.1)',
 									fill: true,
-									tension: 0.3
+									tension: 0.4,
+									pointRadius: 4,
+									pointBackgroundColor: '#36b9cc',
+									pointBorderColor: '#fff',
+									pointHoverRadius: 6
 								}]
 							},
 							options: {
@@ -406,6 +432,14 @@
 								maintainAspectRatio: false,
 								plugins: { title: { display: true, text: 'By Week Created' } },
 								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+								plugins: { 
+									title: { display: true, text: 'Weekly Creation Trend', font: { size: 16, weight: 'bold' }, color: '#5a5c69' },
+									legend: { display: false }
+								},
+								scales: { 
+									y: { beginAtZero: true, ticks: { precision: 0 }, grid: { borderDash: [2], drawBorder: false, color: '#e3e6f0' } },
+									x: { grid: { display: false, drawBorder: false } }
+								},
 								onClick: handleChartClick
 							}
 						});
