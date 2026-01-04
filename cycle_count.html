@@ -26,7 +26,7 @@
         <span class="menu-text">Inventory Tracker</span>
         </button>
         <ul class="sidebar-submenu" style="display:block">
-          <li><button style="color:#fff; background:#1a252f; font-weight:bold;">Cycle Count</button></li>
+          <li><button class="active" onclick="window.location.href='cycle_count.html'">Cycle Count</button></li>
           <li><button onclick="window.location.href='cycle_count_reports.html'">Cycle Count Report</button></li>
         </ul>
       </li>
@@ -546,7 +546,8 @@
               date: updatedDateVal,
               createdDate: createdDateVal
             };
-            if (newItem.itemCode && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
+            // Validate Item Code (exactly 8 digits)
+            if (newItem.itemCode && /^\d{8}$/.test(newItem.itemCode) && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
               data.unshift(newItem);
               addedCount++;
             }
