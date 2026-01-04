@@ -87,11 +87,17 @@
     <div class="card" style="margin-top: 20px;">
       <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h2>Cycle Count Records</h2>
-        <div class="tools" style="display:flex; gap: 8px;">
-          <input type="text" id="search-item-code" placeholder="Search by Item Code..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-          <button id="export-csv-btn">Export to CSV</button>
-          <button id="download-template-btn">Download Template</button>
-          <button id="import-csv-btn">Import CSV</button>
+        <div class="tools" style="display:flex; gap: 8px; align-items: center;">
+          <input type="text" id="search-item-code" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc; flex: 1;">
+          <button id="export-csv-btn" class="icon-btn" title="Export to CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button id="download-template-btn" class="icon-btn" title="Download Template">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 12 15 15"></polyline></svg>
+          </button>
+          <button id="import-csv-btn" class="icon-btn" title="Import CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </button>
           <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
         </div>
       </div>
@@ -111,6 +117,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <div id="pagination-controls" class="sidebar-pagination" style="margin-top: 10px; justify-content: flex-end;"></div>
     </div>
   </main>
 
@@ -126,24 +133,37 @@
     const importBtn = document.getElementById('import-csv-btn');
     const importFile = document.getElementById('import-csv-file');
     const selectAllCc = document.getElementById('select-all-cc');
+    
+    let currentPage = 1;
+    let rowsPerPage = 10;
 
     function loadData() {
       let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
       // Add original index to handle deletion after filtering
       data = data.map((item, index) => ({ ...item, originalIndex: index }));
       
-      const searchTerm = cycleCountSearchInput.value.toLowerCase();
-      const filteredData = searchTerm
-        ? data.filter(item => item.itemCode.toLowerCase().includes(searchTerm))
-        : data;
+      const searchTerms = cycleCountSearchInput.value.toLowerCase().split(' ').filter(Boolean);
+      const filteredData = data.filter(item => {
+        if (searchTerms.length === 0) return true;
+        const itemText = [item.itemCode, item.location, item.notes || ''].join(' ').toLowerCase();
+        return searchTerms.every(term => itemText.includes(term));
+      });
 
-      renderTable(filteredData);
+      const totalRows = filteredData.length;
+      const totalPages = Math.ceil(totalRows / rowsPerPage);
+      currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+      const start = (currentPage - 1) * rowsPerPage;
+      const end = start + rowsPerPage;
+      const paginatedData = filteredData.slice(start, end);
+
+      renderTable(paginatedData);
+      renderPagination(totalRows, totalPages);
     }
 
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>';
+        tableBody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No records found for your search.</td></tr>`;
         return;
       }
       data.forEach((item) => {
@@ -246,6 +266,36 @@
           else tr.classList.remove('selected-row');
         });
       });
+    }
+
+    function renderPagination(totalRows, totalPages) {
+      const paginationContainer = document.getElementById('pagination-controls');
+      if (!paginationContainer) return;
+
+      if (totalRows <= rowsPerPage) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+
+      paginationContainer.innerHTML = `
+        <button id="prev-page-btn" class="icon-btn" title="Previous Page">‹</button>
+        <span class="current-page" style="padding: 0 10px;">Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page-btn" class="icon-btn" title="Next Page">›</button>
+      `;
+
+      const prevBtn = document.getElementById('prev-page-btn');
+      const nextBtn = document.getElementById('next-page-btn');
+
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+
+      prevBtn.onclick = () => {
+        if (currentPage > 1) { currentPage--; loadData(); }
+      };
+
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) { currentPage++; loadData(); }
+      };
     }
 
     cycleCountSearchInput.addEventListener('input', loadData);
