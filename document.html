@@ -83,6 +83,7 @@
     </footer>
 
     <script>
+      if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
       const STORAGE_KEY = 'dms_docs_v1';
       function queryParam(name){
         // profile moved to profile.html
@@ -235,4 +236,3 @@
     </script>
   </body>
 </html>
-
