@@ -105,7 +105,7 @@ const newDocFormWrap = document.getElementById('new-doc-form');
 const docForm = document.getElementById('doc-form');
 const cancelNew = document.getElementById('cancel-new');
 
-const docsTableBody = document.querySelector('#docs-table tbody');
+let docsTableBody = document.querySelector('#docs-table tbody');
 const searchInput = document.getElementById('search-control');
 const searchBtn = document.getElementById('search-btn');
 const clearSearchBtn = document.getElementById('clear-search');
@@ -181,6 +181,7 @@ function saveDocs(){
 }
 
 function renderDocs(filter){
+  if(!docsTableBody) docsTableBody = document.querySelector('#docs-table tbody');
   if(selectAll) selectAll.checked = false;
   if(!docsTableBody){
     try{ renderTotalDocs(); }catch(e){}
