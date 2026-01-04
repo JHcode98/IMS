@@ -7,6 +7,11 @@
 		<title>Inventory Management System</title>
 		<link rel="stylesheet" href="styles.css" />
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<style>
+			#app-sidebar, header, main {
+				transition: all 0.3s ease;
+			}
+		</style>
 	</head>
 	<body class="no-navbar">
 		<!-- Main App Sidebar -->
@@ -23,6 +28,8 @@
 					<button id="nav-inventory-btn" data-tooltip="Inventory Tracker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg><span class="menu-text">Inventory Tracker</span></button>
 					<ul class="sidebar-submenu">
 						<li><button onclick="window.location.href='cycle_count.html'">Cycle Count</button></li>
+						<li><button onclick="alert('Reports feature coming soon')">Reports</button></li>
+						<li><button onclick="alert('Analytics Dashboard feature coming soon')">Analytics Dashboard</button></li>
 						<li><button onclick="alert('Aging Report feature coming soon')">Aging Report</button></li>
 					</ul>
 				</li>
@@ -449,6 +456,17 @@
 					const sidebarToggle = document.getElementById('sidebar-toggle');
 					if(sidebarToggle){
 						sidebarToggle.addEventListener('click', () => {
+							setTimeout(() => {
+								Object.values(Chart.instances).forEach(c => c.resize());
+							}, 300);
+						});
+					}
+
+					// Main Sidebar Toggle
+					const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
+					if (mainSidebarToggle) {
+						mainSidebarToggle.addEventListener('click', () => {
+							document.body.classList.toggle('sidebar-collapsed');
 							setTimeout(() => {
 								Object.values(Chart.instances).forEach(c => c.resize());
 							}, 300);
