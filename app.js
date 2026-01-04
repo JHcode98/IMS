@@ -2414,6 +2414,7 @@ if(navDmsBtn && navInventoryBtn){
     navInventoryBtn.classList.remove('active');
     if(dashboard) dashboard.classList.remove('hidden');
     if(inventorySection) inventorySection.classList.add('hidden');
+    document.body.classList.remove('inventory-mode');
     // Ensure header title reflects current system if needed, or keep global title
   });
 
@@ -2423,6 +2424,7 @@ if(navDmsBtn && navInventoryBtn){
     navDmsBtn.classList.remove('active');
     if(dashboard) dashboard.classList.add('hidden');
     if(inventorySection) inventorySection.classList.remove('hidden');
+    document.body.classList.add('inventory-mode');
   });
 }
 
