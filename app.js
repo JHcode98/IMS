@@ -1014,7 +1014,7 @@ function showDashboard(userName){
   try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
   loadDocs();
   try{ renderDocs(); }catch(e){}
-  adjustUIForRole();
+  try{ adjustUIForRole(); }catch(e){}
   try{ renderNavAvatar(); }catch(e){}
   // wire title selects to show/hide 'Other' input if present
   try{
@@ -1084,7 +1084,8 @@ function adjustUIForRole(){
   if(usersDashboardBtn) usersDashboardBtn.style.display = isAdmin ? '' : 'none';
 
   // Re-render docs so per-row actions reflect role
-  try{ renderDocs(searchInput.value.trim()); }catch(e){}
+  const q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+  try{ renderDocs(q); }catch(e){}
   try{ updateAdminInboxBadge(); }catch(e){}
 }
 
@@ -1257,7 +1258,7 @@ window.changePassword = function(oldPwd, newPwd){
   }catch(e){ return Promise.resolve({ ok:false }); }
 };
 
-newDocBtn.addEventListener('click', () => {
+if(newDocBtn) newDocBtn.addEventListener('click', () => {
   // open new form and clear editing state
   const wasHidden = newDocFormWrap.classList.contains('hidden');
   newDocFormWrap.classList.toggle('hidden');
@@ -1273,7 +1274,7 @@ newDocBtn.addEventListener('click', () => {
   }
 });
 
-cancelNew.addEventListener('click', () => {
+if(cancelNew) cancelNew.addEventListener('click', () => {
   newDocFormWrap.classList.add('hidden');
   docForm.reset();
   delete docForm.dataset.editing;
@@ -1281,7 +1282,7 @@ cancelNew.addEventListener('click', () => {
   if(saveBtn) saveBtn.textContent = 'Save';
 });
 
-docForm.addEventListener('submit', e => {
+if(docForm) docForm.addEventListener('submit', e => {
   e.preventDefault();
   const controlNumber = document.getElementById('control-number').value.trim();
   // title may be a select with 'Other' option
@@ -1381,7 +1382,7 @@ docForm.addEventListener('submit', e => {
   renderDocs();
 });
 
-docsTableBody.addEventListener('click', e => {
+if(docsTableBody) docsTableBody.addEventListener('click', e => {
   // Quick-edit notes handling
   const noteEditBtn = e.target.closest('button[data-note-edit]');
   if(noteEditBtn){
@@ -1552,7 +1553,7 @@ docsTableBody.addEventListener('click', e => {
       });
     }
 
-docsTableBody.addEventListener('change', e => {
+if(docsTableBody) docsTableBody.addEventListener('change', e => {
   const sel = e.target.closest('.status-select');
   if(sel){
     const ctl = sel.getAttribute('data-control');
@@ -1579,12 +1580,12 @@ docsTableBody.addEventListener('change', e => {
   }
 });
 
-searchBtn.addEventListener('click', () => {
+if(searchBtn) searchBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
   renderDocs(q);
 });
 
-clearSearchBtn.addEventListener('click', () => {
+if(clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
   searchInput.value = '';
   renderDocs();
 });
@@ -1602,7 +1603,7 @@ const autoSearchHandler = debounce(() => {
   renderDocs(searchInput.value.trim());
 }, 300);
 
-searchInput.addEventListener('input', autoSearchHandler);
+if(searchInput) searchInput.addEventListener('input', autoSearchHandler);
 
 function generateControlNumber(){
   // Generate control number in the form ECOM-<YEAR>-<4DIGITS>
@@ -2210,7 +2211,7 @@ bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
   }
 });
 
-docsTableBody.addEventListener('change', e => {
+if(docsTableBody) docsTableBody.addEventListener('change', e => {
   if(e.target.classList.contains('row-checkbox')){
     e.target.closest('tr').classList.toggle('selected-row', e.target.checked);
   }
