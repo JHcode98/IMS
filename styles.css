@@ -635,9 +635,14 @@ body {
 }
 #app-sidebar.collapsed {
   width: 60px;
+  overflow: visible;
 }
 body.sidebar-collapsed {
   padding-left: 60px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-size: 14px;
+  position: relative;
 }
 /* Hide sidebar on login/no-navbar pages */
 body.no-navbar #app-sidebar {
@@ -731,4 +736,34 @@ body.no-navbar {
 .sidebar-submenu li button {
   padding-left: 48px;
   font-size: 13px;
+}
+/* Tooltips for collapsed sidebar */
+#app-sidebar.collapsed .sidebar-menu li button[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #222d32;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1001;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  margin-left: 5px;
+  pointer-events: none;
+}
+#app-sidebar.collapsed .sidebar-menu li button[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #222d32;
+  margin-left: -5px;
+  z-index: 1001;
+  pointer-events: none;
 }
