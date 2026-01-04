@@ -182,6 +182,15 @@ function saveDocs(){
 
 function renderDocs(filter){
   if(selectAll) selectAll.checked = false;
+  if(!docsTableBody){
+    try{ renderTotalDocs(); }catch(e){}
+    try{ renderStatusChart(); }catch(e){}
+    try{ renderWinsChart(); }catch(e){}
+    try{ renderAdminStatusOverview(); }catch(e){}
+    try{ renderAgeOverview(); }catch(e){}
+    try{ renderLeftSidebar(); }catch(e){}
+    return;
+  }
   docsTableBody.innerHTML = '';
   const q = filter ? filter.toLowerCase() : '';
   let list = docs.slice();
