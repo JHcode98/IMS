@@ -60,11 +60,11 @@
       <form id="cycle-count-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
         <div>
           <label for="item-code">Item Code / Name</label>
-          <input type="text" id="item-code" required style="width:100%">
+          <input type="text" id="item-code" required pattern="[15][0-9]{7}" title="8 digits starting with 1 or 5" inputmode="numeric" maxlength="8" style="width:100%">
         </div>
         <div>
           <label for="location">Location</label>
-          <input type="text" id="location" required style="width:100%">
+          <input type="text" id="location" required pattern="[0-9]{8}" title="Exactly 8 digits" inputmode="numeric" maxlength="8" style="width:100%">
         </div>
         <div>
           <label for="system-qty">System Qty</label>
@@ -93,7 +93,9 @@
           <input type="date" id="start-date" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
           <label for="end-date" style="font-size:13px;color:var(--muted)">To:</label>
           <input type="date" id="end-date" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc;">
-          <button id="filter-date-btn" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; margin-left: 4px;">Filter</button>
+          <button id="filter-date-btn" class="icon-btn" title="Filter Date Range" style="margin-left: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          </button>
           <button id="clear-date-filter-btn" class="icon-btn" title="Clear Date Filter" style="margin-left:-4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           
           <button id="export-csv-btn" class="icon-btn" title="Export to CSV">
@@ -365,7 +367,7 @@
 
     function downloadTemplate() {
       const headers = ['Timestamp', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
-      const sample = [new Date().toISOString(), 'ITEM-001', 'A-01-01', '10', '8', 'Sample Note'];
+      const sample = [new Date().toISOString(), '10000001', '12345678', '10', '8', 'Sample Note'];
       const csvContent = headers.join(',') + '\n' + sample.join(',');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
