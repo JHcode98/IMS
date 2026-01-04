@@ -1772,6 +1772,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Main App Sidebar Toggle
+  const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
+  const appSidebar = document.getElementById('app-sidebar');
+  if(mainSidebarToggle && appSidebar){
+    const collapsed = localStorage.getItem('ims_sidebar_collapsed') === '1';
+    if(collapsed){
+      appSidebar.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
+    }
+    mainSidebarToggle.addEventListener('click', () => {
+      const isCollapsed = appSidebar.classList.toggle('collapsed');
+      document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+      localStorage.setItem('ims_sidebar_collapsed', isCollapsed ? '1' : '0');
+      setTimeout(() => { if(typeof Chart !== 'undefined'){ Object.values(Chart.instances).forEach(c => c.resize()); } }, 300);
+    });
+  }
+
   // Make admin inbox badges clickable across the app: set filter and open admin inbox
   document.body.addEventListener('click', (e) => {
     try{
