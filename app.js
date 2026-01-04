@@ -120,6 +120,7 @@ const notesInput = document.getElementById('doc-notes');
 let docs = [];
 let statusFilter = null; // e.g. 'Revision', 'Approved', etc.
 let winsFilter = null; // e.g. 'Approved', 'Pending for Approve', 'Rejected'
+let ownerFilter = null;
 let dateFilter30Days = false;
 let ageStatusFilter = null; // will mirror statusFilter when filtering by age row clicks
 
@@ -205,6 +206,9 @@ function renderDocs(filter){
   }
   if(winsFilter){
     list = list.filter(d => d.winsStatus === winsFilter);
+  }
+  if(ownerFilter){
+    list = list.filter(d => d.owner === ownerFilter);
   }
   if(ageStatusFilter){
     list = list.filter(d => d.status === ageStatusFilter);
@@ -295,68 +299,6 @@ function renderDocs(filter){
   renderLeftSidebar();
   renderDashboardSummaries(list);
 }
-  try{ updateAdminInboxBadge(); }catch(e){}
-
-function drawPieChart(canvasId, data) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  const total = Object.values(data).reduce((a, b) => a + b, 0);
-  if(total === 0) return;
-
-  let startAngle = 0;
-  const colors = ['#2752a7', '#4a90e2', '#f39c12', '#e74c3c', '#2ecc71', '#9b59b6', '#34495e', '#95a5a6'];
-  const sorted = Object.entries(data).sort((a,b) => b[1] - a[1]);
-
-  sorted.forEach(([key, value], index) => {
-    const sliceAngle = (value / total) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, canvas.height / 2);
-    ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2 - 5, startAngle, startAngle + sliceAngle);
-    ctx.closePath();
-    ctx.fillStyle = colors[index % colors.length];
-    ctx.fill();
-    startAngle += sliceAngle;
-  });
-}
-
-function drawBarChart(canvasId, data) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-
-  const entries = Object.entries(data).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8
-  if (entries.length === 0) return;
-
-  const maxVal = Math.max(...entries.map(e => e[1]));
-  const barWidth = (width - 40) / entries.length;
-  const gap = 5;
-  const chartHeight = height - 20;
-
-  entries.forEach((entry, i) => {
-    const val = entry[1];
-    const barH = maxVal > 0 ? (val / maxVal) * (chartHeight - 20) : 0;
-    const x = 20 + i * barWidth;
-    const y = chartHeight - barH;
-    
-    ctx.fillStyle = '#2752a7';
-    ctx.fillRect(x, y, barWidth - gap, barH);
-    
-    ctx.fillStyle = '#333';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(val, x + (barWidth - gap)/2, y - 5);
-    
-    // Simple label truncation
-    const label = entry[0].length > 6 ? entry[0].substring(0,6)+'..' : entry[0];
-    ctx.fillText(label, x + (barWidth - gap)/2, chartHeight + 12);
-  });
-}
 
 function renderDashboardSummaries(currentList){
   const titleContainer = document.getElementById('summary-by-title');
@@ -390,26 +332,79 @@ function renderDashboardSummaries(currentList){
   const renderTitle = (map, container) => {
     const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]);
     if(sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
-    
-    let html = '';
-    html += '<div style="text-align:center;margin-bottom:12px"><canvas id="title-pie-chart" width="160" height="160"></canvas></div>';
-    
-    html += '<ul class="approved-ul">';
-    sorted.forEach(([k, v], idx) => {
-      const color = colors[idx % colors.length];
-      const dot = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:8px;"></span>`;
-      html += `<li style="padding:6px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;cursor:pointer" onclick="window.location.href='documents_full.html?q=${encodeURIComponent(k)}'" title="Filter by ${escapeHtml(k)}"><span>${dot}${escapeHtml(k)}</span> <span class="nav-badge" style="background:#eef4ff;color:#2752a7">${v}</span></li>`;
-    });
-    html += '</ul>';
-    container.innerHTML = html;
-    setTimeout(() => drawPieChart('title-pie-chart', map), 0);
+
+    container.innerHTML = '<div style="position:relative;height:300px;width:100%"><canvas id="title-pie-chart"></canvas></div>';
+    setTimeout(() => {
+        const canvas = document.getElementById('title-pie-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        const labels = sorted.map(e => e[0]);
+        const values = sorted.map(e => e[1]);
+        
+        if (window.titlePieChartInstance) {
+            window.titlePieChartInstance.destroy();
+        }
+
+        window.titlePieChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        display: true,
+                    }
+                },
+                onClick: (evt, elements, chart) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const label = chart.data.labels[index];
+                        window.location.href = `documents_full.html?q=${encodeURIComponent(label)}`;
+                    }
+                }
+            }
+        });
+    }, 0);
   };
 
   // Render Owner (Bar Chart)
   const renderOwner = (map, container) => {
     if(!container) return;
-    container.innerHTML = '<div style="text-align:center;margin-bottom:12px"><canvas id="owner-bar-chart" width="280" height="160"></canvas></div>';
-    setTimeout(() => drawBarChart('owner-bar-chart', map), 0);
+    const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8
+    if (sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
+
+    container.innerHTML = `<div style="position:relative;height:220px;width:100%"><canvas id="owner-bar-chart"></canvas></div>
+                           <button id="clear-owner-filter" style="display:${ownerFilter ? 'inline-block' : 'none'}; margin-top: 8px;" onclick="window.setOwnerFilter(null)">Clear Filter</button>`;
+    
+    setTimeout(() => {
+        const canvas = document.getElementById('owner-bar-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        const labels = sorted.map(e => e[0]);
+        const values = sorted.map(e => e[1]);
+
+        if(window.ownerBarChartInstance) { window.ownerBarChartInstance.destroy(); }
+        
+        window.ownerBarChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Documents by Owner', data: values, backgroundColor: '#2752a7' }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                onClick: (evt, elements, chart) => {
+                    if (elements.length > 0) { setOwnerFilter(chart.data.labels[elements[0].index]); }
+                }
+            }
+        });
+    }, 0);
   };
 
   // Render Week (Line Chart)
@@ -449,6 +444,12 @@ function renderDashboardSummaries(currentList){
   renderWeek(byWeek, weekContainer);
   renderOwner(byOwner, ownerContainer);
 }
+
+function setOwnerFilter(owner){
+  ownerFilter = owner;
+  renderDocs(searchInput.value.trim());
+}
+window.setOwnerFilter = setOwnerFilter;
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
