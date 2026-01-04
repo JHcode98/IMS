@@ -162,6 +162,7 @@ function loadDocs(){
   }
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
+  if(!Array.isArray(docs)) docs = [];
   // migrate legacy 'Received' status: preserve as adminStatus and set a sane status value
   try{
     docs.forEach(d => {
