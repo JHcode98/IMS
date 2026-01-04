@@ -63,7 +63,10 @@
           }
         }catch(e){ /* ignore and fallback */ }
 
-        try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') || []; }
+        try{ 
+          const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(d) ? d : [];
+        }
         catch(e){ return []; }
       }
 
@@ -152,6 +155,10 @@
       }
 
       (async ()=>{
+        if(typeof Chart === 'undefined'){
+           document.querySelector('.charts-wrap').innerHTML = '<div style="text-align:center;padding:20px;color:red">Error: Chart.js library could not be loaded. Please check your internet connection.</div>';
+           return;
+        }
         const docs = await loadDocs();
         // Match app.js migration logic for consistency
         try{
