@@ -55,6 +55,7 @@ header h1{margin:0;font-size:18px}
 .header-right{display:flex;align-items:center;gap:12px}
 .clock{font-size:13px;color:var(--muted);padding:6px 10px;border-radius:6px;background:rgba(39,82,167,0.05)}
 main{max-width:100%;margin:0;padding:20px}
+main{max-width:90%;margin:18px auto;padding:0 16px}
 .card{background:var(--card);padding:4px;border-radius:8px;box-shadow:0 1px 3px rgba(6, 212, 212, 0.06);margin-bottom:2px}
 #login-section{max-width:400px;margin:0 auto;padding:20px}
 #results{overflow-x:auto}
@@ -107,9 +108,13 @@ footer{max-width:980px;margin:6px auto;padding:6px 16px;color:var(--muted)}
 .left-sidebar.collapsed + .sidebar-toggle{left:4px}
 .left-sidebar.collapsed{width:0;flex-basis:0;min-width:0;padding-left:0;padding-right:0;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none}
 .left-sidebar{transition:width 300ms cubic-bezier(0.4, 0, 0.2, 1), flex-basis 300ms cubic-bezier(0.4, 0, 0.2, 1), padding 300ms ease, opacity 300ms ease}
+.left-sidebar.collapsed{width:0;min-width:0;padding:0;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none}
+.left-sidebar.collapsed .approved-list, .left-sidebar.collapsed h3, .left-sidebar.collapsed .sidebar-controls, .left-sidebar.collapsed .sidebar-pagination { display:none !important; }
+.left-sidebar{transition:width 200ms ease, opacity 200ms ease}
 
 /* Ensure toggle moves smoothly */
 .sidebar-toggle{transition:left 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms ease}
+.sidebar-toggle{transition:left 200ms ease, transform 200ms ease}
 
 /* Role badge */
 .role-badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#eef4ff;color:var(--accent);font-weight:700;font-size:12px}
@@ -255,6 +260,11 @@ body.full-view main{min-height:calc(100vh - 220px)}
   padding: 0 20px;
   height: 60px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  background: linear-gradient(90deg,#1f3f72,#16325a);
+  color:#fff;
+  padding:0 16px;
+  height:56px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.12);
   position:fixed;
   top:0;
   left:0;
@@ -281,9 +291,13 @@ body{padding-top:64px}
   gap:8px;
   font-size:16px;
   color: #ecf0f1;
+  font-size:15px;
+  color: white;
   text-decoration: none;
   padding: 0 15px;
   height: 60px; /* Full height for hover effect */
+  padding:10px 14px;
+  border-radius:8px;
   transition: background 160ms ease, transform 120ms ease;
 }
 
@@ -293,15 +307,21 @@ body{padding-top:64px}
   border-radius: 0;
   color: #ecf0f1;
   box-shadow: none;
+  background: linear-gradient(45deg, #4a90e2, #2752a7);
+  border-radius:8px;
+  color:#fff;
+  box-shadow:0 4px 12px rgba(16,40,80,0.24);
 }
 .navbar .nav-btn:hover{ 
   background-color: #34495e;
   color: white;
   transform: none; 
 }
+.navbar .nav-btn:hover{ transform: translateY(-2px); }
 
 /* subtle hover for links */
 .navbar a:hover{ background-color: #34495e; color: white; }
+.navbar a:hover{ background: rgba(255,255,255,0.06); }
 
 /* User dropdown in navbar (right side) */
 .nav-user{
@@ -312,16 +332,20 @@ body{padding-top:64px}
 }
 .nav-user .user-btn:hover{background:rgba(255,255,255,0.06)}
 .nav-user .user-menu{position:absolute;right:0;top:50px;background:#fff;color:#111;border-radius:4px;box-shadow:0 8px 16px rgba(0,0,0,0.2);min-width:160px;visibility:hidden;z-index:3000;padding:0;transform:translateY(-10px);opacity:0;transition:all 0.3s ease}
+.nav-user .user-menu{position:absolute;right:0;top:calc(100% + 8px);background:#fff;color:#111;border-radius:8px;box-shadow:0 8px 24px rgba(18,30,60,0.16);min-width:180px;display:none;z-index:3000;padding:8px;transform-origin:top right;transform:translateY(-6px) scale(0.98);opacity:0}
 .nav-user .user-menu a, .nav-user .user-menu button{display:block;width:100%;text-align:left;padding:8px;border-radius:6px;background:transparent;border:0;color:#16325a}
 .nav-user .user-menu a:hover, .nav-user .user-menu button:hover{background:#f1f5fb}
 .nav-user.open .user-menu{visibility:visible;transform:translateY(0);opacity:1}
+.nav-user.open .user-menu{display:block;transform:translateY(0) scale(1);opacity:1;transition:transform 180ms cubic-bezier(.2,.9,.2,1), opacity 160ms ease}
 
 /* Clock styling inside navbar */
 .navbar .clock{background:rgba(255,255,255,0.1);padding:6px 10px;border-radius:6px;color:#bdc3c7}
+.navbar .clock{background:transparent;padding:6px 8px;border-radius:6px;color:rgba(255,255,255,0.9)}
 
 /* Hide navbar when body has no-navbar (used during login view) */
 /* Disabled so navbar remains visible across pages */
 body.no-navbar .navbar{display:none}
+/* body.no-navbar .navbar{display:none} */
 
 /* Responsive: stack navbar and header-right on small screens */
 @media (max-width: 720px) {
@@ -369,6 +393,7 @@ body.no-navbar .navbar{display:none}
 /* Ensure navbar stays hidden on login even on small screens */
 /* Disabled so navbar remains visible across pages */
 body.no-navbar .navbar{display:none !important}
+/* body.no-navbar .navbar{display:none !important} */
 
 /* Badge used on admin inbox nav button */
 .nav-badge{display:inline-block;margin-left:8px;padding:2px 6px;border-radius:999px;font-size:12px;font-weight:700;color:#fff}
@@ -700,10 +725,15 @@ body.no-navbar {
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   font-size: 14px;
+  position: relative;
+  border-left: 3px solid transparent;
 }
 .sidebar-menu li button:hover, .sidebar-menu li button.active {
   background: #2c3b41;
   color: #fff;
+}
+.sidebar-menu li button.active {
+  border-left-color: #3498db;
 }
 .menu-icon {
   width: 20px;
@@ -736,7 +766,15 @@ body.no-navbar {
 .sidebar-submenu li button {
   padding-left: 48px;
   font-size: 13px;
+  border-left: 3px solid transparent;
 }
+.sidebar-submenu li button.active {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+  font-weight: bold;
+  border-left-color: #3498db;
+}
+
 /* Tooltips for collapsed sidebar */
 #app-sidebar.collapsed .sidebar-menu li button[data-tooltip]:hover::after {
   content: attr(data-tooltip);
