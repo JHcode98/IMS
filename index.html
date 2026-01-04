@@ -145,6 +145,22 @@
 					</div>
 				</div>
 
+				<!-- Dashboard Charts -->
+				<div id="dashboard-charts" class="card" style="margin-bottom: 20px;">
+					<h3>Dashboard Analytics</h3>
+					<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-around;">
+						<div style="flex: 1; min-width: 300px; max-width: 400px;">
+							<canvas id="dash-pie-title" style="max-height:300px"></canvas>
+						</div>
+						<div style="flex: 1; min-width: 300px; max-width: 400px;">
+							<canvas id="dash-bar-owner" style="max-height:300px"></canvas>
+						</div>
+						<div style="flex: 1; min-width: 300px; max-width: 100%;">
+							<canvas id="dash-line-week" style="max-height:300px"></canvas>
+						</div>
+					</div>
+				</div>
+
 				<div id="new-doc-form" class="card hidden">
             <h3>Add Document</h3>
             <form id="doc-form">
@@ -273,6 +289,124 @@
 		
 
 			<script src="app.js"></script>
+
+			<script>
+				document.addEventListener('DOMContentLoaded', () => {
+					const STORAGE_KEY = 'dms_docs_v1';
+					
+					function loadDocs() {
+						try {
+							const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+							return Array.isArray(d) ? d.filter(x => x && typeof x === 'object') : [];
+						} catch (e) { return []; }
+					}
+
+					function aggregateCount(items, keyFn) {
+						const map = {};
+						items.forEach(it => {
+							if (!it) return;
+							const k = (keyFn(it) || 'Unknown').trim() || 'Unknown';
+							map[k] = (map[k] || 0) + 1;
+						});
+						return map;
+					}
+
+					const docs = loadDocs();
+					// Migration logic to match app behavior
+					docs.forEach(d => {
+						if(d && d.status === 'Received'){
+							if(!d.adminStatus) d.adminStatus = 'Received';
+							d.status = 'Routing';
+						}
+					});
+
+					// 1. By Title (Pie)
+					const byTitle = aggregateCount(docs, d => d.title);
+					const ctxTitle = document.getElementById('dash-pie-title');
+					if (ctxTitle) {
+						new Chart(ctxTitle, {
+							type: 'pie',
+							data: {
+								labels: Object.keys(byTitle),
+								datasets: [{
+									data: Object.values(byTitle),
+									backgroundColor: ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6', '#34495e', '#1abc9c']
+								}]
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+								plugins: { title: { display: true, text: 'By Title' } }
+							}
+						});
+					}
+
+					// 2. By Owner (Bar)
+					const byOwner = aggregateCount(docs, d => d.owner);
+					// Sort by count descending
+					const sortedOwners = Object.entries(byOwner).sort((a,b) => b[1] - a[1]);
+					const ctxOwner = document.getElementById('dash-bar-owner');
+					if (ctxOwner) {
+						new Chart(ctxOwner, {
+							type: 'bar',
+							data: {
+								labels: sortedOwners.map(e => e[0]),
+								datasets: [{
+									label: 'Documents',
+									data: sortedOwners.map(e => e[1]),
+									backgroundColor: 'rgba(54, 162, 235, 0.6)'
+								}]
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+								plugins: { title: { display: true, text: 'By Owner' }, legend: { display: false } },
+								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+							}
+						});
+					}
+
+					// 3. By Week (Line)
+					const byWeek = {};
+					docs.forEach(d => {
+						if (!d || !d.createdAt) return;
+						let date = new Date(d.createdAt);
+						if (isNaN(date.getTime())) date = new Date(Number(d.createdAt));
+						if (isNaN(date.getTime())) return;
+						
+						const day = date.getDay();
+						const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+						const monday = new Date(date);
+						monday.setDate(diff);
+						const key = monday.toISOString().split('T')[0];
+						byWeek[key] = (byWeek[key] || 0) + 1;
+					});
+					const sortedWeeks = Object.keys(byWeek).sort();
+					const ctxWeek = document.getElementById('dash-line-week');
+					if (ctxWeek) {
+						new Chart(ctxWeek, {
+							type: 'line',
+							data: {
+								labels: sortedWeeks,
+								datasets: [{
+									label: 'Created',
+									data: sortedWeeks.map(k => byWeek[k]),
+									borderColor: '#3498db',
+									backgroundColor: 'rgba(52, 152, 219, 0.2)',
+									fill: true,
+									tension: 0.3
+								}]
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+								plugins: { title: { display: true, text: 'By Week Created' } },
+								scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+							}
+						});
+					}
+				});
+			</script>
 			<!-- profile moved to profile.html -->
 	</body>
 </html>
