@@ -54,7 +54,7 @@ header h1{margin:0;font-size:18px}
 .hidden{display:none}
 .header-right{display:flex;align-items:center;gap:12px}
 .clock{font-size:13px;color:var(--muted);padding:6px 10px;border-radius:6px;background:rgba(39,82,167,0.05)}
-main{max-width:90%;margin:18px auto;padding:0 16px}
+main{max-width:100%;margin:0;padding:20px}
 .card{background:var(--card);padding:4px;border-radius:8px;box-shadow:0 1px 3px rgba(6, 212, 212, 0.06);margin-bottom:2px}
 #login-section{max-width:400px;margin:0 auto;padding:20px}
 #results{overflow-x:auto}
