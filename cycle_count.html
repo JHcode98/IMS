@@ -208,6 +208,12 @@
       return candidates;
     }
 
+    function normalizeDate(dateStr) {
+      const candidates = getCandidateDates(dateStr);
+      if (candidates.length > 0) return candidates[0].toISOString();
+      return new Date().toISOString();
+    }
+
     function loadData() {
       let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
       // Add original index to handle deletion after filtering
@@ -521,14 +527,14 @@
             
             if (cIdx !== -1 && values[cIdx]) {
                 // Use raw value from file to preserve format
-                createdDateVal = values[cIdx];
-                updatedDateVal = values[cIdx];
+                createdDateVal = normalizeDate(values[cIdx]);
+                updatedDateVal = createdDateVal;
             }
 
             // 2. Resolve Updated Date (override if explicit)
             const uIdx = headers.indexOf('Updated Date');
             if (uIdx !== -1 && values[uIdx]) {
-                 updatedDateVal = values[uIdx];
+                 updatedDateVal = normalizeDate(values[uIdx]);
             }
 
             const newItem = {
