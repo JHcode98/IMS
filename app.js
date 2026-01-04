@@ -13,10 +13,9 @@ const USERS = {
 const AUTH_KEY = 'dms_auth_v1';
 const AUTH_ROLE_KEY = 'dms_auth_role_v1';
 const AUTH_TOKEN_KEY = 'dms_auth_token_v1';
-const DARK_MODE_KEY = 'dms_dark_mode_v1';
 let currentUserRole = null;
 // Optional server API for shared DB
-const API_BASE = (location.port === '3000') ? '/api' : (location.protocol + '//' + location.hostname + ':3000/api');
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
 let USE_SERVER = false;
 let WS_CLIENT = null;
 let WS_RECONNECT_TIMER = null;
@@ -39,15 +38,15 @@ let WS_RECONNECT_TIMER = null;
 function startWebsocket(){
   try{
     if(WS_CLIENT && (WS_CLIENT.readyState === WebSocket.OPEN || WS_CLIENT.readyState === WebSocket.CONNECTING)) return;
-    const wsHost = (location.port === '3000') ? location.host : (location.hostname + ':3000');
-    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + wsHost + '/ws';
+    const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = scheme + '//' + location.hostname + (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ':3000' : '') + '/ws';
     WS_CLIENT = new WebSocket(wsUrl);
     WS_CLIENT.addEventListener('open', () => { announceStatus('Realtime sync connected'); if(WS_RECONNECT_TIMER){ clearTimeout(WS_RECONNECT_TIMER); WS_RECONNECT_TIMER = null; } });
     WS_CLIENT.addEventListener('message', (ev) => {
       try{
         const msg = JSON.parse(ev.data);
         if(msg && msg.type === 'docs_updated'){
-          try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} announceStatus('Realtime update received'); } }).catch(()=>{}); }catch(e){}
+          try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); announceStatus('Realtime update received'); } }).catch(()=>{}); }catch(e){}
         }
       }catch(e){}
     });
@@ -64,7 +63,7 @@ function startWebsocket(){
 let _serverSyncInterval = null;
 function startServerSync(){
   // fetch immediately
-  try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} } }).catch(()=>{}); }catch(e){}
+  try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); } }).catch(()=>{}); }catch(e){}
   // poll every 5s
   try{ if(_serverSyncInterval) clearInterval(_serverSyncInterval); _serverSyncInterval = setInterval(()=>{
     try{ fetch(API_BASE + '/docs').then(r => r.json()).then(j => {
@@ -73,7 +72,7 @@ function startServerSync(){
         try{
           const localStr = JSON.stringify(docs || []);
           const remoteStr = JSON.stringify(remote || []);
-          if(localStr !== remoteStr){ docs = remote; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} announceStatus('Updated from server'); }
+          if(localStr !== remoteStr){ docs = remote; renderDocs(); updateAdminInboxBadge(); announceStatus('Updated from server'); }
         }catch(e){ docs = remote; renderDocs(); updateAdminInboxBadge(); }
       }
     }).catch(()=>{}); }catch(e){}
@@ -109,7 +108,6 @@ const cancelNew = document.getElementById('cancel-new');
 const docsTableBody = document.querySelector('#docs-table tbody');
 const searchInput = document.getElementById('search-control');
 const searchBtn = document.getElementById('search-btn');
-const filter30DaysBtn = document.getElementById('filter-30-days');
 const clearSearchBtn = document.getElementById('clear-search');
 const importFileInput = document.getElementById('import-file');
 const exportCsvBtn = document.getElementById('export-csv');
@@ -120,8 +118,6 @@ const notesInput = document.getElementById('doc-notes');
 let docs = [];
 let statusFilter = null; // e.g. 'Revision', 'Approved', etc.
 let winsFilter = null; // e.g. 'Approved', 'Pending for Approve', 'Rejected'
-let ownerFilter = null;
-let dateFilter30Days = false;
 let ageStatusFilter = null; // will mirror statusFilter when filtering by age row clicks
 
 // Sidebar search & pagination state
@@ -162,7 +158,7 @@ function stopInactivityWatcher(){
 function loadDocs(){
   if(USE_SERVER){
     // fetch docs from server (async but keep previous docs if any)
-    fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); try{ renderAdminInbox(); }catch(e){} } }).catch(()=>{});
+    fetch(API_BASE + '/docs').then(r => r.json()).then(j => { if(j && Array.isArray(j.docs)){ docs = j.docs; renderDocs(); updateAdminInboxBadge(); } }).catch(()=>{});
   }
   try{ docs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e){ docs = []; }
@@ -177,20 +173,16 @@ function loadDocs(){
   }catch(e){}
 }
 
-function saveDocs(singleDoc){
+function saveDocs(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
   if(USE_SERVER){
-    if(singleDoc && singleDoc.controlNumber){
-      try{ fetch(API_BASE + '/docs/' + encodeURIComponent(singleDoc.controlNumber), {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(singleDoc) }).catch(()=>{}); }catch(e){}
-    } else {
-      try{ fetch(API_BASE + '/docs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docs }) }).catch(()=>{}); }catch(e){}
-    }
+    try{ fetch(API_BASE + '/docs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docs }) }).catch(()=>{}); }catch(e){}
   }
 }
 
 function renderDocs(filter){
   if(selectAll) selectAll.checked = false;
-  if(docsTableBody) docsTableBody.innerHTML = '';
+  docsTableBody.innerHTML = '';
   const q = filter ? filter.toLowerCase() : '';
   let list = docs.slice();
   if(q){
@@ -207,28 +199,17 @@ function renderDocs(filter){
   if(winsFilter){
     list = list.filter(d => d.winsStatus === winsFilter);
   }
-  if(ownerFilter){
-    list = list.filter(d => d.owner === ownerFilter);
-  }
   if(ageStatusFilter){
     list = list.filter(d => d.status === ageStatusFilter);
   }
-  if(dateFilter30Days){
-    const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    list = list.filter(d => d.createdAt && Number(d.createdAt) >= cutoff);
-  }
   if(list.length === 0){
-    if(docsTableBody){
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
-      docsTableBody.appendChild(tr);
-    }
-    renderDashboardSummaries(list);
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="12" class="muted">No documents found.</td>';
+    docsTableBody.appendChild(tr);
     return;
   }
 
-  if(docsTableBody){
-    list.forEach(doc => {
+  list.forEach(doc => {
     const tr = document.createElement('tr');
     const createdText = doc.createdAt ? msToDatetimeLocal(doc.createdAt).replace('T',' ') : '';
     const updatedText = doc.updatedAt ? new Date(doc.updatedAt).toLocaleString() : '';
@@ -289,167 +270,14 @@ function renderDocs(filter){
       </td> 
     `;
     docsTableBody.appendChild(tr);
-    });
-  }
+  });
   renderTotalDocs();
   renderStatusChart();
   renderWinsChart();
   renderAdminStatusOverview();
   renderAgeOverview();
-  renderLeftSidebar();
-  renderDashboardSummaries(list);
-}
-
-function renderDashboardSummaries(currentList){
-  const titleContainer = document.getElementById('summary-by-title');
-  const weekContainer = document.getElementById('summary-by-week');
-  const ownerContainer = document.getElementById('summary-by-owner-bar');
-  if(!titleContainer || !weekContainer) return;
-
-  const list = currentList || docs;
-  const byTitle = {};
-  const byWeek = {};
-  const byOwner = {};
-  
-  list.forEach(d => {
-    const t = d.title || 'Unknown';
-    byTitle[t] = (byTitle[t] || 0) + 1;
-    const o = d.owner || 'Unknown';
-    byOwner[o] = (byOwner[o] || 0) + 1;
-    if(d.createdAt){
-      const date = new Date(Number(d.createdAt));
-      const startOfWeek = new Date(date);
-      startOfWeek.setDate(date.getDate() - date.getDay());
-      startOfWeek.setHours(0,0,0,0);
-      const k = startOfWeek.toLocaleDateString();
-      byWeek[k] = (byWeek[k] || 0) + 1;
-    }
-  });
-
-  const colors = ['#2752a7', '#4a90e2', '#f39c12', '#e74c3c', '#2ecc71', '#9b59b6', '#34495e', '#95a5a6'];
-
-  // Render Title (Pie + List)
-  const renderTitle = (map, container) => {
-    const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]);
-    if(sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
-
-    container.innerHTML = '<div style="position:relative;height:300px;width:100%"><canvas id="title-pie-chart"></canvas></div>';
-    setTimeout(() => {
-        const canvas = document.getElementById('title-pie-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-
-        const labels = sorted.map(e => e[0]);
-        const values = sorted.map(e => e[1]);
-        
-        if (window.titlePieChartInstance) {
-            window.titlePieChartInstance.destroy();
-        }
-
-        window.titlePieChartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: colors,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        display: true,
-                    }
-                },
-                onClick: (evt, elements, chart) => {
-                    if (elements.length > 0) {
-                        const index = elements[0].index;
-                        const label = chart.data.labels[index];
-                        window.location.href = `documents_full.html?q=${encodeURIComponent(label)}`;
-                    }
-                }
-            }
-        });
-    }, 0);
-  };
-
-  // Render Owner (Bar Chart)
-  const renderOwner = (map, container) => {
-    if(!container) return;
-    const sorted = Object.entries(map).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8
-    if (sorted.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
-
-    container.innerHTML = `<div style="position:relative;height:220px;width:100%"><canvas id="owner-bar-chart"></canvas></div>
-                           <button id="clear-owner-filter" style="display:${ownerFilter ? 'inline-block' : 'none'}; margin-top: 8px;" onclick="window.setOwnerFilter(null)">Clear Filter</button>`;
-    
-    setTimeout(() => {
-        const canvas = document.getElementById('owner-bar-chart');
-        if (!canvas || typeof Chart === 'undefined') return;
-
-        const labels = sorted.map(e => e[0]);
-        const values = sorted.map(e => e[1]);
-
-        if(window.ownerBarChartInstance) { window.ownerBarChartInstance.destroy(); }
-        
-        window.ownerBarChartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'bar',
-            data: { labels: labels, datasets: [{ label: 'Documents by Owner', data: values, backgroundColor: '#2752a7' }] },
-            options: {
-                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                onClick: (evt, elements, chart) => {
-                    if (elements.length > 0) { setOwnerFilter(chart.data.labels[elements[0].index]); }
-                }
-            }
-        });
-    }, 0);
-  };
-
-  // Render Week (Line Chart)
-  const renderWeek = (map, container) => {
-    const sortedLabels = Object.keys(map).sort((a, b) => new Date(a) - new Date(b));
-    if(sortedLabels.length === 0) { container.innerHTML = '<div class="muted">No data</div>'; return; }
-    
-    container.innerHTML = '<div style="position:relative;height:250px;width:100%"><canvas id="weekly-line-chart"></canvas></div>';
-    setTimeout(() => {
-      const ctx = document.getElementById('weekly-line-chart');
-      if(ctx && typeof Chart !== 'undefined'){
-        if(window.weeklyChartInstance) { window.weeklyChartInstance.destroy(); window.weeklyChartInstance = null; }
-        window.weeklyChartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: sortedLabels,
-            datasets: [{
-              label: 'Documents Created',
-              data: sortedLabels.map(l => map[l]),
-              borderColor: 'rgb(75, 192, 192)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              tension: 0.1,
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-          }
-        });
-      }
-    }, 0);
-  };
-
-  renderTitle(byTitle, titleContainer);
-  renderWeek(byWeek, weekContainer);
-  renderOwner(byOwner, ownerContainer);
-}
-
-function setOwnerFilter(owner){
-  ownerFilter = owner;
-  renderDocs(searchInput.value.trim());
-}
-window.setOwnerFilter = setOwnerFilter;
+  renderLeftSidebar();}
+  try{ updateAdminInboxBadge(); }catch(e){}
 
 function computeWinsCounts(){
   const counts = { 'Approved':0, 'Pending for Approve':0, 'Rejected':0 };
@@ -666,6 +494,8 @@ function renderAdminInbox(externalFilter){
   const paginationEl = document.getElementById('admin-inbox-pagination');
   if(!container) return;
   container.innerHTML = '';
+  // ensure docs loaded
+  loadDocs();
   const f = externalFilter || adminInboxFilter || 'all';
   const q = (document.getElementById('admin-inbox-search') && document.getElementById('admin-inbox-search').value) || adminInboxQuery || '';
   adminInboxQuery = q;
@@ -702,8 +532,7 @@ function renderAdminInbox(externalFilter){
         if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Reason: ' + escapeHtml(d.returnReason) + '</div>'; }
       }
     }
-    const chk = `<input type="checkbox" class="admin-inbox-check" value="${escapeHtml(d.controlNumber||d.control)}" style="margin-right:10px;cursor:pointer">`;
-    left.innerHTML = `<div style="display:flex;align-items:center">${chk}<div><strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div></div></div>`;
+    left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
     const actions = document.createElement('div');
     // view (eye icon)
     const view = document.createElement('button'); view.type = 'button'; view.className = 'icon-btn'; view.title = 'Open details'; view.setAttribute('aria-label','Open details for ' + (d.controlNumber||d.control));
@@ -973,14 +802,13 @@ function addOrUpdateDoc(doc){
     doc.createdAt = existing.createdAt || existing.createdAt === 0 ? existing.createdAt : existing.createdAt;
     doc.updatedAt = Date.now();
     docs[idx] = doc;
-    saveDocs(doc);
   } else {
     // if caller provided createdAt (e.g. rename preserving original), keep it; otherwise set now
     if(!doc.createdAt) doc.createdAt = Date.now();
     doc.updatedAt = Date.now();
     docs.unshift(doc);
-    saveDocs();
   }
+  saveDocs();
 }
 
 function deleteDocInternal(controlNumber){
@@ -1039,7 +867,7 @@ function forwardDoc(controlNumber){
   doc.forwardedAt = Date.now();
   try{ doc.forwardedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
   doc.updatedAt = Date.now();
-  saveDocs(doc);
+  saveDocs();
   renderDocs();
 }
 
@@ -1056,7 +884,7 @@ function receiveDoc(controlNumber){
   // mark adminStatus (Received) when admin handles it
   doc.adminStatus = 'Received';
   doc.updatedAt = Date.now();
-  saveDocs(doc);
+  saveDocs();
   renderDocs();
   // refresh admin inbox view as well
   try{ renderAdminInbox(); }catch(e){}
@@ -1094,44 +922,6 @@ function batchReceiveForwarded(){
   }catch(e){ console.error(e); alert('Error receiving documents'); }
 }
 window.batchReceiveForwarded = batchReceiveForwarded;
-
-// Batch receive selected documents in Admin Inbox
-function batchReceiveSelected(){
-  let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
-  if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
-
-  const checks = document.querySelectorAll('.admin-inbox-check:checked');
-  if(checks.length === 0){ alert('No documents selected.'); return; }
-
-  if(!confirm('Mark ' + checks.length + ' selected document(s) as received?')) return;
-
-  const toReceive = Array.from(checks).map(c => c.value);
-  let count = 0;
-  toReceive.forEach(ctrl => {
-    const doc = docs.find(d => d.controlNumber === ctrl);
-    // Only receive if it is currently forwarded
-    if(doc && doc.forwarded){
-      doc.forwarded = false;
-      doc.forwardedHandledAt = Date.now();
-      try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
-      doc.adminStatus = 'Received';
-      doc.updatedAt = Date.now();
-      count++;
-    }
-  });
-
-  if(count > 0){
-    saveDocs();
-    renderAdminInbox();
-    try{ renderDocs(); }catch(e){}
-    try{ updateAdminInboxBadge(); }catch(e){}
-    announceStatus('Received ' + count + ' documents');
-  } else {
-    alert('Selected documents were not in a state to be received (e.g. already received or not forwarded).');
-  }
-}
-window.batchReceiveSelected = batchReceiveSelected;
 
 // Auth
 function signIn(username, password){
@@ -1192,7 +982,7 @@ function returnToIC(controlNumber){
   }
   doc.forwarded = false;
   doc.updatedAt = Date.now();
-  saveDocs(doc);
+  saveDocs();
   renderDocs();
   try{ renderAdminInbox(); }catch(e){}
 } 
@@ -1209,13 +999,7 @@ function showDashboard(userName){
   // restore role from storage if available
   try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
   loadDocs();
-  
-  // Check for URL query param 'q' to filter docs immediately
-  const params = new URLSearchParams(window.location.search);
-  const q = params.get('q');
-  if(q && searchInput){ searchInput.value = q; renderDocs(q); }
-  else { renderDocs(); }
-
+  renderDocs();
   adjustUIForRole();
   try{ renderNavAvatar(); }catch(e){}
   // wire title selects to show/hide 'Other' input if present
@@ -1397,24 +1181,6 @@ document.addEventListener('keydown', (e) => {
     try{ if(navbar && navbar.classList.contains('open')){ navbar.classList.remove('open'); if(navToggle) navToggle.setAttribute('aria-expanded','false'); } }catch(ex){}
   }
 });
-
-// Dark Mode Logic
-function initDarkMode(){
-  const isDark = localStorage.getItem(DARK_MODE_KEY) === '1';
-  document.body.classList.toggle('dark-mode', isDark);
-  const btn = document.getElementById('dark-mode-toggle');
-  if(btn) btn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-}
-
-const darkModeToggle = document.getElementById('dark-mode-toggle');
-if(darkModeToggle){
-  darkModeToggle.addEventListener('click', (e) => {
-    e.stopPropagation(); // prevent menu close
-    const isDark = document.body.classList.toggle('dark-mode');
-    localStorage.setItem(DARK_MODE_KEY, isDark ? '1' : '0');
-    darkModeToggle.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-  });
-}
 
 // Profile is a standalone page now (profile.html); inline modal handlers removed.
 
@@ -1599,7 +1365,7 @@ docForm.addEventListener('submit', e => {
   renderDocs();
 });
 
-if(docsTableBody) docsTableBody.addEventListener('click', e => {
+docsTableBody.addEventListener('click', e => {
   // Quick-edit notes handling
   const noteEditBtn = e.target.closest('button[data-note-edit]');
   if(noteEditBtn){
@@ -1627,7 +1393,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const newNotes = notesTa ? notesTa.value.trim() : '';
     doc.notes = newNotes;
     doc.updatedAt = Date.now();
-    saveDocs(doc);
+    saveDocs();
     // restore cell
     const notesCell = tr.querySelector('.notes-cell');
     notesCell.innerHTML = `<span class="notes-text" title="${escapeHtml(doc.notes || '')}">${escapeHtml(doc.notes || '')}</span><button type="button" class="note-edit-btn" data-note-edit="${escapeHtml(doc.controlNumber)}">✎</button>`;
@@ -1770,7 +1536,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
       });
     }
 
-if(docsTableBody) docsTableBody.addEventListener('change', e => {
+docsTableBody.addEventListener('change', e => {
   const sel = e.target.closest('.status-select');
   if(sel){
     const ctl = sel.getAttribute('data-control');
@@ -1778,7 +1544,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     if(doc){
       doc.status = sel.value;
       doc.updatedAt = Date.now();
-      saveDocs(doc);
+      saveDocs();
       renderDocs(searchInput.value.trim());
     }
     return;
@@ -1790,7 +1556,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     if(doc){
       doc.winsStatus = winsSel.value;
       doc.updatedAt = Date.now();
-      saveDocs(doc);
+      saveDocs();
       renderDocs(searchInput.value.trim());
     }
     return;
@@ -1801,14 +1567,6 @@ searchBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
   renderDocs(q);
 });
-
-if(filter30DaysBtn){
-  filter30DaysBtn.addEventListener('click', () => {
-    dateFilter30Days = !dateFilter30Days;
-    filter30DaysBtn.classList.toggle('active-filter', dateFilter30Days);
-    renderDocs(searchInput.value.trim());
-  });
-}
 
 clearSearchBtn.addEventListener('click', () => {
   searchInput.value = '';
@@ -1887,7 +1645,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   try{ renderNavAvatar(); }catch(e){}
-  try{ initDarkMode(); }catch(e){}
 
   // Sidebar search & page size
   const sidebarSearch = document.getElementById('sidebar-search');
@@ -2074,12 +1831,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminPagination = document.getElementById('admin-inbox-pagination');
   if(adminFilter){ adminFilter.addEventListener('change', () => { adminInboxFilter = adminFilter.value; adminInboxPage = 1; renderAdminInbox(); }); }
   if(adminSearch){ adminSearch.addEventListener('input', debounce(() => { adminInboxQuery = adminSearch.value.trim(); adminInboxPage = 1; renderAdminInbox(); }, 250)); }
-  
-  // Admin inbox selection controls
-  const adminSelAll = document.getElementById('admin-select-all');
-  if(adminSelAll){ adminSelAll.addEventListener('change', () => { document.querySelectorAll('.admin-inbox-check').forEach(c => c.checked = adminSelAll.checked); }); }
-  const btnReceiveSel = document.getElementById('receive-selected-btn');
-  if(btnReceiveSel){ btnReceiveSel.addEventListener('click', () => { if(window.batchReceiveSelected) window.batchReceiveSelected(); }); }
 
   // delegate clicks inside admin inbox (receive)
   const adminList = document.getElementById('admin-inbox-list');
@@ -2402,51 +2153,6 @@ downloadTemplateBtn && downloadTemplateBtn.addEventListener('click', () => {
   downloadTemplate();
 });
 
-// --- Main Sidebar Navigation Logic ---
-const navDmsBtn = document.getElementById('nav-dms-btn');
-const navInventoryBtn = document.getElementById('nav-inventory-btn');
-const inventorySection = document.getElementById('inventory-system');
-
-if(navDmsBtn && navInventoryBtn){
-  navDmsBtn.addEventListener('click', () => {
-    // Show DMS
-    navDmsBtn.classList.add('active');
-    navInventoryBtn.classList.remove('active');
-    if(dashboard) dashboard.classList.remove('hidden');
-    if(inventorySection) inventorySection.classList.add('hidden');
-    document.body.classList.remove('inventory-mode');
-    // Ensure header title reflects current system if needed, or keep global title
-  });
-
-  navInventoryBtn.addEventListener('click', () => {
-    // Show Inventory
-    navInventoryBtn.classList.add('active');
-    navDmsBtn.classList.remove('active');
-    if(dashboard) dashboard.classList.add('hidden');
-    if(inventorySection) inventorySection.classList.remove('hidden');
-    document.body.classList.add('inventory-mode');
-  });
-}
-
-// --- Main Sidebar Toggle Logic ---
-const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
-const appSidebar = document.getElementById('app-sidebar');
-
-if(mainSidebarToggle && appSidebar){
-  // Restore state
-  const isCollapsed = localStorage.getItem('dms_main_sidebar_collapsed') === '1';
-  if(isCollapsed){
-    appSidebar.classList.add('collapsed');
-    document.body.classList.add('main-sidebar-collapsed');
-  }
-
-  mainSidebarToggle.addEventListener('click', () => {
-    const collapsed = appSidebar.classList.toggle('collapsed');
-    document.body.classList.toggle('main-sidebar-collapsed', collapsed);
-    localStorage.setItem('dms_main_sidebar_collapsed', collapsed ? '1' : '0');
-  });
-}
-
 const selectAll = document.getElementById('select-all');
 const bulkUpdateBtn = document.getElementById('bulk-update');
 const bulkDeleteBtn = document.getElementById('bulk-delete');
@@ -2457,7 +2163,7 @@ selectAll && selectAll.addEventListener('change', () => {
 });
 
 bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
-  const selected = docsTableBody ? Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value) : [];
+  const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
   if(selected.length === 0){
     alert('No documents selected.');
     return;
@@ -2469,7 +2175,7 @@ bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
 });
 
 bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
-  const selected = docsTableBody ? Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value) : [];
+  const selected = Array.from(docsTableBody.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
   if(selected.length === 0){
     alert('No documents selected.');
     return;
@@ -2488,7 +2194,7 @@ bulkUpdateBtn && bulkUpdateBtn.addEventListener('click', () => {
   }
 });
 
-if(docsTableBody) docsTableBody.addEventListener('change', e => {
+docsTableBody.addEventListener('change', e => {
   if(e.target.classList.contains('row-checkbox')){
     e.target.closest('tr').classList.toggle('selected-row', e.target.checked);
   }
