@@ -28,7 +28,6 @@
             <a class="user-btn" id="user-btn" href="profile.html"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></a>
             <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
               <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
-              <button id="dark-mode-toggle" role="menuitem">Dark Mode</button>
               <button id="logout-btn" role="menuitem">Logout</button>
             </div>
           </div>
@@ -37,21 +36,6 @@
     </header>
 
     <main>
-      <section id="login-section" class="card">
-        <h2>Login</h2>
-        <form id="login-form">
-          <label for="username">Username</label>
-          <input id="username" name="username" required />
-
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" required />
-
-          <button type="submit">Sign In</button>
-          <div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
-        </form>
-        <p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
-      </section>
-
       <section id="dashboard" class="hidden">
         <div style="max-width:100%;margin:18px auto;padding:0 16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -64,9 +48,10 @@
           </div>
 
           <div class="controls">
-            <div class="left"></div>
-            <div class="right">
+            <div class="left">
               <button id="new-doc-btn">New Document</button>
+            </div>
+            <div class="right">
               <input id="search-control" placeholder="Search control number..." />
               <button id="search-btn">Search</button>
               <button id="clear-search">Clear</button>
@@ -175,6 +160,7 @@
     </div>
 
     <script>
+      if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
       document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('refresh-docs');
         if(btn) btn.addEventListener('click', () => { try{ window.renderDocs && window.renderDocs(); }catch(e){} });
