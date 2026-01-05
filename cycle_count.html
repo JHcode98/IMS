@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cycle Count - Inventory Management System</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     /* Compact view styles for full screen mode */
     .compact-view { font-size: 13px; }
@@ -120,6 +121,15 @@
           </button>
         </div>
       </form>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <h3>Variance Distribution (Filtered)</h3>
+      </div>
+      <div style="position: relative; height:200px; margin-top:10px;">
+          <canvas id="variance-distribution-chart"></canvas>
+      </div>
     </div>
 
     <div class="card" id="table-card" style="margin-top: 20px;">
@@ -252,6 +262,7 @@
     let sortField = null;
     let sortDirection = 'asc';
     let deleteMode = 'selected'; // 'selected' or 'all'
+    let varianceDistributionChart = null;
 
     function getCandidateDates(dateStr) {
       if (!dateStr) return [];
@@ -350,6 +361,8 @@
         });
       }
 
+      renderVarianceDistributionChart(filteredData);
+
       if (sortField === 'variance') {
         filteredData.sort((a, b) => {
           const varA = (a.physical || 0) - (a.system || 0);
@@ -367,6 +380,47 @@
 
       renderTable(paginatedData);
       renderPagination(totalRows, totalPages);
+    }
+
+    function renderVarianceDistributionChart(data) {
+        const chartCanvas = document.getElementById('variance-distribution-chart');
+        if (!chartCanvas) return;
+
+        let exact = 0, surplus = 0, shortage = 0;
+        data.forEach(item => {
+            const diff = (item.physical || 0) - (item.system || 0);
+            if (diff === 0) exact++;
+            else if (diff > 0) surplus++;
+            else shortage++;
+        });
+
+        if (varianceDistributionChart) {
+            varianceDistributionChart.destroy();
+        }
+
+        varianceDistributionChart = new Chart(chartCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: [`Exact (${exact})`, `Surplus (${surplus})`, `Shortage (${shortage})`],
+                datasets: [{
+                    data: [exact, surplus, shortage],
+                    backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: { display: false }
+                },
+                cutout: '60%'
+            }
+        });
     }
 
     function renderTable(data) {
