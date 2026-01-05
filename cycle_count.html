@@ -149,6 +149,24 @@
       </table>
       <div id="pagination-controls" class="sidebar-pagination" style="margin-top: 10px; justify-content: flex-end;"></div>
     </div>
+
+    <!-- Mass Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 400px; margin-top: 100px;">
+        <h3>Confirm Mass Delete</h3>
+        <p>You are about to delete <span id="delete-count" style="font-weight:bold; color:#d9534f">0</span> records.</p>
+        <p class="muted">This action cannot be undone. Please enter Supervisor Code to proceed.</p>
+        <div style="margin: 15px 0;">
+          <label for="supervisor-code" style="display:block; margin-bottom:5px; font-weight:bold;">Supervisor Code</label>
+          <input type="password" id="supervisor-code" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter code (e.g. 12345)">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button id="cancel-delete-btn" style="background:#fff; color:#333; border:1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button id="confirm-delete-btn" style="background:#d9534f; color:#fff; border:none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="app.js"></script>
@@ -385,8 +403,35 @@
       deleteSelectedBtn.addEventListener('click', () => {
         const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
         if(!selected.length) { alert('No items selected'); return; }
-        if(!confirm(`Are you sure you want to delete ${selected.length} records?`)) return;
         
+        // Show Modal
+        document.getElementById('delete-count').textContent = selected.length;
+        document.getElementById('supervisor-code').value = '';
+        document.getElementById('delete-confirm-modal').classList.remove('hidden');
+      });
+    }
+
+    // Modal Actions
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteModal = document.getElementById('delete-confirm-modal');
+
+    if(cancelDeleteBtn) {
+      cancelDeleteBtn.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+      });
+    }
+
+    if(confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', () => {
+        const code = document.getElementById('supervisor-code').value;
+        // Demo code check (accept '12345' or 'admin')
+        if(code !== '12345' && code !== 'admin') {
+          alert('Invalid Supervisor Code!');
+          return;
+        }
+
+        const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
         const indices = selected.map(cb => parseInt(cb.dataset.index));
         const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
         const newData = data.filter((_, idx) => !indices.includes(idx));
@@ -394,6 +439,9 @@
         localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(newData));
         loadData();
         if(selectAllCc) selectAllCc.checked = false;
+        
+        deleteModal.classList.add('hidden');
+        alert('Records deleted successfully.');
       });
     }
 
