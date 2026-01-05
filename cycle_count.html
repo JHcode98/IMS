@@ -79,8 +79,12 @@
       <h2>New Cycle Count Entry</h2>
       <form id="cycle-count-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
         <div>
-          <label for="item-code">Item Code / Name</label>
+          <label for="item-code">Item Code</label>
           <input type="text" id="item-code" required pattern="[15][0-9]{7}" title="8 digits starting with 1 or 5" inputmode="numeric" maxlength="8" style="width:100%">
+        </div>
+        <div>
+          <label for="item-desc">Description</label>
+          <input type="text" id="item-desc" style="width:100%" placeholder="Auto-filled from Master">
         </div>
         <div>
           <label for="location">Location</label>
@@ -139,6 +143,10 @@
           <button id="download-template-btn" class="icon-btn" title="Download Template">
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 12 15 15"></polyline></svg>
           </button>
+          <button id="upload-master-btn" class="icon-btn" title="Upload Master List (Item Code, Description)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          </button>
+          <input type="file" id="upload-master-file" accept=".csv" style="display: none;">
           <button id="import-csv-btn" class="icon-btn" title="Import CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           </button>
@@ -152,6 +160,7 @@
             <th style="padding: 8px; text-align: left;">Updated Date</th>
             <th style="padding: 8px; text-align: left;">Created Date</th>
             <th style="padding: 8px; text-align: left;">Item</th>
+            <th style="padding: 8px; text-align: left;">Description</th>
             <th style="padding: 8px; text-align: left;">Location</th>
             <th style="padding: 8px; text-align: left;">System</th>
             <th style="padding: 8px; text-align: left;">Physical</th>
@@ -191,6 +200,7 @@
     const form = document.getElementById('cycle-count-form');
     const tableBody = document.querySelector('#cycle-count-table tbody');
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
+    const STORAGE_KEY_MASTER_DESC = 'ims_master_desc_v1';
     const cycleCountSearchInput = document.getElementById('search-item-code');
     const exportBtn = document.getElementById('export-csv-btn');
     const ccDownloadTemplateBtn = document.getElementById('download-template-btn');
@@ -204,6 +214,8 @@
     const dateFilterType = document.getElementById('date-filter-type');
     const clearAllFiltersBtn = document.getElementById('clear-all-filters-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const masterUploadBtn = document.getElementById('upload-master-btn');
+    const masterUploadFile = document.getElementById('upload-master-file');
     
     let currentPage = 1;
     let rowsPerPage = 10;
@@ -263,7 +275,7 @@
       const searchTerms = cycleCountSearchInput.value.toLowerCase().split(' ').filter(Boolean);
       let filteredData = data.filter(item => {
         if (searchTerms.length === 0) return true;
-        const itemText = [item.itemCode, item.location, item.notes || ''].join(' ').toLowerCase();
+        const itemText = [item.itemCode, item.description || '', item.location, item.notes || ''].join(' ').toLowerCase();
         return searchTerms.every(term => itemText.includes(term));
       });
 
@@ -343,6 +355,7 @@
           <td style="padding:8px;border-bottom:1px solid #eee">${timestamp}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${createdDate}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.itemCode}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.description || ''}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.location}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.system}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.physical}</td>
@@ -361,6 +374,7 @@
       e.preventDefault();
       const newItem = {
         itemCode: document.getElementById('item-code').value,
+        description: document.getElementById('item-desc').value,
         location: document.getElementById('location').value,
         system: Number(document.getElementById('system-qty').value),
         physical: Number(document.getElementById('physical-qty').value),
@@ -402,6 +416,7 @@
         const item = data[originalIndex];
         if(item){
           document.getElementById('item-code').value = item.itemCode;
+          document.getElementById('item-desc').value = item.description || '';
           document.getElementById('location').value = item.location;
           document.getElementById('system-qty').value = item.system;
           document.getElementById('physical-qty').value = item.physical;
@@ -518,7 +533,7 @@
         return;
       }
 
-      const headers = ['Updated Date', 'Created Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
+      const headers = ['Updated Date', 'Created Date', 'Item Code', 'Description', 'Location', 'System Qty', 'Physical Qty', 'Variance', 'Notes'];
       const csvRows = [headers.join(',')];
 
       const csvEscape = (field) => {
@@ -535,7 +550,7 @@
         const timestamp = new Date(item.date).toLocaleString();
         const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : '';
         const row = [
-          timestamp, createdDate, item.itemCode, item.location, item.system, item.physical, variance, item.notes || ''
+          timestamp, createdDate, item.itemCode, item.description || '', item.location, item.system, item.physical, variance, item.notes || ''
         ];
         csvRows.push(row.map(csvEscape).join(','));
       });
@@ -553,8 +568,8 @@
     }
 
     function downloadTemplate() {
-      const headers = ['Created Date', 'Updated Date', 'Item Code', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
-      const sample = [new Date().toISOString(), new Date().toISOString(), '10000001', '12345678', '10', '8', 'Sample Note'];
+      const headers = ['Created Date', 'Updated Date', 'Item Code', 'Description', 'Location', 'System Qty', 'Physical Qty', 'Notes'];
+      const sample = [new Date().toISOString(), new Date().toISOString(), '10000001', 'Sample Item Description', '12345678', '10', '8', 'Sample Note'];
       const csvContent = headers.join(',') + '\n' + sample.join(',');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -619,6 +634,7 @@
 
             const newItem = {
               itemCode: values[headers.indexOf('Item Code')],
+              description: headers.includes('Description') ? values[headers.indexOf('Description')] : '',
               location: values[headers.indexOf('Location')],
               system: Number(values[headers.indexOf('System Qty')]),
               physical: Number(values[headers.indexOf('Physical Qty')]),
@@ -626,6 +642,13 @@
               date: updatedDateVal,
               createdDate: createdDateVal
             };
+
+            // Auto-populate description from master if missing
+            if (!newItem.description && newItem.itemCode) {
+               const masterMap = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER_DESC) || '{}');
+               if(masterMap[newItem.itemCode]) newItem.description = masterMap[newItem.itemCode];
+            }
+
             // Validate Item Code (exactly 8 digits)
             if (newItem.itemCode && /^\d{8}$/.test(newItem.itemCode) && !isNaN(newItem.system) && !isNaN(newItem.physical)) {
               // Check for duplicates (Item Code + Location + Created Date)
@@ -656,6 +679,59 @@
       };
       reader.readAsText(file);
     });
+
+    // Master List Upload Logic
+    if(masterUploadBtn) masterUploadBtn.addEventListener('click', () => masterUploadFile.click());
+
+    if(masterUploadFile) {
+      masterUploadFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const text = ev.target.result;
+          const lines = text.split(/\r\n|\n/);
+          const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+          const codeIdx = headers.indexOf('Item Code');
+          const descIdx = headers.indexOf('Description');
+          
+          if(codeIdx === -1 || descIdx === -1) {
+            alert('Master List CSV must have "Item Code" and "Description" columns.');
+            return;
+          }
+
+          const masterMap = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER_DESC) || '{}');
+          let count = 0;
+          for(let i=1; i<lines.length; i++) {
+            if(!lines[i].trim()) continue;
+            const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+            if(cols[codeIdx]) {
+              masterMap[cols[codeIdx]] = cols[descIdx] || '';
+              count++;
+            }
+          }
+          localStorage.setItem(STORAGE_KEY_MASTER_DESC, JSON.stringify(masterMap));
+          alert(`Master list updated with ${count} items.`);
+          masterUploadFile.value = '';
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // Auto-fill Description on Item Code input
+    const itemCodeInput = document.getElementById('item-code');
+    const itemDescInput = document.getElementById('item-desc');
+    if(itemCodeInput && itemDescInput) {
+      itemCodeInput.addEventListener('input', () => {
+        const code = itemCodeInput.value;
+        if(code.length >= 4) {
+           const masterMap = JSON.parse(localStorage.getItem(STORAGE_KEY_MASTER_DESC) || '{}');
+           if(masterMap[code]) {
+             itemDescInput.value = masterMap[code];
+           }
+        }
+      });
+    }
 
     // Event Listeners
     cycleCountSearchInput.addEventListener('input', loadData);
