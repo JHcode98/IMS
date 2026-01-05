@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cycle Count - Inventory Management System</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Compact view styles for full screen mode */
+    .compact-view { font-size: 13px; }
+    .compact-view table th, .compact-view table td { padding: 4px 6px !important; }
+    .compact-view input, .compact-view select, .compact-view button { font-size: 13px; padding: 4px 8px; }
+    .compact-view .icon-btn svg { width: 14px; height: 14px; }
+  </style>
 </head>
 <body class="inventory-mode">
   <!-- Main App Sidebar -->
@@ -89,7 +96,7 @@
       </form>
     </div>
 
-    <div class="card" style="margin-top: 20px;">
+    <div class="card" id="table-card" style="margin-top: 20px;">
       <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div style="display:flex; align-items:center; gap:8px">
           <h2>Cycle Count Records</h2>
@@ -688,9 +695,21 @@
     // Toggle Form Logic
     const toggleFormBtn = document.getElementById('toggle-form-btn');
     const formCard = document.getElementById('form-card');
+    const tableCard = document.getElementById('table-card');
+
     if(toggleFormBtn && formCard){
       toggleFormBtn.addEventListener('click', () => {
         const isHidden = formCard.classList.toggle('hidden');
+        
+        // Adjust rows and font size for full view
+        rowsPerPage = isHidden ? 20 : 10;
+        if(tableCard) {
+          if(isHidden) tableCard.classList.add('compact-view');
+          else tableCard.classList.remove('compact-view');
+        }
+        currentPage = 1; // Reset to first page
+        loadData();
+
         toggleFormBtn.title = isHidden ? "Show Form" : "Full View (Hide Form)";
         // Change icon based on state
         toggleFormBtn.innerHTML = isHidden ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
