@@ -98,9 +98,9 @@
           <label for="item-code">Item Code</label>
           <input type="text" id="item-code" required pattern="[15][0-9]{7}" title="8 digits starting with 1 or 5" inputmode="numeric" maxlength="8" style="width:100%">
         </div>
-        <div>
+        <div style="grid-column: 1 / -1;">
           <label for="item-desc">Description</label>
-          <input type="text" id="item-desc" style="width:100%" placeholder="Auto-filled from Master">
+          <textarea id="item-desc" rows="2" style="width:100%" placeholder="Auto-filled from Master"></textarea>
         </div>
         <div>
           <label for="location">Location</label>
