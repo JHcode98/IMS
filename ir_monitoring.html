@@ -19,7 +19,7 @@
     .close:hover { color: #000; }
     
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; vertical-align: top; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
     
     /* Table */
@@ -95,13 +95,13 @@
         <button id="add-incident-btn" class="btn btn-primary">Log New Incident</button>
       </div>
 
-      <input type="text" id="search-input" class="search-box" placeholder="Multi Search: Filter by ID, Role, Description...">
+      <input type="text" id="search-input" class="search-box" placeholder="Multi Search: Filter by IR Control Number, Role, Description...">
 
       <div style="overflow-x:auto;">
         <table id="ir-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>IR Control Number</th>
               <th>Date</th>
               <th>Role</th>
               <th>Person Involved</th>
