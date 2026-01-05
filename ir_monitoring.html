@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IR Monitoring - Inventory Management System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="inventory-mode">
+  <script>
+    if(localStorage.getItem('ims_sidebar_collapsed') === '1') document.body.classList.add('sidebar-collapsed');
+  </script>
+  <!-- Main App Sidebar -->
+  <nav id="app-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-text">IMS</span>
+      <button id="main-sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+    </div>
+    <ul class="sidebar-menu">
+      <li>
+        <button class="active" onclick="window.location.href='index.html'" data-tooltip="Document Monitoring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span class="menu-text">Document Monitoring</span>
+        </button>
+        <ul class="sidebar-submenu" style="display: block;">
+            <li><button onclick="window.location.href='index.html'">IAAF Monitoring</button></li>
+            <li><button class="active" onclick="window.location.href='ir_monitoring.html'">IR Monitoring</button></li>
+        </ul>
+      </li>
+      <li>
+        <button onclick="window.location.href='cycle_count.html'" data-tooltip="Inventory Tracker">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        <span class="menu-text">Inventory Tracker</span>
+        </button>
+        <ul class="sidebar-submenu">
+          <li><button onclick="window.location.href='cycle_count.html'">Cycle Count</button></li>
+          <li><button onclick="window.location.href='cycle_count_reports.html'">Cycle Count Report</button></li>
+          <li><button onclick="window.location.href='cycle_count_completion.html'">Cycle Count Completion</button></li>
+        </ul>
+      </li>
+      <li><button onclick="window.location.href='settings.html'" data-tooltip="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span class="menu-text">Settings</span>
+      </button></li>
+    </ul>
+  </nav>
+  <script>
+    if(localStorage.getItem('ims_sidebar_collapsed') === '1') document.getElementById('app-sidebar').classList.add('collapsed');
+  </script>
+
+  <header>
+    <h1>IR Monitoring</h1>
+  </header>
+
+  <main>
+    <div class="card" id="form-card">
+      <h2>New Incident Report</h2>
+      <form id="ir-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+        <div>
+          <label for="ir-number">IR Number</label>
+          <input type="text" id="ir-number" required placeholder="e.g., IR-2024-001">
+        </div>
+        <div>
+          <label for="ir-date">Date of Incident</label>
+          <input type="date" id="ir-date" required>
+        </div>
+        <div>
+          <label for="ir-reporter">Reported By</label>
+          <input type="text" id="ir-reporter" required>
+        </div>
+        <div>
+          <label for="ir-department">Department</label>
+          <select id="ir-department" required>
+            <option value="Warehouse">Warehouse</option>
+            <option value="Finance">Finance</option>
+            <option value="HR">Human Resources</option>
+            <option value="Operations">Operations</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <label for="ir-details">Details of Incident</label>
+          <textarea id="ir-details" rows="4" style="width:100%"></textarea>
+        </div>
+        <div>
+          <label for="ir-status">Status</label>
+          <select id="ir-status">
+            <option value="Open">Open</option>
+            <option value="Investigating">Investigating</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:5px; align-items: end;">
+          <button type="submit" title="Save Report">Save</button>
+          <button type="button" id="cancel-entry-btn" title="Clear Form" style="background: #6c757d;">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" id="table-card" style="margin-top: 20px;">
+      <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2>Incident Report Records</h2>
+        <div class="tools" style="display:flex; gap: 8px; align-items: center;">
+          <input type="text" id="search-ir" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+        </div>
+      </div>
+      <table id="ir-table" style="width:100%; border-collapse: collapse; margin-top: 10px;">
+        <thead>
+          <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+            <th style="padding: 8px; text-align: left;">IR Number</th>
+            <th style="padding: 8px; text-align: left;">Incident Date</th>
+            <th style="padding: 8px; text-align: left;">Reported By</th>
+            <th style="padding: 8px; text-align: left;">Department</th>
+            <th style="padding: 8px; text-align: left;">Status</th>
+            <th style="padding: 8px; text-align: left;">Details</th>
+            <th style="padding: 8px; text-align: left;">Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="pagination-controls" class="sidebar-pagination" style="margin-top: 10px; justify-content: flex-end;"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+    
+    const form = document.getElementById('ir-form');
+    const tableBody = document.querySelector('#ir-table tbody');
+    const searchInput = document.getElementById('search-ir');
+    const cancelBtn = document.getElementById('cancel-entry-btn');
+    const STORAGE_KEY_IR = 'ims_ir_monitoring_v1';
+    
+    let currentPage = 1;
+    let rowsPerPage = 10;
+
+    function loadData() {
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+      data = data.map((item, index) => ({ ...item, originalIndex: index }));
+      
+      const searchTerm = searchInput.value.toLowerCase();
+      let filteredData = data.filter(item => {
+        if (!searchTerm) return true;
+        return Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm));
+      });
+
+      const totalRows = filteredData.length;
+      const totalPages = Math.ceil(totalRows / rowsPerPage);
+      currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+      const start = (currentPage - 1) * rowsPerPage;
+      const end = start + rowsPerPage;
+      const paginatedData = filteredData.slice(start, end);
+
+      renderTable(paginatedData);
+      renderPagination(totalRows, totalPages);
+    }
+
+    function renderTable(data) {
+      tableBody.innerHTML = '';
+      if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>`;
+        return;
+      }
+      data.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.irNumber}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.incidentDate}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.reportedBy}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.department}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.status}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.details}">${item.details || ''}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">
+            <button class="icon-btn edit-btn" data-index="${item.originalIndex}" title="Edit">✎</button>
+            <button class="icon-btn delete-btn" data-index="${item.originalIndex}" title="Delete" style="color:#d9534f">&times;</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function renderPagination(totalRows, totalPages) {
+      const paginationContainer = document.getElementById('pagination-controls');
+      if (!paginationContainer) return;
+      if (totalRows <= rowsPerPage) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+      paginationContainer.innerHTML = `
+        <button id="prev-page-btn" class="icon-btn" title="Previous Page">‹</button>
+        <span class="current-page" style="padding: 0 10px;">Page ${currentPage} of ${totalPages}</span>
+        <button id="next-page-btn" class="icon-btn" title="Next Page">›</button>
+      `;
+      const prevBtn = document.getElementById('prev-page-btn');
+      const nextBtn = document.getElementById('next-page-btn');
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+      prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; loadData(); } };
+      nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; loadData(); } };
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newReport = {
+        irNumber: document.getElementById('ir-number').value,
+        incidentDate: document.getElementById('ir-date').value,
+        reportedBy: document.getElementById('ir-reporter').value,
+        department: document.getElementById('ir-department').value,
+        details: document.getElementById('ir-details').value,
+        status: document.getElementById('ir-status').value,
+        createdAt: new Date().toISOString()
+      };
+
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+      const editingIndex = form.dataset.editingIndex;
+      if (editingIndex !== undefined) {
+        data[editingIndex] = { ...data[editingIndex], ...newReport };
+        delete form.dataset.editingIndex;
+        form.querySelector('button[type="submit"]').textContent = 'Save';
+      } else {
+        data.unshift(newReport);
+      }
+      localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(data));
+      form.reset();
+      loadData();
+    });
+
+    tableBody.addEventListener('click', (e) => {
+      if (e.target.classList.contains('delete-btn')) {
+        if(!confirm('Delete this report?')) return;
+        const originalIndex = e.target.dataset.index;
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+        data.splice(originalIndex, 1);
+        localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(data));
+        loadData();
+      }
+      if (e.target.classList.contains('edit-btn')) {
+        const originalIndex = e.target.dataset.index;
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+        const item = data[originalIndex];
+        if(item){
+          document.getElementById('ir-number').value = item.irNumber;
+          document.getElementById('ir-date').value = item.incidentDate;
+          document.getElementById('ir-reporter').value = item.reportedBy;
+          document.getElementById('ir-department').value = item.department;
+          document.getElementById('ir-details').value = item.details;
+          document.getElementById('ir-status').value = item.status;
+          
+          form.dataset.editingIndex = originalIndex;
+          form.querySelector('button[type="submit"]').textContent = 'Update';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        form.reset();
+        delete form.dataset.editingIndex;
+        form.querySelector('button[type="submit"]').textContent = 'Save';
+    });
+
+    searchInput.addEventListener('input', loadData);
+    loadData();
+  </script>
+</body>
+</html>
