@@ -19,7 +19,7 @@
     .close:hover { color: #000; }
     
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; vertical-align: top; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
     
     /* Table */
@@ -104,6 +104,7 @@
               <th>ID</th>
               <th>Date</th>
               <th>Role</th>
+              <th>Person Involved</th>
               <th>Description</th>
               <th>Attachment</th>
               <th>Action</th>
@@ -144,12 +145,16 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="ir-person">Person Involved (Optional)</label>
+          <input type="text" id="ir-person" placeholder="Name of person involved">
+        </div>
+        <div class="form-group">
           <label for="ir-desc">Description</label>
           <textarea id="ir-desc" rows="4" required placeholder="Describe the incident..."></textarea>
         </div>
         <div class="form-group">
-          <label for="ir-attachment">Attachment (PDF/Picture)</label>
-          <input type="file" id="ir-attachment" accept="image/*,application/pdf">
+          <label for="ir-attachment">Attachments (PDF/Picture)</label>
+          <input type="file" id="ir-attachment" accept="image/*,application/pdf" multiple>
           <small style="color:#666;">Max size: 2MB (for demo purposes)</small>
         </div>
         <div style="text-align:right; margin-top:35px;">
@@ -187,38 +192,51 @@
             noDataMsg.style.display = 'none';
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                let attachmentLink = '<span style="color:#999">None</span>';
-                if(item.attachment) {
-                    // Check if it's a data URL
-                    if(item.attachment.startsWith('data:')) {
-                        const type = item.attachment.split(';')[0].split(':')[1];
-                        const label = type.includes('pdf') ? 'View PDF' : 'View Image';
-                        attachmentLink = `<a href="#" onclick="openAttachment('${item.id}'); return false;">${label}</a>`;
-                    } else {
-                        attachmentLink = item.attachment; // Fallback
-                    }
+                let attachmentLinks = '<span style="color:#999">None</span>';
+                
+                // Normalize attachments to array
+                let attachments = item.attachments || (item.attachment ? [item.attachment] : []);
+                
+                if(attachments.length > 0) {
+                    attachmentLinks = attachments.map((att, i) => {
+                        if(att.startsWith('data:')) {
+                            const type = att.split(';')[0].split(':')[1];
+                            const label = type.includes('pdf') ? 'PDF' : 'Img';
+                            return `<a href="#" onclick="openAttachment('${item.id}', ${i}); return false;">${label} ${i+1}</a>`;
+                        } else {
+                            return `<a href="${att}" target="_blank">View</a>`;
+                        }
+                    }).join(', ');
                 }
+
                 tr.innerHTML = `
                     <td>${item.id}</td>
                     <td>${new Date(item.date).toLocaleString()}</td>
                     <td>${item.role || item.department || ''}</td>
+                    <td>${item.person || '-'}</td>
                     <td>${item.description}</td>
-                    <td>${attachmentLink}</td>
-                    <td><button onclick="deleteIncident('${item.id}')" style="color:#d9534f; border:none; background:none; cursor:pointer; font-weight:bold;">Delete</button></td>
+                    <td>${attachmentLinks}</td>
+                    <td>
+                        <button onclick="editIncident('${item.id}')" style="color:#2752a7; border:none; background:none; cursor:pointer; font-weight:bold; margin-right:5px;">Edit</button>
+                        <button onclick="deleteIncident('${item.id}')" style="color:#d9534f; border:none; background:none; cursor:pointer; font-weight:bold;">Delete</button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
     }
     
-    window.openAttachment = (id) => {
+    window.openAttachment = (id, index = 0) => {
         const item = irData.find(i => i.id === id);
-        if(item && item.attachment) {
+        let attachments = item.attachments || (item.attachment ? [item.attachment] : []);
+        const att = attachments[index];
+        
+        if(att) {
             const win = window.open();
-            if(item.attachment.includes('application/pdf')) {
-                 win.document.write('<iframe src="' + item.attachment + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+            if(att.includes('application/pdf')) {
+                 win.document.write('<iframe src="' + att + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
             } else {
-                 win.document.write('<img src="' + item.attachment + '" style="max-width:100%">');
+                 win.document.write('<img src="' + att + '" style="max-width:100%">');
             }
         }
     };
@@ -242,6 +260,7 @@
     const closeModal = () => {
         modal.style.display = "none";
         document.getElementById('incident-form').reset();
+        delete document.getElementById('incident-form').dataset.editingId;
     }
 
     btn.onclick = () => {
@@ -254,40 +273,73 @@
     cancelBtn.onclick = closeModal;
     window.onclick = (event) => { if (event.target == modal) closeModal(); }
 
-    document.getElementById('incident-form').addEventListener('submit', (e) => {
+    document.getElementById('incident-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('ir-id').value;
         const role = document.getElementById('ir-role').value;
+        const person = document.getElementById('ir-person').value;
         const desc = document.getElementById('ir-desc').value;
         const fileInput = document.getElementById('ir-attachment');
+        const editingId = e.target.dataset.editingId;
         
-        const processRecord = (attachmentData) => {
+        // Validation: Unique ID
+        if (!editingId && irData.some(i => i.id === id)) {
+            alert('IR Control Number must be unique.');
+            return;
+        }
+        if (editingId && id !== editingId && irData.some(i => i.id === id)) {
+             alert('IR Control Number must be unique.');
+             return;
+        }
+
+        const processRecord = (newAttachments) => {
+            let attachments = newAttachments;
+            
+            if (editingId) {
+                const index = irData.findIndex(i => i.id === editingId);
+                if (index !== -1) {
+                    // If no new files, keep existing
+                    if (!attachments || attachments.length === 0) {
+                        attachments = irData[index].attachments || (irData[index].attachment ? [irData[index].attachment] : []);
+                    }
+                    irData[index] = {
+                        ...irData[index],
+                        id, role, person, description: desc, attachments,
+                        date: irData[index].date // Keep original date
+                    };
+                }
+            } else {
             const newRecord = {
                 id: id,
                 date: new Date().toISOString(),
                 role: role,
+                person: person,
                 description: desc,
-                attachment: attachmentData
+                attachments: attachments || []
             };
             irData.unshift(newRecord);
+            }
+            
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             renderTable();
             closeModal();
         };
 
         if(fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            if(file.size > 2 * 1024 * 1024) {
-                alert('File is too large for this demo (Max 2MB).');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                processRecord(ev.target.result);
-            };
-            reader.readAsDataURL(file);
+            const files = Array.from(fileInput.files);
+            const promises = files.map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => resolve(ev.target.result);
+                    reader.readAsDataURL(file);
+                });
+            });
+            
+            Promise.all(promises).then(results => {
+                processRecord(results);
+            });
         } else {
-            processRecord(null);
+            processRecord([]);
         }
     });
 
@@ -296,6 +348,18 @@
             irData = irData.filter(i => i.id !== id);
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             renderTable();
+        }
+    };
+
+    window.editIncident = (id) => {
+        const item = irData.find(i => i.id === id);
+        if(item) {
+            document.getElementById('ir-id').value = item.id;
+            document.getElementById('ir-role').value = item.role || item.department || '';
+            document.getElementById('ir-person').value = item.person || '';
+            document.getElementById('ir-desc').value = item.description;
+            document.getElementById('incident-form').dataset.editingId = item.id;
+            modal.style.display = "block";
         }
     };
 
