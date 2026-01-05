@@ -60,7 +60,7 @@
       <form id="ir-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
         <div>
           <label for="ir-number">IR Number</label>
-          <input type="text" id="ir-number" required placeholder="e.g., ECOM-YYYY-NNNN">
+          <input type="text" id="ir-number" required placeholder="e.g., IR-2024-001">
         </div>
         <div>
           <label for="ir-date">Date of Incident</label>
@@ -71,13 +71,19 @@
           <input type="text" id="ir-reporter" required>
         </div>
         <div>
-          <label for="ir-department">Department</label>
-          <select id="ir-department" required>
-            <option value="Warehouse">Warehouse</option>
-            <option value="Finance">Finance</option>
-            <option value="HR">Human Resources</option>
-            <option value="Operations">Operations</option>
-            <option value="Other">Other</option>
+          <label for="ir-role">Role</label>
+          <select id="ir-role" required>
+            <option value="Replen">Replen</option>
+            <option value="Putaway">Putaway</option>
+            <option value="IC">IC</option>
+            <option value="Receving">Receving</option>
+            <option value="RTV">RTV</option>
+            <option value="Packer">Packer</option>
+            <option value="Picker">Picker</option>
+            <option value="CSR">CSR</option>
+            <option value="Retriever">Retriever</option>
+            <option value="Dispatch">Dispatch</option>
+            <option value="Others">Others</option>
           </select>
         </div>
         <div style="grid-column: 1 / -1;">
@@ -92,6 +98,10 @@
             <option value="Closed">Closed</option>
           </select>
         </div>
+        <div>
+          <label for="ir-attachment">Attachment (PDF/Picture)</label>
+          <input type="file" id="ir-attachment" accept="image/*,application/pdf">
+        </div>
         <div style="display:flex; gap:5px; align-items: end;">
           <button type="submit" title="Save Report">Save</button>
           <button type="button" id="cancel-entry-btn" title="Clear Form" style="background: #6c757d;">Cancel</button>
@@ -103,7 +113,7 @@
       <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h2>Incident Report Records</h2>
         <div class="tools" style="display:flex; gap: 8px; align-items: center;">
-          <input type="text" id="search-ir" placeholder="Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+          <input type="text" id="search-ir" placeholder="Multi Search..." style="padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
         </div>
       </div>
       <table id="ir-table" style="width:100%; border-collapse: collapse; margin-top: 10px;">
@@ -112,9 +122,10 @@
             <th style="padding: 8px; text-align: left;">IR Number</th>
             <th style="padding: 8px; text-align: left;">Incident Date</th>
             <th style="padding: 8px; text-align: left;">Reported By</th>
-            <th style="padding: 8px; text-align: left;">Department</th>
+            <th style="padding: 8px; text-align: left;">Role</th>
             <th style="padding: 8px; text-align: left;">Status</th>
             <th style="padding: 8px; text-align: left;">Details</th>
+            <th style="padding: 8px; text-align: left;">Attachment</th>
             <th style="padding: 8px; text-align: left;">Action</th>
           </tr>
         </thead>
@@ -141,10 +152,11 @@
       let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
       data = data.map((item, index) => ({ ...item, originalIndex: index }));
       
-      const searchTerm = searchInput.value.toLowerCase();
+      const searchTerms = searchInput.value.toLowerCase().split(' ').filter(t => t);
       let filteredData = data.filter(item => {
-        if (!searchTerm) return true;
-        return Object.values(item).some(val => String(val).toLowerCase().includes(searchTerm));
+        if (searchTerms.length === 0) return true;
+        const itemStr = Object.values(item).join(' ').toLowerCase();
+        return searchTerms.every(term => itemStr.includes(term));
       });
 
       const totalRows = filteredData.length;
@@ -161,7 +173,7 @@
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="muted" style="text-align:center; padding: 20px;">No records found.</td></tr>`;
         return;
       }
       data.forEach((item) => {
@@ -170,9 +182,10 @@
           <td style="padding:8px;border-bottom:1px solid #eee">${item.irNumber}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.incidentDate}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.reportedBy}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee">${item.department}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.role || item.department || ''}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">${item.status}</td>
           <td style="padding:8px;border-bottom:1px solid #eee; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.details}">${item.details || ''}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.attachment ? '<a href="' + item.attachment + '" target="_blank">View</a>' : ''}</td>
           <td style="padding:8px;border-bottom:1px solid #eee">
             <button class="icon-btn edit-btn" data-index="${item.originalIndex}" title="Edit">✎</button>
             <button class="icon-btn delete-btn" data-index="${item.originalIndex}" title="Delete" style="color:#d9534f">&times;</button>
@@ -204,28 +217,46 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const newReport = {
-        irNumber: document.getElementById('ir-number').value,
-        incidentDate: document.getElementById('ir-date').value,
-        reportedBy: document.getElementById('ir-reporter').value,
-        department: document.getElementById('ir-department').value,
-        details: document.getElementById('ir-details').value,
-        status: document.getElementById('ir-status').value,
-        createdAt: new Date().toISOString()
+      const fileInput = document.getElementById('ir-attachment');
+      const file = fileInput.files[0];
+
+      const processSave = (attachmentData) => {
+        const newReport = {
+          irNumber: document.getElementById('ir-number').value,
+          incidentDate: document.getElementById('ir-date').value,
+          reportedBy: document.getElementById('ir-reporter').value,
+          role: document.getElementById('ir-role').value,
+          details: document.getElementById('ir-details').value,
+          status: document.getElementById('ir-status').value,
+          attachment: attachmentData,
+          createdAt: new Date().toISOString()
+        };
+
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+        const editingIndex = form.dataset.editingIndex;
+        if (editingIndex !== undefined) {
+          // Keep existing attachment if no new one provided
+          if (attachmentData === null && data[editingIndex].attachment) {
+             newReport.attachment = data[editingIndex].attachment;
+          }
+          data[editingIndex] = { ...data[editingIndex], ...newReport };
+          delete form.dataset.editingIndex;
+          form.querySelector('button[type="submit"]').textContent = 'Save';
+        } else {
+          data.unshift(newReport);
+        }
+        localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(data));
+        form.reset();
+        loadData();
       };
 
-      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
-      const editingIndex = form.dataset.editingIndex;
-      if (editingIndex !== undefined) {
-        data[editingIndex] = { ...data[editingIndex], ...newReport };
-        delete form.dataset.editingIndex;
-        form.querySelector('button[type="submit"]').textContent = 'Save';
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => processSave(evt.target.result);
+        reader.readAsDataURL(file);
       } else {
-        data.unshift(newReport);
+        processSave(null);
       }
-      localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(data));
-      form.reset();
-      loadData();
     });
 
     tableBody.addEventListener('click', (e) => {
@@ -245,7 +276,7 @@
           document.getElementById('ir-number').value = item.irNumber;
           document.getElementById('ir-date').value = item.incidentDate;
           document.getElementById('ir-reporter').value = item.reportedBy;
-          document.getElementById('ir-department').value = item.department;
+          document.getElementById('ir-role').value = item.role || item.department || 'Others';
           document.getElementById('ir-details').value = item.details;
           document.getElementById('ir-status').value = item.status;
           
