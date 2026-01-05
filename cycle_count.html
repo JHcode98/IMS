@@ -111,8 +111,13 @@
           <label for="notes">Notes</label>
           <input type="text" id="notes" style="width:100%">
         </div>
-        <div>
-          <button type="submit">Add Entry</button>
+        <div style="display:flex; gap:5px;">
+          <button type="submit" id="add-entry-btn" class="icon-btn" title="Save Entry" style="background: #2752a7; color: white; width: 100%; justify-content: center; height: 36px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          </button>
+          <button type="button" id="cancel-entry-btn" class="icon-btn" title="Cancel / Clear Form" style="background: #6c757d; color: white; width: 100%; justify-content: center; height: 36px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
       </form>
     </div>
@@ -149,8 +154,8 @@
           <button id="clear-all-filters-btn" class="icon-btn" title="Clear All Filters" style="margin-left: 4px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
           </button>
-          <button id="clear-selection-btn" class="icon-btn" title="Clear Selection" style="margin-left: 4px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+          <button id="mass-delete-btn" class="icon-btn" title="Mass Delete ALL Records (Reset)" style="margin-left: 4px; color: #fff; background-color: #d9534f;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
           </button>
           <button id="delete-selected-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; margin-left: 4px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
@@ -235,7 +240,8 @@
     const dateFilterType = document.getElementById('date-filter-type');
     const clearAllFiltersBtn = document.getElementById('clear-all-filters-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-    const clearSelectionBtn = document.getElementById('clear-selection-btn');
+    const massDeleteBtn = document.getElementById('mass-delete-btn');
+    const cancelEntryBtn = document.getElementById('cancel-entry-btn');
     const varianceFilter = document.getElementById('variance-filter');
     const masterUploadBtn = document.getElementById('upload-master-btn');
     const masterUploadFile = document.getElementById('upload-master-file');
@@ -245,6 +251,7 @@
     let rowsPerPage = 10;
     let sortField = null;
     let sortDirection = 'asc';
+    let deleteMode = 'selected'; // 'selected' or 'all'
 
     function getCandidateDates(dateStr) {
       if (!dateStr) return [];
@@ -426,7 +433,7 @@
         // Update existing entry
         data[editingIndex] = { ...data[editingIndex], ...newItem };
         delete form.dataset.editingIndex;
-        form.querySelector('button[type="submit"]').textContent = 'Add Entry';
+        form.querySelector('button[type="submit"]').title = 'Save Entry';
       } else {
         // Add new entry
         data.unshift(newItem);
@@ -459,7 +466,7 @@
           document.getElementById('notes').value = item.notes || '';
           
           form.dataset.editingIndex = originalIndex;
-          form.querySelector('button[type="submit"]').textContent = 'Update Entry';
+          form.querySelector('button[type="submit"]').title = 'Update Entry';
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       }
@@ -469,6 +476,7 @@
       deleteSelectedBtn.addEventListener('click', () => {
         const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
         if(!selected.length) { alert('No items selected'); return; }
+        deleteMode = 'selected';
         
         // Show Modal
         document.getElementById('delete-count').textContent = selected.length;
@@ -477,11 +485,22 @@
       });
     }
 
-    if(clearSelectionBtn) {
-      clearSelectionBtn.addEventListener('click', () => {
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(cb => { cb.checked = false; cb.closest('tr').classList.remove('selected-row'); });
-        if(selectAllCc) selectAllCc.checked = false;
+    if(massDeleteBtn) {
+      massDeleteBtn.addEventListener('click', () => {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+        if(data.length === 0) { alert('No records to delete.'); return; }
+        deleteMode = 'all';
+        document.getElementById('delete-count').textContent = 'ALL (' + data.length + ')';
+        document.getElementById('supervisor-code').value = '';
+        document.getElementById('delete-confirm-modal').classList.remove('hidden');
+      });
+    }
+
+    if(cancelEntryBtn) {
+      cancelEntryBtn.addEventListener('click', () => {
+        form.reset();
+        delete form.dataset.editingIndex;
+        form.querySelector('button[type="submit"]').title = 'Save Entry';
       });
     }
 
@@ -505,10 +524,15 @@
           return;
         }
 
-        const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
-        const indices = selected.map(cb => parseInt(cb.dataset.index));
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
-        const newData = data.filter((_, idx) => !indices.includes(idx));
+        let newData = [];
+        if (deleteMode === 'all') {
+          newData = []; // Reset all
+        } else {
+          const selected = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+          const indices = selected.map(cb => parseInt(cb.dataset.index));
+          const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+          newData = data.filter((_, idx) => !indices.includes(idx));
+        }
         
         localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(newData));
         loadData();
