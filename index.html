@@ -36,13 +36,46 @@
 			@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 			.auth-logo { display: block; margin: 0 auto 1.5rem auto; max-height: 60px; width: auto; }
 			.auth-box h2 { text-align: center; margin-top: 0; color: #fff; margin-bottom: 1.5rem; }
-			.auth-box label { color: #bdc3c7; }
+			.auth-title { font-size: 22px; font-weight: 400; color: #fff; text-align: center; margin-bottom: 1rem; }
+			.auth-box a { color: #3498db; }
+			.auth-box label { color: #bdc3c7; } /* Default label color */
 			.auth-box input, .auth-box select {
 				background: #151e26; border: 1px solid #34495e; color: #fff;
 			}
 			.auth-box input:focus { border-color: #3498db; outline: none; }
 			.auth-box .muted { color: #95a5a6; }
 			.hidden { display: none !important; }
+
+			/* Floating Label Animation */
+			#login-form { gap: 0; }
+			.form-group {
+				position: relative;
+				margin-top: 1.5rem;
+			}
+			.form-group:first-of-type {
+				margin-top: 0.5rem;
+			}
+			.form-group input {
+				width: 100%;
+				padding: 10px;
+			}
+			.form-group label {
+				position: absolute;
+				top: 50%;
+				left: 10px;
+				transform: translateY(-50%);
+				color: #bdc3c7;
+				pointer-events: none;
+				transition: all 0.2s ease-out;
+				background: #1a252f;
+				padding: 0 5px;
+			}
+			.form-group input:focus + label,
+			.form-group input:not(:placeholder-shown) + label {
+				top: 0;
+				font-size: 12px;
+				color: #3498db;
+			}
 		</style>
 	</head>
 	<body class="no-navbar">
@@ -113,14 +146,18 @@
 			<!-- Login Form -->
 			<section id="login-section" class="auth-overlay">
 				<div id="login-box" class="auth-box">
-				<img src="Logo.jpg" alt="IMS Logo" class="auth-logo">
+				<img src="logo.png" alt="IMS Logo" class="auth-logo" />
+				<h1 class="auth-title">Inventory Monitoring System</h1>
 				<h2>Login</h2>
 				<form id="login-form">
-					<label for="username">Username</label>
-					<input id="username" name="username" required />
-
-					<label for="password">Password</label>
-					<input id="password" name="password" type="password" required />
+					<div class="form-group">
+						<input id="username" name="username" required placeholder=" " />
+						<label for="username">Username</label>
+					</div>
+					<div class="form-group">
+						<input id="password" name="password" type="password" required placeholder=" " />
+						<label for="password">Password</label>
+					</div>
 
 					<div style="display:flex; align-items:center; margin-bottom:15px; margin-top:5px">
 						<input type="checkbox" id="remember-me" style="width:auto; margin-right:8px; cursor:pointer">
@@ -138,7 +175,8 @@
 				</div>
 
 				<div id="register-box" class="auth-box hidden">
-					<img src="logo.png" alt="IMS Logo" class="auth-logo">
+					<img src="logo.png" alt="IMS Logo" class="auth-logo" />
+					<h1 class="auth-title">Inventory Monitoring System</h1>
 					<h2>Create Account</h2>
 					<form id="register-form">
 					<label for="reg-username">Username</label>
