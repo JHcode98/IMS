@@ -11,6 +11,46 @@
 			#app-sidebar, header, main {
 				transition: all 0.3s ease;
 			}
+
+			/* Glassmorphism & Modal Styles */
+			body {
+				background: url('BG6.jpg') no-repeat center center fixed;
+				background-size: cover;
+			}
+			.auth-overlay {
+				position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+				background: rgba(0, 0, 0, 0.4);
+				backdrop-filter: blur(8px);
+				z-index: 9999;
+				display: flex; justify-content: center; align-items: center;
+			}
+			.auth-box {
+				background: rgba(255, 255, 255, 0.15);
+				backdrop-filter: blur(16px);
+				-webkit-backdrop-filter: blur(16px);
+				border: 1px solid rgba(255, 255, 255, 0.3);
+				box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+				border-radius: 16px;
+				padding: 2rem;
+				width: 100%; max-width: 400px;
+				color: #fff;
+				animation: slideUp 0.5s ease forwards;
+			}
+			@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+			.auth-box h2, .auth-box h3, .auth-box label { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+			.auth-box input, .auth-box select {
+				background: rgba(255, 255, 255, 0.2);
+				border: 1px solid rgba(255, 255, 255, 0.3);
+				color: #fff;
+			}
+			.auth-box input::placeholder { color: rgba(255, 255, 255, 0.7); }
+			.auth-box button[type="submit"] {
+				width: 100%;
+				margin-top: 10px;
+				box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			}
+			.auth-box a { color: #eef; }
+			.hidden { display: none !important; }
 		</style>
 	</head>
 	<body class="no-navbar">
@@ -79,8 +119,9 @@
 
 		<main>
 			<!-- Login Form -->
-			<section id="login-section" class="card">
-				<h2>Login</h2>
+			<section id="login-section" class="auth-overlay">
+				<div id="login-box" class="auth-box">
+				<h2 style="text-align:center">Login</h2>
 				<form id="login-form">
 					<label for="username">Username</label>
 					<input id="username" name="username" required />
@@ -91,13 +132,16 @@
 					<button type="submit">Sign In</button>
 					<div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
 				</form>
-
-				<!-- Registration (toggle) -->
-				<div style="margin-top:12px">
-					<button id="show-register" type="button">Create account</button>
+				<div style="margin-top:20px; text-align:center; border-top:1px solid rgba(255,255,255,0.2); padding-top:15px;">
+					<span style="color:rgba(255,255,255,0.8)">Don't have an account?</span>
+					<button id="show-register" type="button" style="background:none; border:none; color:#fff; text-decoration:underline; box-shadow:none; padding:0; margin-left:5px; width:auto;">Create account</button>
 				</div>
-				<form id="register-form" class="hidden" style="margin-top:12px">
-					<h3>Create account</h3>
+				<p class="muted" style="color:rgba(255,255,255,0.6); text-align:center; margin-top:10px;">Default: <code>admin</code> / <code>password</code></p>
+				</div>
+
+				<div id="register-box" class="auth-box hidden">
+					<h3 style="text-align:center">Create account</h3>
+					<form id="register-form">
 					<label for="reg-username">Username</label>
 					<input id="reg-username" name="reg-username" />
 
@@ -114,11 +158,11 @@
 					</select>
 
 					<div class="form-actions" style="margin-top:8px">
-						<button id="register-btn" type="submit">Register</button>
-						<button id="cancel-register" type="button">Cancel</button>
+						<button id="cancel-register" type="button" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); width:48%">Cancel</button>
+						<button id="register-btn" type="submit" style="width:48%">Register</button>
 					</div>
 				</form>
-				<p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
+				</div>
 			</section>
 
 
@@ -294,6 +338,25 @@
 			<script src="app.js"></script>
 
 			<script>
+				// Inline script to handle modal switching
+				document.addEventListener('DOMContentLoaded', () => {
+					const loginBox = document.getElementById('login-box');
+					const regBox = document.getElementById('register-box');
+					const toReg = document.getElementById('show-register');
+					const toLogin = document.getElementById('cancel-register');
+
+					if(toReg && loginBox && regBox) toReg.addEventListener('click', (e) => { 
+						e.preventDefault(); e.stopPropagation();
+						loginBox.classList.add('hidden'); 
+						regBox.classList.remove('hidden'); 
+					});
+					if(toLogin && loginBox && regBox) toLogin.addEventListener('click', (e) => { 
+						e.preventDefault(); e.stopPropagation();
+						regBox.classList.add('hidden'); 
+						loginBox.classList.remove('hidden'); 
+					});
+				});
+
 				document.addEventListener('DOMContentLoaded', () => {
 					const STORAGE_KEY = 'dms_docs_v1';
 					
