@@ -244,6 +244,30 @@
     let monthChartInstance = null;
     let descChartInstance = null;
 
+    function parseCsvLine(line) {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') { // Escaped quote
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                values.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        values.push(current);
+        return values;
+    }
+
     function renderTable() {
         const tbody = document.querySelector('#ir-table tbody');
         const noDataMsg = document.getElementById('no-data-msg');
@@ -481,7 +505,7 @@
 
                     for (let i = 1; i < lines.length; i++) {
                         if (!lines[i]) continue;
-                        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                        const values = parseCsvLine(lines[i]);
                         
                         const createdDate = headers.includes('Created Date') ? normalizeDate(values[headers.indexOf('Created Date')]) : (headers.includes('Date') ? normalizeDate(values[headers.indexOf('Date')]) : new Date().toISOString());
                         const updatedDate = headers.includes('Updated Date') ? normalizeDate(values[headers.indexOf('Updated Date')]) : createdDate;
