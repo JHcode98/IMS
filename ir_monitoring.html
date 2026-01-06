@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IR Monitoring - Inventory Management System</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="lib/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eef2f6; margin-bottom: 20px; }
     .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background 0.3s; }
@@ -209,9 +209,6 @@
       mainSidebarToggle.addEventListener('click', () => {
         document.body.classList.toggle('sidebar-collapsed');
         document.getElementById('app-sidebar').classList.toggle('collapsed');
-        setTimeout(() => {
-            if(typeof Chart !== 'undefined') Object.values(Chart.instances).forEach(c => c.resize());
-        }, 300);
       });
     }
 
@@ -287,20 +284,17 @@
         `;
     }
 
-    function updateCharts(data) {
-        if (typeof Chart === 'undefined') return;
-
-        const source = data || irData;
+    function updateCharts() {
         // Aggregate Role Data
         const roleCounts = {};
-        source.forEach(item => {
+        irData.forEach(item => {
             const r = item.role || 'Unknown';
             roleCounts[r] = (roleCounts[r] || 0) + 1;
         });
 
         // Aggregate Month Data
         const monthCounts = {};
-        source.forEach(item => {
+        irData.forEach(item => {
             const d = new Date(item.date);
             if(!isNaN(d.getTime())) {
                 const key = d.toISOString().slice(0, 7); // YYYY-MM
@@ -380,7 +374,6 @@
         });
         currentPage = 1;
         renderTable();
-        updateCharts(filteredData);
     }
 
     document.getElementById('search-input').addEventListener('input', applyFilter);
@@ -474,6 +467,7 @@
             
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             applyFilter();
+            updateCharts();
             closeModal();
         };
 
@@ -500,6 +494,7 @@
             irData = irData.filter(i => i.id !== id);
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             applyFilter();
+            updateCharts();
         }
     };
 
