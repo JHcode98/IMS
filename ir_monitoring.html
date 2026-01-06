@@ -284,17 +284,18 @@
         `;
     }
 
-    function updateCharts() {
+    function updateCharts(data) {
+        const source = data || irData;
         // Aggregate Role Data
         const roleCounts = {};
-        irData.forEach(item => {
+        source.forEach(item => {
             const r = item.role || 'Unknown';
             roleCounts[r] = (roleCounts[r] || 0) + 1;
         });
 
         // Aggregate Month Data
         const monthCounts = {};
-        irData.forEach(item => {
+        source.forEach(item => {
             const d = new Date(item.date);
             if(!isNaN(d.getTime())) {
                 const key = d.toISOString().slice(0, 7); // YYYY-MM
@@ -374,6 +375,7 @@
         });
         currentPage = 1;
         renderTable();
+        updateCharts(filteredData);
     }
 
     document.getElementById('search-input').addEventListener('input', applyFilter);
@@ -467,7 +469,6 @@
             
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             applyFilter();
-            updateCharts();
             closeModal();
         };
 
@@ -494,7 +495,6 @@
             irData = irData.filter(i => i.id !== id);
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
             applyFilter();
-            updateCharts();
         }
     };
 
