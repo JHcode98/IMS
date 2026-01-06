@@ -19,7 +19,7 @@
 				background: none;
 				backdrop-filter: blur(4px);
 				z-index: 9999;
-				display: flex; justify-content: center; align-items: center; min-height: 100vh;
+				display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh;
 				max-width: none; margin: 0; padding: 0;
 			}
 			.auth-box {
@@ -145,9 +145,9 @@
 		<main>
 			<!-- Login Form -->
 			<section id="login-section" class="auth-overlay">
+				<h1 class="auth-title">Inventory Monitoring System</h1>
 				<div id="login-box" class="auth-box">
 				<img src="Logo.jpg" alt="IMS Logo" class="auth-logo" />
-				<h1 class="auth-title">Inventory Monitoring System</h1>
 				<h2>Login</h2>
 				<form id="login-form">
 					<div class="form-group">
@@ -175,8 +175,7 @@
 				</div>
 
 				<div id="register-box" class="auth-box hidden">
-					<img src="logo.png" alt="IMS Logo" class="auth-logo" />
-					<h1 class="auth-title">Inventory Monitoring System</h1>
+					<img src="Logo.jpg" alt="IMS Logo" class="auth-logo" />
 					<h2>Create Account</h2>
 					<form id="register-form">
 					<label for="reg-username">Username</label>
