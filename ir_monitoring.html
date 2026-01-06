@@ -80,17 +80,15 @@
         <!-- Optional back button or similar -->
       </div>
       <div class="nav-right">
-								<div id="clock" class="clock" aria-live="polite"></div>
-								<div id="sr-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-								<div class="nav-user" id="nav-user">
-									<button class="user-btn" id="user-btn" aria-haspopup="true" aria-expanded="false"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></button>
-									<div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
-										<a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
-										<button id="dark-mode-toggle" role="menuitem">Dark Mode</button>
-										<button id="logout-btn" role="menuitem">Logout</button>
-									</div>
-								</div>
-							</div>
+        <div id="clock" class="clock" aria-live="polite"></div>
+        <div class="nav-user" id="nav-user">
+          <button class="user-btn" id="user-btn" aria-haspopup="true" aria-expanded="false"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></button>
+          <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+            <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+            <button id="logout-btn" role="menuitem">Logout</button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -100,6 +98,9 @@
         <h2>Incident Reports</h2>
         <div style="display:flex; gap:10px;">
           <button id="export-csv-btn" class="btn" style="background-color:#28a745; color:white;">Export CSV</button>
+          <button id="import-csv-btn" class="btn" style="background-color:#17a2b8; color:white;">Import CSV</button>
+          <input type="file" id="import-csv-file" accept=".csv" style="display:none">
+          <button id="download-template-btn" class="btn" style="background-color:#6c757d; color:white;">Download Template</button>
           <button id="add-incident-btn" class="btn btn-primary">Log New Incident</button>
         </div>
       </div>
@@ -111,6 +112,9 @@
         </div>
         <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
             <canvas id="chart-month"></canvas>
+        </div>
+        <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
+            <canvas id="chart-description"></canvas>
         </div>
       </div>
 
@@ -221,6 +225,7 @@
     const itemsPerPage = 5;
     let roleChartInstance = null;
     let monthChartInstance = null;
+    let descChartInstance = null;
 
     function renderTable() {
         const tbody = document.querySelector('#ir-table tbody');
@@ -340,6 +345,33 @@
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Incidents Trend' } } }
         });
+
+        // Aggregate Description Data
+        const descCounts = {};
+        irData.forEach(item => {
+            const d = (item.description || 'N/A').trim();
+            descCounts[d] = (descCounts[d] || 0) + 1;
+        });
+        const summarizedDesc = summarizeMap(descCounts, 5);
+
+        // Render Description Chart
+        const ctxDesc = document.getElementById('chart-description');
+        if(descChartInstance) descChartInstance.destroy();
+        descChartInstance = new Chart(ctxDesc, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(summarizedDesc),
+                datasets: [{
+                    label: 'Incidents by Description',
+                    data: Object.values(summarizedDesc),
+                    backgroundColor: '#fd7e14'
+                }]
+            },
+            options: { 
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+                plugins: { title: { display: true, text: 'Top Incident Descriptions' }, legend: { display: false } } 
+            }
+        });
     }
     
     window.changePage = (delta) => {
@@ -397,6 +429,88 @@
         link.download = 'incident_reports.csv';
         link.click();
     });
+
+    // Import / Download Template
+    const importBtn = document.getElementById('import-csv-btn');
+    const importFile = document.getElementById('import-csv-file');
+    const downloadTemplateBtn = document.getElementById('download-template-btn');
+
+    if(importBtn && importFile) {
+        importBtn.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const csv = event.target.result;
+                    const lines = csv.split(/\r\n|\n/);
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                    
+                    const requiredHeaders = ['IR Control Number', 'Role', 'Description'];
+                    if (!requiredHeaders.every(h => headers.includes(h))) {
+                        alert(`Import failed: CSV must contain headers: ${requiredHeaders.join(', ')}.`);
+                        return;
+                    }
+
+                    let addedCount = 0;
+                    let duplicateCount = 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i]) continue;
+                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                        
+                        const newRecord = {
+                            id: values[headers.indexOf('IR Control Number')],
+                            date: headers.includes('Date') ? normalizeDate(values[headers.indexOf('Date')]) : new Date().toISOString(),
+                            role: values[headers.indexOf('Role')],
+                            person: headers.includes('Person Involved') ? values[headers.indexOf('Person Involved')] : '',
+                            description: values[headers.indexOf('Description')],
+                            attachments: []
+                        };
+
+                        if (newRecord.id && newRecord.role && newRecord.description) {
+                            if (irData.some(d => d.id === newRecord.id)) {
+                                duplicateCount++;
+                            } else {
+                                irData.unshift(newRecord);
+                                addedCount++;
+                            }
+                        }
+                    }
+                    if (addedCount > 0 || duplicateCount > 0) {
+                        localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
+                        let msg = `${addedCount} records imported.`;
+                        if (duplicateCount > 0) msg += ` ${duplicateCount} duplicates skipped.`;
+                        alert(msg);
+                        applyFilter();
+                        updateCharts();
+                    } else {
+                        alert('No valid new records found to import.');
+                    }
+                } catch (error) {
+                    alert('Failed to import CSV. Check file format.');
+                } finally {
+                    importFile.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    if(downloadTemplateBtn) {
+        downloadTemplateBtn.addEventListener('click', () => {
+            const headers = ['IR Control Number', 'Date', 'Role', 'Person Involved', 'Description'];
+            const sample = ['ECOM-2024-0001', new Date().toLocaleString(), 'Picker', 'John Doe', 'Picked wrong item'];
+            const csvContent = headers.join(',') + '\n' + sample.map(s => `"${s}"`).join(',');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'ir_template.csv';
+            link.click();
+        });
+    }
 
     // Modal Logic
     const modal = document.getElementById('incident-modal');
