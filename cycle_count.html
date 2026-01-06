@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cycle Count - Inventory Management System</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="lib/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     /* Compact view styles for full screen mode */
     .compact-view { font-size: 13px; }
@@ -390,7 +390,7 @@
 
     function renderVarianceDistributionChart(data) {
         const chartCanvas = document.getElementById('variance-distribution-chart');
-        if (!chartCanvas || typeof Chart === 'undefined') return;
+        if (!chartCanvas) return;
 
         let exact = 0, surplus = 0, shortage = 0;
         data.forEach(item => {
@@ -404,7 +404,7 @@
             varianceDistributionChart.destroy();
         }
 
-        varianceDistributionChart = new Chart(chartCanvas, {
+        varianceDistributionChart = new Chart(chartCanvas.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: [`Exact (${exact})`, `Surplus (${surplus})`, `Shortage (${shortage})`],
