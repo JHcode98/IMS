@@ -1102,6 +1102,12 @@ if(loginForm) loginForm.addEventListener('submit', e => {
   e.preventDefault();
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
+  const remember = document.getElementById('remember-me');
+  if(remember && remember.checked){
+    try{ localStorage.setItem('dms_remember_user', u); }catch(e){}
+  } else {
+    try{ localStorage.removeItem('dms_remember_user'); }catch(e){}
+  }
   const maybe = signIn(u,p);
   if(maybe && typeof maybe.then === 'function'){
     maybe.then(role => {
@@ -1668,6 +1674,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // center login form when no user stored
       loadDocs();
+      try{
+        const rem = localStorage.getItem('dms_remember_user');
+        if(rem && document.getElementById('username')){
+          document.getElementById('username').value = rem;
+          const rcb = document.getElementById('remember-me');
+          if(rcb) rcb.checked = true;
+        }
+      }catch(e){}
     }
   }catch(e){
     loadDocs();
