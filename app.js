@@ -1012,7 +1012,6 @@ function returnToIC(controlNumber){
 function showDashboard(userName){
   // remove centered login if present
   if(loginSection) {
-    loginSection.classList.remove('centered');
     loginSection.classList.add('hidden');
   }
   if(dashboard) dashboard.classList.remove('hidden');
@@ -1050,7 +1049,6 @@ function showDashboard(userName){
 function signOut(){
   if(loginSection) {
     loginSection.classList.remove('hidden');
-    loginSection.classList.add('centered');
   }
   if(dashboard) dashboard.classList.add('hidden');
   try{ if(navUser) navUser.style.display = 'none'; }catch(e){}
@@ -1123,11 +1121,17 @@ if(loginForm) loginForm.addEventListener('submit', e => {
 const showRegisterBtn = document.getElementById('show-register');
 const registerForm = document.getElementById('register-form');
 const cancelRegisterBtn = document.getElementById('cancel-register');
-if(showRegisterBtn && registerForm){
-  showRegisterBtn.addEventListener('click', (ev) => { registerForm.classList.remove('hidden'); showRegisterBtn.classList.add('hidden'); });
+const loginBox = document.getElementById('login-box');
+const registerBox = document.getElementById('register-box');
+
+if(showRegisterBtn && loginBox && registerBox){
+  showRegisterBtn.addEventListener('click', (ev) => { loginBox.classList.add('hidden'); registerBox.classList.remove('hidden'); });
 }
-if(cancelRegisterBtn && registerForm){
-  cancelRegisterBtn.addEventListener('click', (ev) => { registerForm.classList.add('hidden'); showRegisterBtn.classList.remove('hidden'); registerForm.reset(); });
+if(cancelRegisterBtn && loginBox && registerBox){
+  cancelRegisterBtn.addEventListener('click', (ev) => { 
+    registerBox.classList.add('hidden'); loginBox.classList.remove('hidden'); 
+    if(registerForm) registerForm.reset(); 
+  });
 }
 if(registerForm){
   registerForm.addEventListener('submit', (ev) => {
@@ -1165,7 +1169,7 @@ if(registerForm){
     if(!res.ok){ alert(res.error || 'Unable to register'); return; }
     // For local/demo registration, do NOT auto-login; ask user to sign in
     alert('Registration successful. Please sign in using your new credentials.');
-    registerForm.classList.add('hidden'); showRegisterBtn.classList.remove('hidden'); registerForm.reset();
+    registerBox.classList.add('hidden'); loginBox.classList.remove('hidden'); registerForm.reset();
   });
 }
 
@@ -1664,11 +1668,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // center login form when no user stored
       loadDocs();
-      if(loginSection) loginSection.classList.add('centered');
     }
   }catch(e){
     loadDocs();
-    if(loginSection) loginSection.classList.add('centered');
   }
 
   try{ renderNavAvatar(); }catch(e){}
