@@ -11,6 +11,49 @@
 			#app-sidebar, header, main {
 				transition: all 0.3s ease;
 			}
+
+			/* Glassmorphism Login Styles */
+			#login-section {
+				background: rgba(255, 255, 255, 0.15);
+				backdrop-filter: blur(12px);
+				-webkit-backdrop-filter: blur(12px);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+				box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+				border-radius: 16px;
+				color: #fff;
+			}
+			#login-section h2, #login-section h3, #login-section label {
+				color: #fff;
+				text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+			}
+			#login-section input, #login-section select {
+				background: rgba(255, 255, 255, 0.2);
+				border: 1px solid rgba(255, 255, 255, 0.3);
+				color: #fff;
+			}
+			#login-section input::placeholder {
+				color: rgba(255, 255, 255, 0.7);
+			}
+			/* Autofill fix */
+			#login-section input:-webkit-autofill,
+			#login-section input:-webkit-autofill:hover, 
+			#login-section input:-webkit-autofill:focus, 
+			#login-section input:-webkit-autofill:active{
+				-webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.1) inset !important;
+				-webkit-text-fill-color: white !important;
+				transition: background-color 5000s ease-in-out 0s;
+			}
+			#login-section a {
+				color: #eef;
+				text-decoration: underline;
+			}
+			#login-section .muted {
+				color: rgba(255, 255, 255, 0.8);
+			}
+			#login-section code {
+				background: rgba(0,0,0,0.3);
+				color: #fff;
+			}
 		</style>
 	</head>
 	<body class="no-navbar">
