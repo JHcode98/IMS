@@ -209,6 +209,9 @@
       mainSidebarToggle.addEventListener('click', () => {
         document.body.classList.toggle('sidebar-collapsed');
         document.getElementById('app-sidebar').classList.toggle('collapsed');
+        setTimeout(() => {
+            if(typeof Chart !== 'undefined') Object.values(Chart.instances).forEach(c => c.resize());
+        }, 300);
       });
     }
 
@@ -285,6 +288,8 @@
     }
 
     function updateCharts(data) {
+        if (typeof Chart === 'undefined') return;
+
         const source = data || irData;
         // Aggregate Role Data
         const roleCounts = {};
