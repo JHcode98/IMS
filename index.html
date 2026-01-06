@@ -12,9 +12,11 @@
 				transition: all 0.3s ease;
 			}
 			/* Auth / Login Styles - Dark Theme matching Sidebar */
+			body.no-navbar header, body.no-navbar #app-sidebar { display: none !important; }
+			body.no-navbar { background: #2c3e50; }
 			.auth-overlay {
 				position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-				background: rgba(0, 0, 0, 0.6);
+				background: none;
 				backdrop-filter: blur(4px);
 				z-index: 9999;
 				display: flex; justify-content: center; align-items: center;
@@ -118,6 +120,11 @@
 
 					<label for="password">Password</label>
 					<input id="password" name="password" type="password" required />
+
+					<div style="display:flex; align-items:center; margin-bottom:15px; margin-top:5px">
+						<input type="checkbox" id="remember-me" style="width:auto; margin-right:8px; cursor:pointer">
+						<label for="remember-me" style="margin:0; font-size:0.9rem; color:#bdc3c7; cursor:pointer">Remember Me</label>
+					</div>
 
 					<button type="submit">Sign In</button>
 					<div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
