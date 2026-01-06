@@ -141,7 +141,8 @@
           <thead>
             <tr>
               <th>IR Control Number</th>
-              <th>Date</th>
+              <th>Updated Date</th>
+              <th>Created Date</th>
               <th>Role</th>
               <th>Person Involved</th>
               <th>Description</th>
@@ -267,9 +268,13 @@
                     }).join(', ');
                 }
 
+                const updatedDate = item.updatedDate ? new Date(item.updatedDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : 'N/A');
+                const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : 'N/A');
+
                 tr.innerHTML = `
                     <td>${item.id}</td>
-                    <td>${new Date(item.date).toLocaleString()}</td>
+                    <td>${updatedDate}</td>
+                    <td>${createdDate}</td>
                     <td>${item.role || item.department || ''}</td>
                     <td>${item.person || '-'}</td>
                     <td>${item.description}</td>
@@ -302,7 +307,7 @@
         // Aggregate Month Data
         const monthCounts = {};
         irData.forEach(item => {
-            const d = new Date(item.date);
+            const d = new Date(item.createdDate || item.date);
             if(!isNaN(d.getTime())) {
                 const key = d.toISOString().slice(0, 7); // YYYY-MM
                 monthCounts[key] = (monthCounts[key] || 0) + 1;
@@ -413,11 +418,12 @@
     document.getElementById('search-input').addEventListener('input', applyFilter);
     document.getElementById('filter-role').addEventListener('change', applyFilter);
 
-    document.getElementById('export-csv-btn').addEventListener('click', () => {
-        const headers = ['IR Control Number', 'Date', 'Role', 'Person Involved', 'Description'];
+    document.getElementById('export-csv-btn').addEventListener('click', () => { // Updated
+        const headers = ['IR Control Number', 'Updated Date', 'Created Date', 'Role', 'Person Involved', 'Description'];
         const rows = filteredData.map(item => [
             `"${item.id}"`,
-            `"${new Date(item.date).toLocaleString()}"`,
+            `"${item.updatedDate ? new Date(item.updatedDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : '')}"`,
+            `"${item.createdDate ? new Date(item.createdDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : '')}"`,
             `"${item.role}"`,
             `"${item.person}"`,
             `"${(item.description || '').replace(/"/g, '""')}"`
@@ -459,11 +465,14 @@
 
                     for (let i = 1; i < lines.length; i++) {
                         if (!lines[i]) continue;
-                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                         
+                        const createdDate = headers.includes('Created Date') ? normalizeDate(values[headers.indexOf('Created Date')]) : (headers.includes('Date') ? normalizeDate(values[headers.indexOf('Date')]) : new Date().toISOString());
+                        const updatedDate = headers.includes('Updated Date') ? normalizeDate(values[headers.indexOf('Updated Date')]) : createdDate;
                         const newRecord = {
                             id: values[headers.indexOf('IR Control Number')],
-                            date: headers.includes('Date') ? normalizeDate(values[headers.indexOf('Date')]) : new Date().toISOString(),
+                            createdDate: createdDate,
+                            updatedDate: updatedDate,
                             role: values[headers.indexOf('Role')],
                             person: headers.includes('Person Involved') ? values[headers.indexOf('Person Involved')] : '',
                             description: values[headers.indexOf('Description')],
@@ -501,8 +510,9 @@
 
     if(downloadTemplateBtn) {
         downloadTemplateBtn.addEventListener('click', () => {
-            const headers = ['IR Control Number', 'Date', 'Role', 'Person Involved', 'Description'];
-            const sample = ['ECOM-2024-0001', new Date().toLocaleString(), 'Picker', 'John Doe', 'Picked wrong item'];
+            const headers = ['IR Control Number', 'Created Date', 'Updated Date', 'Role', 'Person Involved', 'Description'];
+            const now = new Date().toLocaleString();
+            const sample = ['ECOM-2024-0001', now, now, 'Picker', 'John Doe', 'Picked wrong item'];
             const csvContent = headers.join(',') + '\n' + sample.map(s => `"${s}"`).join(',');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -556,29 +566,33 @@
         const processRecord = (newAttachments) => {
             let attachments = newAttachments;
             
-            if (editingId) {
+            if (editingId) { // Editing existing record
                 const index = irData.findIndex(i => i.id === editingId);
                 if (index !== -1) {
                     // If no new files, keep existing
                     if (!attachments || attachments.length === 0) {
                         attachments = irData[index].attachments || (irData[index].attachment ? [irData[index].attachment] : []);
                     }
+                    const oldRecord = irData[index];
                     irData[index] = {
-                        ...irData[index],
+                        ...oldRecord,
                         id, role, person, description: desc, attachments,
-                        date: irData[index].date // Keep original date
+                        createdDate: oldRecord.createdDate || oldRecord.date, // Preserve original creation date
+                        updatedDate: new Date().toISOString()
                     };
+                    delete irData[index].date; // Clean up old property
                 }
-            } else {
-            const newRecord = {
-                id: id,
-                date: new Date().toISOString(),
-                role: role,
-                person: person,
-                description: desc,
-                attachments: attachments || []
-            };
-            irData.unshift(newRecord);
+            } else { // Creating new record
+                const newRecord = {
+                    id: id,
+                    createdDate: new Date().toISOString(),
+                    updatedDate: new Date().toISOString(),
+                    role: role,
+                    person: person,
+                    description: desc,
+                    attachments: attachments || []
+                };
+                irData.unshift(newRecord);
             }
             
             localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
@@ -618,10 +632,12 @@
         const item = irData.find(i => i.id === id);
         if(item) {
             document.getElementById('ir-id').value = item.id;
-            document.getElementById('ir-role').value = item.role || item.department || '';
+            document.getElementById('ir-role').value = item.role || '';
             document.getElementById('ir-person').value = item.person || '';
             document.getElementById('ir-desc').value = item.description;
             document.getElementById('incident-form').dataset.editingId = item.id;
+            // Clear file input on edit
+            document.getElementById('ir-attachment').value = '';
             modal.style.display = "block";
         }
     };
