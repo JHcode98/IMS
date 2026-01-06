@@ -47,7 +47,7 @@
 			.hidden { display: none !important; }
 
 			/* Floating Label Animation */
-			#login-form { gap: 0; }
+			#login-form, #register-form { gap: 0; }
 			.form-group {
 				position: relative;
 				margin-top: 1.5rem;
@@ -55,7 +55,7 @@
 			.form-group:first-of-type {
 				margin-top: 0.5rem;
 			}
-			.form-group input {
+			.form-group input, .form-group select {
 				width: 100%;
 				padding: 10px;
 			}
@@ -71,7 +71,9 @@
 				padding: 0 5px;
 			}
 			.form-group input:focus + label,
-			.form-group input:not(:placeholder-shown) + label {
+			.form-group input:not(:placeholder-shown) + label,
+			.form-group select:focus + label,
+			.form-group select:valid + label {
 				top: 0;
 				font-size: 12px;
 				color: #3498db;
@@ -147,7 +149,7 @@
 			<section id="login-section" class="auth-overlay">
 				<h1 class="auth-title">Inventory Monitoring System</h1>
 				<div id="login-box" class="auth-box">
-				<img src="Logo.jpg" alt="IMS Logo" class="auth-logo" />
+				<img src="logo.jpg" alt="IMS Logo" class="auth-logo" />
 				<h2>Login</h2>
 				<form id="login-form">
 					<div class="form-group">
@@ -175,25 +177,31 @@
 				</div>
 
 				<div id="register-box" class="auth-box hidden">
-					<img src="Logo.jpg" alt="IMS Logo" class="auth-logo" />
+					<img src="logo.jpg" alt="IMS Logo" class="auth-logo" />
 					<h2>Create Account</h2>
 					<form id="register-form">
-					<label for="reg-username">Username</label>
-					<input id="reg-username" name="reg-username" />
+					<div class="form-group">
+						<input id="reg-username" name="reg-username" required placeholder=" " />
+						<label for="reg-username">Username</label>
+					</div>
+					<div class="form-group">
+						<input id="reg-password" name="reg-password" type="password" required placeholder=" " />
+						<label for="reg-password">Password</label>
+					</div>
+					<div class="form-group">
+						<input id="reg-password-confirm" name="reg-password-confirm" type="password" required placeholder=" " />
+						<label for="reg-password-confirm">Confirm Password</label>
+					</div>
+					<div class="form-group">
+						<select id="reg-role" name="reg-role" required>
+							<option value="" disabled selected></option>
+							<option value="user">User</option>
+							<option value="admin">Admin</option>
+						</select>
+						<label for="reg-role">Role</label>
+					</div>
 
-					<label for="reg-password">Password</label>
-					<input id="reg-password" name="reg-password" type="password" />
-
-					<label for="reg-password-confirm">Confirm Password</label>
-					<input id="reg-password-confirm" name="reg-password-confirm" type="password" />
-
-					<label for="reg-role">Role</label>
-					<select id="reg-role" name="reg-role">
-						<option value="user" selected>User</option>
-						<option value="admin">Admin</option>
-					</select>
-
-					<div class="form-actions" style="margin-top:8px">
+					<div class="form-actions" style="margin-top:2rem">
 						<button id="cancel-register" type="button" style="background:transparent; border:1px solid #7f8c8d; color:#bdc3c7;">Cancel</button>
 						<button id="register-btn" type="submit">Register</button>
 					</div>
