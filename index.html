@@ -6,7 +6,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Inventory Management System</title>
 		<link rel="stylesheet" href="styles.css" />
-		<script src="lib/chart.umd.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 		<style>
 			#app-sidebar, header, main {
 				transition: all 0.3s ease;
@@ -295,11 +295,6 @@
 
 			<script>
 				document.addEventListener('DOMContentLoaded', () => {
-					if (typeof Chart === 'undefined') {
-						console.error('Chart.js is not loaded. Check lib/chart.umd.min.js');
-						return;
-					}
-
 					const STORAGE_KEY = 'dms_docs_v1';
 					
 					function loadDocs() {
@@ -343,10 +338,8 @@
 					});
 
 					// Enhanced Chart Configuration
-					if (typeof Chart !== 'undefined') {
-						Chart.defaults.font.family = "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
-						Chart.defaults.color = '#858796';
-					}
+					Chart.defaults.font.family = "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
+					Chart.defaults.color = '#858796';
 
 					// 1. By Title (Pie)
 					const byTitle = aggregateCount(docs, d => d.title);
