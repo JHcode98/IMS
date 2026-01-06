@@ -208,19 +208,35 @@
 
   <script src="app.js"></script>
   <script>
-    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
-    
-    // Sidebar Toggle
-    const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
-    if (mainSidebarToggle) {
-      mainSidebarToggle.addEventListener('click', () => {
-        document.body.classList.toggle('sidebar-collapsed');
-        document.getElementById('app-sidebar').classList.toggle('collapsed');
-      });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        if(!localStorage.getItem('dms_auth_v1')) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Sidebar Toggle
+        const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
+        if (mainSidebarToggle) {
+          mainSidebarToggle.addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-collapsed');
+            document.getElementById('app-sidebar').classList.toggle('collapsed');
+            // Resize charts after sidebar animation
+            setTimeout(() => {
+                [roleChartInstance, monthChartInstance, descChartInstance].forEach(c => c && c.resize());
+            }, 300);
+          });
+        }
 
     const STORAGE_KEY_IR = 'ims_ir_records_v1';
-    let irData = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+    let irData = [];
+    try {
+        irData = JSON.parse(localStorage.getItem(STORAGE_KEY_IR) || '[]');
+        if (!Array.isArray(irData)) irData = [];
+    } catch(e) {
+        console.error("Failed to parse IR data, resetting.", e);
+        irData = [];
+        localStorage.removeItem(STORAGE_KEY_IR);
+    }
     let filteredData = [...irData];
     let currentPage = 1;
     const itemsPerPage = 5;
@@ -275,7 +291,7 @@
                     <td>${item.id}</td>
                     <td>${updatedDate}</td>
                     <td>${createdDate}</td>
-                    <td>${item.role || item.department || ''}</td>
+                    <td>${item.role || ''}</td>
                     <td>${item.person || '-'}</td>
                     <td>${item.description}</td>
                     <td>${attachmentLinks}</td>
@@ -644,6 +660,7 @@
 
     renderTable();
     updateCharts();
+    });
   </script>
 </body>
 </html>
