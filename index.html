@@ -11,6 +11,35 @@
 			#app-sidebar, header, main {
 				transition: all 0.3s ease;
 			}
+			/* Auth / Login Styles - Dark Theme matching Sidebar */
+			.auth-overlay {
+				position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+				background: rgba(0, 0, 0, 0.6);
+				backdrop-filter: blur(4px);
+				z-index: 9999;
+				display: flex; justify-content: center; align-items: center;
+			}
+			.auth-box {
+				background: #1a252f; /* Sidebar color */
+				color: #ecf0f1;
+				padding: 2.5rem;
+				border-radius: 8px;
+				box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+				width: 100%; max-width: 420px;
+				border: 1px solid #2c3e50;
+				position: relative;
+				animation: fadeIn 0.3s ease;
+			}
+			@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+			.auth-logo { display: block; margin: 0 auto 1.5rem auto; max-height: 60px; width: auto; }
+			.auth-box h2 { text-align: center; margin-top: 0; color: #fff; margin-bottom: 1.5rem; }
+			.auth-box label { color: #bdc3c7; }
+			.auth-box input, .auth-box select {
+				background: #151e26; border: 1px solid #34495e; color: #fff;
+			}
+			.auth-box input:focus { border-color: #3498db; outline: none; }
+			.auth-box .muted { color: #95a5a6; }
+			.hidden { display: none !important; }
 		</style>
 	</head>
 	<body class="no-navbar">
@@ -79,7 +108,9 @@
 
 		<main>
 			<!-- Login Form -->
-			<section id="login-section" class="card">
+			<section id="login-section" class="auth-overlay">
+				<div id="login-box" class="auth-box">
+				<img src="logo.png" alt="IMS Logo" class="auth-logo">
 				<h2>Login</h2>
 				<form id="login-form">
 					<label for="username">Username</label>
@@ -91,13 +122,17 @@
 					<button type="submit">Sign In</button>
 					<div style="margin-top:8px"><a href="#" id="forgot-password-link">Forgot password?</a></div>
 				</form>
-
-				<!-- Registration (toggle) -->
-				<div style="margin-top:12px">
-					<button id="show-register" type="button">Create account</button>
+				<div style="margin-top:20px; text-align:center; border-top:1px solid #2c3e50; padding-top:15px">
+					<span class="muted">Don't have an account?</span>
+					<button id="show-register" type="button" style="background:none; border:none; color:#3498db; cursor:pointer; text-decoration:underline; padding:0; box-shadow:none;">Create account</button>
 				</div>
-				<form id="register-form" class="hidden" style="margin-top:12px">
-					<h3>Create account</h3>
+				<p class="muted" style="text-align:center; margin-top:10px; font-size:12px">Default: <code>admin</code> / <code>password</code></p>
+				</div>
+
+				<div id="register-box" class="auth-box hidden">
+					<img src="logo.png" alt="IMS Logo" class="auth-logo">
+					<h2>Create Account</h2>
+					<form id="register-form">
 					<label for="reg-username">Username</label>
 					<input id="reg-username" name="reg-username" />
 
@@ -114,11 +149,11 @@
 					</select>
 
 					<div class="form-actions" style="margin-top:8px">
+						<button id="cancel-register" type="button" style="background:transparent; border:1px solid #7f8c8d; color:#bdc3c7;">Cancel</button>
 						<button id="register-btn" type="submit">Register</button>
-						<button id="cancel-register" type="button">Cancel</button>
 					</div>
 				</form>
-				<p class="muted">Default demo credentials: <code>admin</code> / <code>password</code></p>
+				</div>
 			</section>
 
 
