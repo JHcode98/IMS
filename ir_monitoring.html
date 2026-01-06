@@ -268,6 +268,51 @@
         return values;
     }
 
+    function getCandidateDates(dateStr) {
+      if (!dateStr) return [];
+      const candidates = [];
+      
+      // 1. Standard parse (handles ISO, MM/DD/YYYY, etc.)
+      let s = dateStr;
+      // Fix ISO UTC issue: treat YYYY-MM-DD as local
+      if (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)) s += 'T00:00:00';
+      
+      const d1 = new Date(s);
+      if (!isNaN(d1.getTime())) candidates.push(d1);
+
+      // 2. Try parsing as DD/MM/YYYY explicitly if it contains slashes
+      if (typeof dateStr === 'string' && dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+           // Assume YYYY is last or first. 
+           let d, m, y;
+           if (parts[2].length === 4) { 
+             y = parseInt(parts[2], 10);
+             // Try DD/MM/YYYY
+             m = parseInt(parts[1], 10); d = parseInt(parts[0], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+             // Try MM/DD/YYYY
+             m = parseInt(parts[0], 10); d = parseInt(parts[1], 10);
+             if (y && m && d) { const dt = new Date(y, m - 1, d); if (!isNaN(dt.getTime()) && dt.getDate() === d) candidates.push(dt); }
+           }
+           else if (parts[0].length === 4) { 
+             y = parseInt(parts[0], 10); m = parseInt(parts[1], 10); d = parseInt(parts[2], 10); 
+             if (y && m && d) {
+               const d2 = new Date(y, m - 1, d); // Month is 0-indexed
+               if (!isNaN(d2.getTime()) && d2.getDate() === d) candidates.push(d2);
+             }
+           }
+        }
+      }
+      return candidates;
+    }
+
+    function normalizeDate(dateStr) {
+      const candidates = getCandidateDates(dateStr);
+      if (candidates.length > 0) return candidates[0].toISOString();
+      return new Date().toISOString();
+    }
+
     function renderTable() {
         const tbody = document.querySelector('#ir-table tbody');
         const noDataMsg = document.getElementById('no-data-msg');
@@ -545,6 +590,7 @@
                         alert('No valid new records found to import.');
                     }
                 } catch (error) {
+                    console.error("CSV Import Error:", error);
                     alert('Failed to import CSV. Check file format.');
                 } finally {
                     importFile.value = '';
