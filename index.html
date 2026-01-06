@@ -295,6 +295,11 @@
 
 			<script>
 				document.addEventListener('DOMContentLoaded', () => {
+					if (typeof Chart === 'undefined') {
+						console.error('Chart.js is not loaded. Check lib/chart.umd.min.js');
+						return;
+					}
+
 					const STORAGE_KEY = 'dms_docs_v1';
 					
 					function loadDocs() {
@@ -338,8 +343,10 @@
 					});
 
 					// Enhanced Chart Configuration
-					Chart.defaults.font.family = "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
-					Chart.defaults.color = '#858796';
+					if (typeof Chart !== 'undefined') {
+						Chart.defaults.font.family = "'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif";
+						Chart.defaults.color = '#858796';
+					}
 
 					// 1. By Title (Pie)
 					const byTitle = aggregateCount(docs, d => d.title);
