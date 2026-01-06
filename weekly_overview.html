@@ -158,16 +158,15 @@
 </div>
 
 <script>
-  const API_URL = '/api/docs';
+  const STORAGE_KEY = 'dms_docs_v1';
   let allDocs = [];
   let chartInstance = null;
 
-  async function init() {
+  function init() {
     try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Network response was not ok');
-      const data = await res.json();
-      allDocs = data.docs || [];
+      const localData = localStorage.getItem(STORAGE_KEY);
+      allDocs = localData ? JSON.parse(localData) : [];
+      if (!Array.isArray(allDocs)) allDocs = [];
 
       // Populate Owner Select
       const owners = [...new Set(allDocs.map(d => d.owner).filter(Boolean))].sort();
@@ -189,7 +188,7 @@
 
     } catch (e) {
       console.error('Failed to load data', e);
-      document.querySelector('.card').innerHTML += `<p style="color:red">Error loading data: ${e.message}. Ensure the server is running.</p>`;
+      document.querySelector('.card').innerHTML += `<p style="color:red">Error loading data: ${e.message}.</p>`;
     }
   }
 
