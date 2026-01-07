@@ -2271,8 +2271,22 @@ bulkDeleteBtn && bulkDeleteBtn.addEventListener('click', () => {
     return;
   }
   if(confirm(`Delete ${selected.length} selected documents?`)){
-    selected.forEach(controlNumber => deleteDoc(controlNumber));
-    renderDocs();
+    // Batch delete to avoid race conditions with server sync
+    let modified = false;
+    const rb = loadRecycle();
+    selected.forEach(controlNumber => {
+      const idx = docs.findIndex(d => d.controlNumber === controlNumber);
+      if(idx !== -1){
+        const removed = docs.splice(idx,1)[0];
+        rb.unshift(Object.assign({}, removed, { deletedAt: Date.now() }));
+        modified = true;
+      }
+    });
+    if(modified){
+      saveRecycle(rb);
+      saveDocs();
+      renderDocs();
+    }
   }
 });
 
