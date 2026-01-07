@@ -1732,6 +1732,16 @@ function setupDocSorting(){
   });
 }
 
+function applyTheme(){
+  const theme = localStorage.getItem('ims_theme') || 'light';
+  if(theme === 'dark'){
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+}
+window.applyTheme = applyTheme;
+
 document.addEventListener('DOMContentLoaded', () => {
   // If you want auto-login during development, uncomment:
   // showDashboard(DEMO_USER.username);
@@ -1758,6 +1768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDocs();
   }
 
+  applyTheme();
   try{ renderNavAvatar(); }catch(e){}
 
   // Sidebar search & page size
