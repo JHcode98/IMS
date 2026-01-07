@@ -124,18 +124,6 @@
   <script>
     if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
     
-    // Sidebar Toggle Logic
-    const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
-    if (mainSidebarToggle) {
-      mainSidebarToggle.addEventListener('click', () => {
-        document.body.classList.toggle('sidebar-collapsed');
-        document.getElementById('app-sidebar').classList.toggle('collapsed');
-        setTimeout(() => {
-            Object.values(Chart.instances).forEach(c => c.resize());
-        }, 300);
-      });
-    }
-
     // Load Data and Render Reports
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
