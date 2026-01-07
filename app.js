@@ -1742,6 +1742,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showDashboard(storedUser);
     } else {
       // center login form when no user stored
+      if(loginSection) loginSection.classList.remove('hidden');
       loadDocs();
       try{
         const rem = localStorage.getItem('dms_remember_user');
@@ -1753,6 +1754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }catch(e){}
     }
   }catch(e){
+    if(loginSection) loginSection.classList.remove('hidden');
     loadDocs();
   }
 
