@@ -131,6 +131,8 @@ let adminInboxFilter = 'forwarded';
 let adminInboxQuery = '';
 let adminInboxPage = 1;
 let adminInboxPageSize = 8;
+let docSortField = null;
+let docSortDirection = 'asc';
 
 // Inactivity logout (1 hour)
 const INACTIVITY_MS = 60 * 60 * 1000;
@@ -223,6 +225,24 @@ function renderDocs(filter){
   try{ renderAdminStatusOverview(); }catch(e){}
   try{ renderAgeOverview(); }catch(e){}
   try{ renderLeftSidebar(); }catch(e){}
+
+  // Sorting
+  if(docSortField){
+    list.sort((a, b) => {
+      let valA = a[docSortField] || '';
+      let valB = b[docSortField] || '';
+      if(docSortField === 'createdAt' || docSortField === 'updatedAt'){
+         valA = Number(valA) || 0;
+         valB = Number(valB) || 0;
+      } else {
+         valA = String(valA).toLowerCase();
+         valB = String(valB).toLowerCase();
+      }
+      if(valA < valB) return docSortDirection === 'asc' ? -1 : 1;
+      if(valA > valB) return docSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
 
   if(list.length === 0){
     const tr = document.createElement('tr');
@@ -1663,6 +1683,24 @@ function formatDateForCSV(ms){
   const ss = pad(d.getSeconds());
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
+
+function setupDocSorting(){
+  const headers = document.querySelectorAll('th[data-sort]');
+  headers.forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const field = th.getAttribute('data-sort');
+      if(docSortField === field){
+        docSortDirection = docSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        docSortField = field;
+        docSortDirection = 'asc';
+      }
+      renderDocs(searchInput ? searchInput.value.trim() : '');
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // If you want auto-login during development, uncomment:
   // showDashboard(DEMO_USER.username);
@@ -2001,6 +2039,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize left sidebar render on load
   renderLeftSidebar();
+  setupDocSorting();
 
   // start clock
   updateClock();
