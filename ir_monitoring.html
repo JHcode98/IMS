@@ -40,6 +40,38 @@
     .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .icon-btn.btn-primary { background-color: #2752a7; color: white; border: 1px solid #2752a7; }
     .icon-btn.btn-primary:hover { background-color: #1f4287; }
+
+    /* Flip Card Styles */
+    .flip-card {
+      background-color: transparent;
+      perspective: 1000px;
+      height: 300px;
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    .flip-card.flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+    .flip-card-front, .flip-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #fff;
+    }
+    .flip-card-back {
+      transform: rotateY(180deg);
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -129,8 +161,21 @@
 
       <!-- Charts Section -->
       <div style="display:flex; flex-wrap:wrap; gap:20px; margin-bottom:20px;">
-        <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
-            <canvas id="chart-role"></canvas>
+        <div class="flip-card" style="flex:1; min-width:300px;">
+          <div class="flip-card-inner">
+            <div class="flip-card-front">
+              <button onclick="this.closest('.flip-card').classList.toggle('flipped')" style="position:absolute; top:10px; right:10px; z-index:10; cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;" title="Flip to Person View">↻</button>
+              <div style="position:relative; height:100%; width:100%">
+                <canvas id="chart-role"></canvas>
+              </div>
+            </div>
+            <div class="flip-card-back">
+              <button onclick="this.closest('.flip-card').classList.toggle('flipped')" style="position:absolute; top:10px; right:10px; z-index:10; cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;" title="Flip to Role View">↻</button>
+              <div style="position:relative; height:100%; width:100%">
+                <canvas id="chart-person"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
         <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
             <canvas id="chart-month"></canvas>
@@ -263,7 +308,7 @@
             document.getElementById('app-sidebar').classList.toggle('collapsed');
             // Resize charts after sidebar animation
             setTimeout(() => {
-                [roleChartInstance, monthChartInstance, descChartInstance].forEach(c => c && c.resize());
+                [roleChartInstance, monthChartInstance, descChartInstance, personChartInstance].forEach(c => c && c.resize());
             }, 300);
           });
         }
@@ -284,6 +329,7 @@
     let roleChartInstance = null;
     let monthChartInstance = null;
     let descChartInstance = null;
+    let personChartInstance = null;
     let deleteMode = 'selected';
 
     function parseCsvLine(line) {
@@ -483,6 +529,30 @@
                 }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Incidents by Role' } } }
+        });
+
+        // Aggregate Person Data
+        const personCounts = {};
+        irData.forEach(item => {
+            const p = (item.person || 'Unknown').trim();
+            if(p) personCounts[p] = (personCounts[p] || 0) + 1;
+        });
+        const summarizedPerson = summarizeMap(personCounts, 5);
+
+        // Render Person Chart
+        const ctxPerson = document.getElementById('chart-person');
+        if(personChartInstance) personChartInstance.destroy();
+        personChartInstance = new Chart(ctxPerson, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(summarizedPerson),
+                datasets: [{
+                    label: 'Incidents by Person',
+                    data: Object.values(summarizedPerson),
+                    backgroundColor: '#e74a3b'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Incidents by Person Involved' } } }
         });
 
         // Render Month Chart
