@@ -199,15 +199,15 @@
         <thead>
           <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
             <th style="padding: 8px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-cc"></th>
-            <th style="padding: 8px; text-align: left;">Updated Date</th>
-            <th style="padding: 8px; text-align: left;">Created Date</th>
-            <th style="padding: 8px; text-align: left;">Item</th>
-            <th style="padding: 8px; text-align: left;">Description</th>
-            <th style="padding: 8px; text-align: left;">Location</th>
-            <th style="padding: 8px; text-align: left;">System</th>
-            <th style="padding: 8px; text-align: left;">Physical</th>
-            <th style="padding: 8px; text-align: left; cursor:pointer; user-select:none" id="sort-variance-header" title="Click to sort by Variance">Variance <span id="sort-variance-icon" style="font-size:12px; color:#666"></span></th>
-            <th style="padding: 8px; text-align: left;">Notes</th>
+            <th class="sortable" data-sort="date" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Updated Date <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="createdDate" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Created Date <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="itemCode" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Item <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="description" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Description <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="location" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Location <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="system" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">System <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="physical" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Physical <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="variance" style="padding: 8px; text-align: left; cursor:pointer; user-select:none" title="Click to sort by Variance">Variance <span class="sort-icon"></span></th>
+            <th class="sortable" data-sort="notes" style="padding: 8px; text-align: left; cursor:pointer; user-select:none">Notes <span class="sort-icon"></span></th>
             <th style="padding: 8px; text-align: left;">Action</th>
           </tr>
         </thead>
@@ -369,11 +369,23 @@
 
       renderVarianceDistributionChart(filteredData);
 
-      if (sortField === 'variance') {
+      if (sortField) {
         filteredData.sort((a, b) => {
-          const varA = (a.physical || 0) - (a.system || 0);
-          const varB = (b.physical || 0) - (b.system || 0);
-          return sortDirection === 'asc' ? varA - varB : varB - varA;
+          let valA, valB;
+          if (sortField === 'variance') {
+            valA = (a.physical || 0) - (a.system || 0);
+            valB = (b.physical || 0) - (b.system || 0);
+          } else {
+            valA = a[sortField];
+            valB = b[sortField];
+          }
+          if (typeof valA === 'string') valA = valA.toLowerCase();
+          if (typeof valB === 'string') valB = valB.toLowerCase();
+          if (valA == null) valA = '';
+          if (valB == null) valB = '';
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
         });
       }
 
@@ -915,20 +927,23 @@
     // Sidebar Toggle Logic
     // Handled by app.js
 
-    // Sort Variance Logic
-    const sortVarianceHeader = document.getElementById('sort-variance-header');
-    if(sortVarianceHeader){
-      sortVarianceHeader.addEventListener('click', () => {
-        if(sortField === 'variance'){
-          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    // Sort Logic
+    const sortHeaders = document.querySelectorAll('th.sortable');
+    sortHeaders.forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.sort;
+        if (sortField === field) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
-          sortField = 'variance';
-          sortDirection = 'asc';
+            sortField = field;
+            sortDirection = 'asc';
         }
-        document.getElementById('sort-variance-icon').textContent = sortDirection === 'asc' ? '↑' : '↓';
+        document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '');
+        const icon = th.querySelector('.sort-icon');
+        if(icon) icon.textContent = sortDirection === 'asc' ? '↑' : '↓';
         loadData();
       });
-    }
+    });
 
     // Toggle Form Logic
     const toggleFormBtn = document.getElementById('toggle-form-btn');
