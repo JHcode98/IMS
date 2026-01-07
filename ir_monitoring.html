@@ -228,12 +228,12 @@
           <thead>
             <tr>
               <th style="width: 40px;"><input type="checkbox" id="select-all"></th>
-              <th>IR Control Number</th>
-              <th>Updated Date</th>
-              <th>Created Date</th>
-              <th>Role</th>
-              <th>Person Involved</th>
-              <th>Description</th>
+              <th class="sortable" data-sort="id" style="cursor:pointer">IR Control Number <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="updatedDate" style="cursor:pointer">Updated Date <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="createdDate" style="cursor:pointer">Created Date <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="role" style="cursor:pointer">Role <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="person" style="cursor:pointer">Person Involved <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="description" style="cursor:pointer">Description <span class="sort-icon"></span></th>
               <th>Attachment</th>
               <th>Action</th>
             </tr>
@@ -388,6 +388,8 @@
     let descChartInstance = null;
     let personChartInstance = null;
     let deleteMode = 'selected';
+    let sortField = null;
+    let sortDirection = 'asc';
     const mainFlipContainer = document.getElementById('main-flip-container');
     const viewChartsBtn = document.getElementById('view-charts-btn');
     const viewTableBtn = document.getElementById('view-table-btn');
@@ -479,6 +481,24 @@
         
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
+
+        if (sortField) {
+            filteredData.sort((a, b) => {
+                let valA = a[sortField] || '';
+                let valB = b[sortField] || '';
+                if (sortField === 'updatedDate' || sortField === 'createdDate') {
+                    valA = new Date(valA).getTime() || 0;
+                    valB = new Date(valB).getTime() || 0;
+                } else {
+                    valA = String(valA).toLowerCase();
+                    valB = String(valB).toLowerCase();
+                }
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
         const pageData = filteredData.slice(start, end);
         
         if(filteredData.length === 0) {
@@ -1072,6 +1092,23 @@
             mainFlipContainer.classList.remove('flipped');
         });
     }
+
+    // Sort Logic
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const field = th.dataset.sort;
+            if (sortField === field) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortDirection = 'asc';
+            }
+            document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '');
+            const icon = th.querySelector('.sort-icon');
+            if(icon) icon.textContent = sortDirection === 'asc' ? '↑' : '↓';
+            renderTable();
+        });
+    });
 
     renderTable();
     updateCharts();
