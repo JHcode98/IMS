@@ -357,19 +357,6 @@
             return;
         }
         
-        // Sidebar Toggle
-        const mainSidebarToggle = document.getElementById('main-sidebar-toggle');
-        if (mainSidebarToggle) {
-          mainSidebarToggle.addEventListener('click', () => {
-            document.body.classList.toggle('sidebar-collapsed');
-            document.getElementById('app-sidebar').classList.toggle('collapsed');
-            // Resize charts after sidebar animation
-            setTimeout(() => {
-                [roleChartInstance, monthChartInstance, descChartInstance, personChartInstance].forEach(c => c && c.resize());
-            }, 300);
-          });
-        }
-
     const STORAGE_KEY_IR = 'ims_ir_records_v1';
     let irData = [];
     try {
