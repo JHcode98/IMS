@@ -21,6 +21,19 @@
       background-position: right 8px center;
       background-size: 16px;
     }
+    /* Flip Card for Entry Form */
+    .entry-flip-container { perspective: 1000px; position: relative; margin-bottom: 20px; min-height: 400px; }
+    .entry-flip-inner { transition: transform 0.6s; transform-style: preserve-3d; position: relative; width: 100%; height: 100%; }
+    .entry-flip-container.flipped .entry-flip-inner { transform: rotateY(180deg); }
+    .entry-flip-front, .entry-flip-back { 
+        backface-visibility: hidden; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #eef2f6; padding: 20px;
+        overflow-y: auto;
+    }
+    .entry-flip-front { z-index: 2; transform: rotateY(0deg); }
+    .entry-flip-back { transform: rotateY(180deg); }
+    /* Adjust card class usage inside flip */
+    .entry-flip-front.card, .entry-flip-back.card { margin: 0; max-width: none; box-shadow: none; border: none; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -91,8 +104,14 @@
   </header>
 
   <main>
-    <div class="card" id="form-card">
-      <h2>New Cycle Count Entry</h2>
+    <div class="entry-flip-container" id="entry-flip-container">
+      <div class="entry-flip-inner">
+        <!-- Front: Form -->
+        <div class="entry-flip-front card" id="form-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="margin:0;">New Cycle Count Entry</h2>
+            <button id="flip-to-chart-btn" class="icon-btn" title="View Variance Chart">📊 View Chart</button>
+          </div>
       <form id="cycle-count-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
         <div>
           <label for="item-code">Item Code</label>
@@ -127,14 +146,18 @@
           </button>
         </div>
       </form>
-    </div>
-
-    <div class="card" style="margin-top: 20px;">
-      <div style="display:flex; justify-content: space-between; align-items: center;">
-        <h3>Variance Distribution (Filtered)</h3>
       </div>
-      <div style="position: relative; height:200px; margin-top:10px;">
-          <canvas id="variance-distribution-chart"></canvas>
+
+        <!-- Back: Chart -->
+        <div class="entry-flip-back card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0;">Variance Distribution (Filtered)</h3>
+            <button id="flip-to-form-btn" class="icon-btn" title="Back to Entry Form">↩ Back to Form</button>
+          </div>
+          <div style="position: relative; height:300px; width:100%;">
+              <canvas id="variance-distribution-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -262,6 +285,9 @@
     const masterUploadBtn = document.getElementById('upload-master-btn');
     const masterUploadFile = document.getElementById('upload-master-file');
     const clearMasterBtn = document.getElementById('clear-master-btn');
+    const entryFlipContainer = document.getElementById('entry-flip-container');
+    const flipToChartBtn = document.getElementById('flip-to-chart-btn');
+    const flipToFormBtn = document.getElementById('flip-to-form-btn');
     
     let currentPage = 1;
     let rowsPerPage = 10;
@@ -920,6 +946,18 @@
         if(varianceFilter) varianceFilter.value = 'all';
         loadData();
       });
+    }
+
+    // Flip Card Logic
+    if(flipToChartBtn && entryFlipContainer) {
+        flipToChartBtn.addEventListener('click', () => {
+            entryFlipContainer.classList.add('flipped');
+        });
+    }
+    if(flipToFormBtn && entryFlipContainer) {
+        flipToFormBtn.addEventListener('click', () => {
+            entryFlipContainer.classList.remove('flipped');
+        });
     }
 
     loadData();
