@@ -58,8 +58,16 @@
     <h1>Cycle Count Completion</h1>
     <div class="navbar" role="navigation">
       <div class="nav-left">
-        <button class="nav-btn" onclick="window.location.href='cycle_count.html'">Back to Entry</button>
+        <button class="nav-btn" onclick="window.location.href='cycle_count.html'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:5px;vertical-align:text-bottom;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Back to Entry
+        </button>
       </div>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
       <div class="nav-right">
         <div id="clock" class="clock" aria-live="polite"></div>
         <div class="nav-user" id="nav-user">
