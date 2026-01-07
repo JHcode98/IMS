@@ -1066,6 +1066,33 @@ function showDashboard(userName){
   try{ announceStatus('Signed in'); }catch(e){}
 }
 
+function showLogoutConfirmation() {
+  let modal = document.getElementById('logout-confirm-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'logout-confirm-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 300px; text-align: center; margin-top: 15vh;">
+        <h3>Confirm Logout</h3>
+        <p>Are you sure you want to log out?</p>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+          <button id="confirm-logout-btn" style="background: #d9534f; color: white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Logout</button>
+          <button id="cancel-logout-btn" style="background: #eee; color: #333; border:1px solid #ccc; padding:8px 16px; border-radius:4px; cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const close = () => modal.classList.add('hidden');
+    modal.querySelector('.modal-overlay').addEventListener('click', close);
+    document.getElementById('cancel-logout-btn').addEventListener('click', close);
+    document.getElementById('confirm-logout-btn').addEventListener('click', () => { close(); signOut(); });
+  }
+  modal.classList.remove('hidden');
+}
+
 function signOut(){
   try{ localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_ROLE_KEY); localStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){}
   stopInactivityWatcher();
@@ -1202,8 +1229,9 @@ if(registerForm){
   });
 }
 
-if(logoutBtn) logoutBtn.addEventListener('click', () => {
-  signOut();
+if(logoutBtn) logoutBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  showLogoutConfirmation();
 });
 
 // Toggle user dropdown menu when clicking user button
