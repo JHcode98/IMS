@@ -33,6 +33,13 @@
     .pagination { display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 10px; }
     .pagination button { padding: 5px 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 4px; }
     .pagination button:disabled { background: #eee; cursor: not-allowed; color: #999; }
+
+    /* Icon Buttons */
+    .icon-btn { padding: 8px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; color: #555; }
+    .icon-btn:hover { background: #f0f0f0; }
+    .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-btn.btn-primary { background-color: #2752a7; color: white; border: 1px solid #2752a7; }
+    .icon-btn.btn-primary:hover { background-color: #1f4287; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -96,12 +103,27 @@
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h2>Incident Reports</h2>
-        <div style="display:flex; gap:10px;">
-          <button id="export-csv-btn" class="btn" style="background-color:#28a745; color:white;">Export CSV</button>
-          <button id="import-csv-btn" class="btn" style="background-color:#17a2b8; color:white;">Import CSV</button>
+        <div style="display:flex; gap:5px;">
+          <button id="delete-selected-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; display:none;">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+          </button>
+          <button id="mass-delete-btn" class="icon-btn" title="Mass Delete ALL" style="background-color:#d9534f; color:white;">
+            <svg viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+          </button>
+          <div style="width:1px; background:#ddd; margin:0 5px;"></div>
+          <button id="export-csv-btn" class="icon-btn" title="Export CSV">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button id="import-csv-btn" class="icon-btn" title="Import CSV">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </button>
           <input type="file" id="import-csv-file" accept=".csv" style="display:none">
-          <button id="download-template-btn" class="btn" style="background-color:#6c757d; color:white;">Download Template</button>
-          <button id="add-incident-btn" class="btn btn-primary">Log New Incident</button>
+          <button id="download-template-btn" class="icon-btn" title="Download Template">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 12 15 15"></polyline></svg>
+          </button>
+          <button id="add-incident-btn" class="icon-btn btn-primary" title="Log New Incident">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
         </div>
       </div>
 
@@ -140,6 +162,7 @@
         <table id="ir-table">
           <thead>
             <tr>
+              <th style="width: 40px;"><input type="checkbox" id="select-all"></th>
               <th>IR Control Number</th>
               <th>Updated Date</th>
               <th>Created Date</th>
@@ -206,6 +229,24 @@
     </div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-confirm-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <span class="close-delete" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+      <h3 style="margin-top:0;">Confirm Delete</h3>
+      <p>You are about to delete <span id="delete-count" style="font-weight:bold; color:#d9534f">0</span> records.</p>
+      <p style="color:#666; font-size:14px;">This action cannot be undone. Please enter Supervisor Code to proceed.</p>
+      <div style="margin: 15px 0;">
+        <label for="supervisor-code" style="display:block; margin-bottom:5px; font-weight:bold;">Supervisor Code</label>
+        <input type="password" id="supervisor-code" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter code">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button id="cancel-delete-btn" class="btn" style="background:#eee; color:#333;">Cancel</button>
+        <button id="confirm-delete-btn" class="btn" style="background:#d9534f; color:#fff;">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -243,6 +284,7 @@
     let roleChartInstance = null;
     let monthChartInstance = null;
     let descChartInstance = null;
+    let deleteMode = 'selected';
 
     function parseCsvLine(line) {
         const values = [];
@@ -330,6 +372,7 @@
         if(filteredData.length === 0) {
             noDataMsg.style.display = 'block';
             paginationControls.style.display = 'none';
+            if(document.getElementById('select-all')) document.getElementById('select-all').checked = false;
         } else {
             noDataMsg.style.display = 'none';
             paginationControls.style.display = 'flex';
@@ -357,6 +400,7 @@
                 const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : 'N/A');
 
                 tr.innerHTML = `
+                    <td><input type="checkbox" class="row-checkbox" value="${item.id}"></td>
                     <td>${item.id}</td>
                     <td>${updatedDate}</td>
                     <td>${createdDate}</td>
@@ -364,9 +408,13 @@
                     <td>${item.person || '-'}</td>
                     <td>${item.description}</td>
                     <td>${attachmentLinks}</td>
-                    <td>
-                        <button onclick="editIncident('${item.id}')" style="color:#2752a7; border:none; background:none; cursor:pointer; font-weight:bold; margin-right:5px;">Edit</button>
-                        <button onclick="deleteIncident('${item.id}')" style="color:#d9534f; border:none; background:none; cursor:pointer; font-weight:bold;">Delete</button>
+                    <td style="white-space:nowrap;">
+                        <button onclick="editIncident('${item.id}')" class="icon-btn" title="Edit" style="margin-right:5px;">
+                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button onclick="deleteIncident('${item.id}')" class="icon-btn" title="Delete" style="color:#d9534f;">
+                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -379,6 +427,7 @@
             <span>Page ${currentPage} of ${totalPages}</span>
             <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
         `;
+        updateDeleteBtnState();
     }
 
     function summarizeMap(map, topN = 5){
@@ -635,12 +684,17 @@
     const modal = document.getElementById('incident-modal');
     const btn = document.getElementById('add-incident-btn');
     const span = document.getElementsByClassName("close")[0];
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const closeDeleteSpan = document.querySelector('.close-delete');
     const cancelBtn = document.getElementById('cancel-btn');
     
     const closeModal = () => {
         modal.style.display = "none";
         document.getElementById('incident-form').reset();
         delete document.getElementById('incident-form').dataset.editingId;
+    }
+    const closeDeleteModal = () => {
+        deleteModal.style.display = "none";
     }
 
     btn.onclick = () => {
@@ -650,8 +704,12 @@
         modal.style.display = "block";
     };
     span.onclick = closeModal;
+    if(closeDeleteSpan) closeDeleteSpan.onclick = closeDeleteModal;
     cancelBtn.onclick = closeModal;
-    window.onclick = (event) => { if (event.target == modal) closeModal(); }
+    window.onclick = (event) => { 
+        if (event.target == modal) closeModal(); 
+        if (event.target == deleteModal) closeDeleteModal();
+    }
 
     document.getElementById('incident-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -750,6 +808,81 @@
             modal.style.display = "block";
         }
     };
+
+    // Mass Delete & Selection Logic
+    const selectAll = document.getElementById('select-all');
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const massDeleteBtn = document.getElementById('mass-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+    function updateDeleteBtnState() {
+        const count = document.querySelectorAll('.row-checkbox:checked').length;
+        if(deleteSelectedBtn) deleteSelectedBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        if(selectAll) {
+            const all = document.querySelectorAll('.row-checkbox');
+            selectAll.checked = all.length > 0 && all.length === count;
+        }
+    }
+
+    if(selectAll) {
+        selectAll.addEventListener('change', () => {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateDeleteBtnState();
+        });
+    }
+
+    document.querySelector('#ir-table tbody').addEventListener('change', (e) => {
+        if(e.target.classList.contains('row-checkbox')) updateDeleteBtnState();
+    });
+
+    if(deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', () => {
+            const count = document.querySelectorAll('.row-checkbox:checked').length;
+            if(count === 0) return;
+            deleteMode = 'selected';
+            document.getElementById('delete-count').textContent = count;
+            document.getElementById('supervisor-code').value = '';
+            deleteModal.style.display = 'block';
+        });
+    }
+
+    if(massDeleteBtn) {
+        massDeleteBtn.addEventListener('click', () => {
+            if(irData.length === 0) return;
+            deleteMode = 'all';
+            document.getElementById('delete-count').textContent = 'ALL (' + irData.length + ')';
+            document.getElementById('supervisor-code').value = '';
+            deleteModal.style.display = 'block';
+        });
+    }
+
+    if(cancelDeleteBtn) cancelDeleteBtn.onclick = closeDeleteModal;
+
+    if(confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', () => {
+            const code = document.getElementById('supervisor-code').value;
+            if(code !== '12345' && code !== 'admin') {
+                alert('Invalid Supervisor Code');
+                return;
+            }
+            
+            if(deleteMode === 'all') {
+                irData = [];
+            } else {
+                const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                irData = irData.filter(item => !selectedIds.includes(item.id));
+            }
+            
+            localStorage.setItem(STORAGE_KEY_IR, JSON.stringify(irData));
+            applyFilter();
+            updateCharts();
+            closeDeleteModal();
+            if(selectAll) selectAll.checked = false;
+            updateDeleteBtnState();
+        });
+    }
 
     renderTable();
     updateCharts();
