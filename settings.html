@@ -57,7 +57,6 @@
           <button class="user-btn" id="user-btn" aria-haspopup="true" aria-expanded="false"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></button>
           <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
             <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
-            <button id="dark-mode-toggle" role="menuitem">Dark Mode</button>
             <button id="logout-btn" role="menuitem">Logout</button>
           </div>
         </div>
@@ -70,10 +69,10 @@
       <h2>Application Settings</h2>
       <p class="muted">Configure your application preferences.</p>
       
-      <form style="max-width: 400px; margin-top: 20px;">
+      <form id="settings-form" style="max-width: 400px; margin-top: 20px;">
         <div style="margin-bottom: 15px;">
           <label style="display:block; margin-bottom: 5px; font-weight: bold;">Theme</label>
-          <select style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+          <select id="theme-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
             <option value="light">Light</option>
             <option value="dark">Dark</option>
             <option value="system">System Default</option>
@@ -102,7 +101,7 @@
           </select>
         </div>
 
-        <button type="button" onclick="alert('Settings saved!')">Save Changes</button>
+        <button type="submit">Save Changes</button>
       </form>
     </div>
 
@@ -176,6 +175,24 @@
           localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify([]));
           renderLogs();
         }
+      });
+    }
+
+    // Settings Form Logic
+    const settingsForm = document.getElementById('settings-form');
+    const themeSelect = document.getElementById('theme-select');
+    
+    if(themeSelect){
+      themeSelect.value = localStorage.getItem('ims_theme') || 'light';
+    }
+
+    if(settingsForm){
+      settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const theme = themeSelect ? themeSelect.value : 'light';
+        localStorage.setItem('ims_theme', theme);
+        if(window.applyTheme) window.applyTheme();
+        alert('Settings saved!');
       });
     }
   </script>
