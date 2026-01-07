@@ -1067,18 +1067,21 @@ function showDashboard(userName){
 }
 
 function signOut(){
-  if(loginSection) {
-    loginSection.classList.remove('hidden');
-  }
-  if(dashboard) dashboard.classList.add('hidden');
-  try{ if(navUser) navUser.style.display = 'none'; }catch(e){}
-  // hide navbar on the login screen
-  try{ document.body.classList.add('no-navbar'); }catch(e){}
-  usernameDisplay.textContent = '';
-  currentUserRole = null;
   try{ localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_ROLE_KEY); localStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){}
   stopInactivityWatcher();
-  try{ announceStatus('Signed out'); }catch(e){}
+
+  if(loginSection) {
+    loginSection.classList.remove('hidden');
+    if(dashboard) dashboard.classList.add('hidden');
+    try{ if(navUser) navUser.style.display = 'none'; }catch(e){}
+    // hide navbar on the login screen
+    try{ document.body.classList.add('no-navbar'); }catch(e){}
+    if(usernameDisplay) usernameDisplay.textContent = '';
+    currentUserRole = null;
+    try{ announceStatus('Signed out'); }catch(e){}
+  } else {
+    window.location.href = 'index.html';
+  }
 }
 
 // Ensure admin inbox badge reflects current data at startup
