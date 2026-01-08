@@ -225,6 +225,11 @@
           <option value="Dispatch">Dispatch</option>
           <option value="Others">Others</option>
         </select>
+        <select id="filter-status" class="search-box" style="flex:1 1 150px; margin-bottom:0;">
+          <option value="">All Status</option>
+          <option value="Open">Open</option>
+          <option value="Closed">Closed</option>
+        </select>
         <select id="ir-date-filter-type" class="search-box" style="flex: 1 1 150px; margin-bottom:0;"><option value="updated">Updated Date</option><option value="created">Created Date</option></select>
         <input type="date" id="ir-start-date" class="search-box" style="flex: 1 1 150px; margin-bottom:0;">
         <input type="date" id="ir-end-date" class="search-box" style="flex: 1 1 150px; margin-bottom:0;">
@@ -240,6 +245,7 @@
               <th class="sortable" data-sort="id" style="cursor:pointer">IR Control Number <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="updatedDate" style="cursor:pointer">Updated Date <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="createdDate" style="cursor:pointer">Created Date <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="age" style="cursor:pointer">Age (days) <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="role" style="cursor:pointer">Role <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="person" style="cursor:pointer">Person Involved <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="status" style="cursor:pointer">Status <span class="sort-icon"></span></th>
@@ -503,6 +509,9 @@
                 if (sortField === 'updatedDate' || sortField === 'createdDate') {
                     valA = new Date(valA).getTime() || 0;
                     valB = new Date(valB).getTime() || 0;
+                } else if (sortField === 'age') {
+                    valA = Math.floor((new Date() - new Date(a.createdDate || a.date)) / (1000 * 60 * 60 * 24));
+                    valB = Math.floor((new Date() - new Date(b.createdDate || b.date)) / (1000 * 60 * 60 * 24));
                 } else {
                     valA = String(valA).toLowerCase();
                     valB = String(valB).toLowerCase();
@@ -544,12 +553,14 @@
 
                 const updatedDate = item.updatedDate ? new Date(item.updatedDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : 'N/A');
                 const createdDate = item.createdDate ? new Date(item.createdDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : 'N/A');
+                const age = Math.floor((new Date() - new Date(item.createdDate || item.date)) / (1000 * 60 * 60 * 24));
 
                 tr.innerHTML = `
                     <td><input type="checkbox" class="row-checkbox" value="${item.id}"></td>
                     <td>${item.id}</td>
                     <td>${updatedDate}</td>
                     <td>${createdDate}</td>
+                    <td>${age}</td>
                     <td>${item.role || ''}</td>
                     <td>${item.person || '-'}</td>
                     <td><span style="padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; background:${item.status === 'Closed' ? '#e8f5e9' : '#fff3e0'}; color:${item.status === 'Closed' ? '#2ecc71' : '#f39c12'}">${item.status || 'Open'}</span></td>
@@ -629,7 +640,18 @@
                     backgroundColor: '#4e73df'
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Incidents by Role' } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { title: { display: true, text: 'Incidents by Role' } },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const i = elements[0].index;
+                        const label = roleChartInstance.data.labels[i];
+                        const sel = document.getElementById('filter-role');
+                        if(sel) { sel.value = label; applyFilter(); }
+                    }
+                }
+            }
         });
 
         // Aggregate Person Data
@@ -653,7 +675,20 @@
                     backgroundColor: '#e74a3b'
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Incidents by Person Involved' } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { title: { display: true, text: 'Incidents by Person Involved' } },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const i = elements[0].index;
+                        const label = personChartInstance.data.labels[i];
+                        if(label !== 'Others'){
+                            const search = document.getElementById('search-input');
+                            if(search) { search.value = label; applyFilter(); }
+                        }
+                    }
+                }
+            }
         });
 
         // Render Month Chart
@@ -696,7 +731,48 @@
             },
             options: { 
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
-                plugins: { title: { display: true, text: 'Top Incident Descriptions' }, legend: { display: false } } 
+                plugins: { title: { display: true, text: 'Top Incident Descriptions' }, legend: { display: false } },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const i = elements[0].index;
+                        const label = descChartInstance.data.labels[i];
+                        if(label !== 'Others'){
+                            const search = document.getElementById('search-input');
+                            if(search) { search.value = label; applyFilter(); }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Render Status Chart
+        const statusCounts = { 'Open': 0, 'Closed': 0 };
+        irData.forEach(item => {
+            const s = item.status || 'Open';
+            statusCounts[s] = (statusCounts[s] || 0) + 1;
+        });
+        const ctxStatus = document.getElementById('chart-status');
+        if(statusChartInstance) statusChartInstance.destroy();
+        statusChartInstance = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: ['#f39c12', '#2ecc71']
+                }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { title: { display: true, text: 'Status Overview' } },
+                onClick: (evt, elements) => {
+                    if (elements.length > 0) {
+                        const i = elements[0].index;
+                        const label = statusChartInstance.data.labels[i];
+                        const sel = document.getElementById('filter-status');
+                        if(sel) { sel.value = label; applyFilter(); }
+                    }
+                }
             }
         });
     }
@@ -725,6 +801,7 @@
     function applyFilter() {
         const term = document.getElementById('search-input').value.toLowerCase();
         const roleFilter = document.getElementById('filter-role').value;
+        const statusFilter = document.getElementById('filter-status').value;
         const terms = term.split(/\s+/).filter(t => t.length > 0);
 
         let dataToFilter = [...irData];
@@ -763,7 +840,8 @@
             const searchable = (item.id + ' ' + (item.role || '') + ' ' + (item.description || '') + ' ' + (item.person || '')).toLowerCase();
             const matchesSearch = terms.every(term => searchable.includes(term));
             const matchesRole = roleFilter === '' || (item.role === roleFilter);
-            return matchesSearch && matchesRole;
+            const matchesStatus = statusFilter === '' || (item.status || 'Open') === statusFilter;
+            return matchesSearch && matchesRole && matchesStatus;
         });
         currentPage = 1;
         renderTable();
@@ -771,6 +849,7 @@
 
     document.getElementById('search-input').addEventListener('input', applyFilter);
     document.getElementById('filter-role').addEventListener('change', applyFilter);
+    document.getElementById('filter-status').addEventListener('change', applyFilter);
 
     if(irFilterDateBtn) irFilterDateBtn.addEventListener('click', applyFilter);
     if(irClearDateFilterBtn) {
