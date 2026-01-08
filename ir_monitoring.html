@@ -861,13 +861,15 @@
     }
 
     document.getElementById('export-csv-btn').addEventListener('click', () => { // Updated
-        const headers = ['IR Control Number', 'Updated Date', 'Created Date', 'Role', 'Person Involved', 'Description'];
+        const headers = ['IR Control Number', 'Updated Date', 'Created Date', 'Age (days)', 'Role', 'Person Involved', 'Status', 'Description'];
         const rows = filteredData.map(item => [
             `"${item.id}"`,
             `"${item.updatedDate ? new Date(item.updatedDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : '')}"`,
             `"${item.createdDate ? new Date(item.createdDate).toLocaleString() : (item.date ? new Date(item.date).toLocaleString() : '')}"`,
+            `"${Math.floor((new Date() - new Date(item.createdDate || item.date)) / (1000 * 60 * 60 * 24))}"`,
             `"${item.role}"`,
             `"${item.person}"`,
+            `"${item.status || 'Open'}"`,
             `"${(item.description || '').replace(/"/g, '""')}"`
         ]);
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -923,6 +925,7 @@
                             updatedDate: updatedDate,
                             role: values[headers.indexOf('Role')],
                             person: headers.includes('Person Involved') ? values[headers.indexOf('Person Involved')] : '',
+                            status: headers.includes('Status') ? values[headers.indexOf('Status')] : 'Open',
                             description: values[headers.indexOf('Description')],
                             attachments: []
                         };
@@ -959,9 +962,9 @@
 
     if(downloadTemplateBtn) {
         downloadTemplateBtn.addEventListener('click', () => {
-            const headers = ['IR Control Number', 'Created Date', 'Updated Date', 'Role', 'Person Involved', 'Description'];
+            const headers = ['IR Control Number', 'Created Date', 'Updated Date', 'Role', 'Person Involved', 'Status', 'Description'];
             const now = new Date().toLocaleString();
-            const sample = ['ECOM-2024-0001', now, now, 'Picker', 'John Doe', 'Picked wrong item'];
+            const sample = ['ECOM-2024-0001', now, now, 'Picker', 'John Doe', 'Open', 'Picked wrong item'];
             const csvContent = headers.join(',') + '\n' + sample.map(s => `"${s}"`).join(',');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
