@@ -98,7 +98,7 @@
 				border-radius: 4px;
 				padding: 16px;
 				position: fixed;
-				z-index: 10000;
+				z-index: 20000;
 				left: 50%;
 				top: 30px;
 				font-size: 16px;
@@ -107,8 +107,8 @@
 				transition: opacity 0.3s, top 0.3s;
 			}
 			.toast.show {
-				visibility: visible;
-				opacity: 1;
+				visibility: visible !important;
+				opacity: 1 !important;
 				top: 50px;
 			}
 		</style>
@@ -596,11 +596,13 @@
 					const docForm = document.getElementById('doc-form');
 					if(docForm) {
 						docForm.addEventListener('submit', () => {
-							const toast = document.getElementById("toast-notification");
-							if(toast) {
-								toast.className = "toast show";
-								setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-							}
+							setTimeout(() => {
+								const toast = document.getElementById("toast-notification");
+								if(toast) {
+									toast.className = "toast show";
+									setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+								}
+							}, 100);
 						});
 					}
 				});
