@@ -87,6 +87,30 @@
 			body.dark-mode header h1 {
 				color: #ecf0f1;
 			}
+			/* Toast Notification */
+			.toast {
+				visibility: hidden;
+				min-width: 250px;
+				transform: translateX(-50%);
+				background-color: #2ecc71;
+				color: #fff;
+				text-align: center;
+				border-radius: 4px;
+				padding: 16px;
+				position: fixed;
+				z-index: 10000;
+				left: 50%;
+				bottom: 30px;
+				font-size: 16px;
+				box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+				opacity: 0;
+				transition: opacity 0.3s, bottom 0.3s;
+			}
+			.toast.show {
+				visibility: visible;
+				opacity: 1;
+				bottom: 50px;
+			}
 		</style>
 	</head>
 	<body class="no-navbar">
@@ -388,6 +412,7 @@
 <!-- Document details modal (opens from left sidebar) -->
 		
 
+			<div id="toast-notification" class="toast">Document added successfully!</div>
 			<script src="app.js"></script>
 
 			<script>
