@@ -242,6 +242,7 @@
               <th class="sortable" data-sort="createdDate" style="cursor:pointer">Created Date <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="role" style="cursor:pointer">Role <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="person" style="cursor:pointer">Person Involved <span class="sort-icon"></span></th>
+              <th class="sortable" data-sort="status" style="cursor:pointer">Status <span class="sort-icon"></span></th>
               <th class="sortable" data-sort="description" style="cursor:pointer">Description <span class="sort-icon"></span></th>
               <th>Attachment</th>
               <th>Action</th>
@@ -280,8 +281,17 @@
             </div>
           </div>
         </div>
-        <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
-            <canvas id="chart-month"></canvas>
+        <div class="flip-card" style="flex:1; min-width:300px;">
+          <div class="flip-card-inner">
+            <div class="flip-card-front">
+              <button onclick="this.closest('.flip-card').classList.toggle('flipped')" style="position:absolute; top:10px; right:10px; z-index:10; cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;" title="Flip to Status View">↻</button>
+              <div style="position:relative; height:100%; width:100%"><canvas id="chart-month"></canvas></div>
+            </div>
+            <div class="flip-card-back">
+              <button onclick="this.closest('.flip-card').classList.toggle('flipped')" style="position:absolute; top:10px; right:10px; z-index:10; cursor:pointer; border:1px solid #ddd; background:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;" title="Flip to Trend View">↻</button>
+              <div style="position:relative; height:100%; width:100%"><canvas id="chart-status"></canvas></div>
+            </div>
+          </div>
         </div>
         <div style="flex:1; min-width:300px; height:300px; border:1px solid #eee; padding:10px; border-radius:8px;">
             <canvas id="chart-description"></canvas>
@@ -322,6 +332,13 @@
         <div class="form-group">
           <label for="ir-person">Person Involved (Optional)</label>
           <input type="text" id="ir-person" placeholder="Name of person involved">
+        </div>
+        <div class="form-group">
+          <label for="ir-status">Status</label>
+          <select id="ir-status">
+            <option value="Open">Open</option>
+            <option value="Closed">Closed</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="ir-desc">Description</label>
@@ -383,6 +400,7 @@
     let monthChartInstance = null;
     let descChartInstance = null;
     let personChartInstance = null;
+    let statusChartInstance = null;
     let deleteMode = 'selected';
     let sortField = null;
     let sortDirection = 'asc';
@@ -534,6 +552,7 @@
                     <td>${createdDate}</td>
                     <td>${item.role || ''}</td>
                     <td>${item.person || '-'}</td>
+                    <td><span style="padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; background:${item.status === 'Closed' ? '#e8f5e9' : '#fff3e0'}; color:${item.status === 'Closed' ? '#2ecc71' : '#f39c12'}">${item.status || 'Open'}</span></td>
                     <td>${item.description}</td>
                     <td>${attachmentLinks}</td>
                     <td style="white-space:nowrap;">
@@ -909,6 +928,7 @@
         const id = document.getElementById('ir-id').value;
         const role = document.getElementById('ir-role').value;
         const person = document.getElementById('ir-person').value;
+        const status = document.getElementById('ir-status').value;
         const desc = document.getElementById('ir-desc').value;
         const fileInput = document.getElementById('ir-attachment');
         const editingId = e.target.dataset.editingId;
@@ -936,7 +956,7 @@
                     const oldRecord = irData[index];
                     irData[index] = {
                         ...oldRecord,
-                        id, role, person, description: desc, attachments,
+                        id, role, person, status, description: desc, attachments,
                         createdDate: oldRecord.createdDate || oldRecord.date, // Preserve original creation date
                         updatedDate: new Date().toISOString()
                     };
@@ -949,6 +969,7 @@
                     updatedDate: new Date().toISOString(),
                     role: role,
                     person: person,
+                    status: status || 'Open',
                     description: desc,
                     attachments: attachments || []
                 };
@@ -994,6 +1015,7 @@
             document.getElementById('ir-id').value = item.id;
             document.getElementById('ir-role').value = item.role || '';
             document.getElementById('ir-person').value = item.person || '';
+            document.getElementById('ir-status').value = item.status || 'Open';
             document.getElementById('ir-desc').value = item.description;
             document.getElementById('incident-form').dataset.editingId = item.id;
             // Clear file input on edit
