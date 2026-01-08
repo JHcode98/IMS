@@ -93,6 +93,7 @@
               <button id="clear-search">Clear</button>
               <button id="bulk-update">Update Selected</button>
               <button id="bulk-delete">Delete Selected</button>
+              <button id="mass-delete-all-btn" style="background-color: #d9534f; color: white;">Mass Delete ALL</button>
               <input id="import-file" type="file" accept=".csv" />
               <button id="download-template">Download Template</button>
               <button id="export-csv">Export CSV</button>
@@ -195,6 +196,24 @@
       </div>
     </div>
 
+    <!-- Mass Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 400px; margin-top: 100px;">
+        <h3>Confirm Mass Delete</h3>
+        <p>You are about to delete <span id="delete-count" style="font-weight:bold; color:#d9534f">0</span> records.</p>
+        <p class="muted">This action will move all documents to the Recycle Bin. Please enter Supervisor Code to proceed.</p>
+        <div style="margin: 15px 0;">
+          <label for="supervisor-code" style="display:block; margin-bottom:5px; font-weight:bold;">Supervisor Code</label>
+          <input type="password" id="supervisor-code" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter code (e.g. 12345)">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button id="cancel-delete-btn" style="background:#fff; color:#333; border:1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button id="confirm-delete-btn" style="background:#d9534f; color:#fff; border:none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast-notification" class="toast">Document added successfully!</div>
     <script>
       if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
@@ -211,6 +230,48 @@
               toast.className = "toast show";
               setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
             }
+          });
+        }
+
+        // Mass Delete Logic
+        const massDeleteBtn = document.getElementById('mass-delete-all-btn');
+        const deleteModal = document.getElementById('delete-confirm-modal');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const deleteCountSpan = document.getElementById('delete-count');
+        const supervisorCodeInput = document.getElementById('supervisor-code');
+
+        if(massDeleteBtn) {
+          massDeleteBtn.addEventListener('click', () => {
+             if(typeof docs === 'undefined' || docs.length === 0) { alert('No documents to delete.'); return; }
+             deleteCountSpan.textContent = 'ALL (' + docs.length + ')';
+             supervisorCodeInput.value = '';
+             if(deleteModal) deleteModal.classList.remove('hidden');
+          });
+        }
+
+        if(cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => { if(deleteModal) deleteModal.classList.add('hidden'); });
+        if(deleteModal) deleteModal.querySelector('.modal-overlay').addEventListener('click', () => deleteModal.classList.add('hidden'));
+
+        if(confirmDeleteBtn) {
+          confirmDeleteBtn.addEventListener('click', () => {
+             const code = supervisorCodeInput.value;
+             if(code !== '12345' && code !== 'admin') {
+               alert('Invalid Supervisor Code!');
+               return;
+             }
+             
+             if(typeof docs !== 'undefined' && docs.length > 0) {
+                const rb = (typeof loadRecycle === 'function') ? loadRecycle() : [];
+                const now = Date.now();
+                docs.forEach(d => rb.unshift(Object.assign({}, d, { deletedAt: now })));
+                docs.length = 0; // Clear array in place
+                if(typeof saveRecycle === 'function') saveRecycle(rb);
+                if(typeof saveDocs === 'function') saveDocs();
+                if(typeof renderDocs === 'function') renderDocs();
+                alert('All documents moved to Recycle Bin.');
+             }
+             if(deleteModal) deleteModal.classList.add('hidden');
           });
         }
       });
