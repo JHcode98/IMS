@@ -1368,6 +1368,9 @@ if(newDocBtn) newDocBtn.addEventListener('click', () => {
     if(!ctrl.value) ctrl.value = generateControlNumber();
     // default createdAt for new documents (user can modify via calendar)
     if(createdAtInput) createdAtInput.value = msToDatetimeLocal(Date.now());
+    // Reset other input visibility
+    const other = document.getElementById('doc-title-other');
+    if(other) other.style.display = 'none';
   }
 });
 
@@ -1377,6 +1380,9 @@ if(cancelNew) cancelNew.addEventListener('click', () => {
   delete docForm.dataset.editing;
   const saveBtn = docForm.querySelector('button[type="submit"]');
   if(saveBtn) saveBtn.textContent = 'Save';
+  // Reset other input visibility
+  const other = document.getElementById('doc-title-other');
+  if(other) other.style.display = 'none';
 });
 
 if(docForm) docForm.addEventListener('submit', e => {
@@ -1590,7 +1596,23 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     if(!doc) { alert('Document not found'); return; }
     // populate form for editing
     document.getElementById('control-number').value = doc.controlNumber;
-    document.getElementById('doc-title').value = doc.title || '';
+    
+    // Handle Title Select/Other population
+    const titleEl = document.getElementById('doc-title');
+    const titleOtherEl = document.getElementById('doc-title-other');
+    if(titleEl && titleEl.tagName === 'SELECT'){
+      const opts = Array.from(titleEl.options).map(o => o.value);
+      if(opts.includes(doc.title)){
+        titleEl.value = doc.title;
+        if(titleOtherEl) { titleOtherEl.value = ''; titleOtherEl.style.display = 'none'; }
+      } else {
+        titleEl.value = 'Other';
+        if(titleOtherEl) { titleOtherEl.value = doc.title || ''; titleOtherEl.style.display = ''; }
+      }
+    } else {
+      document.getElementById('doc-title').value = doc.title || '';
+    }
+
     document.getElementById('doc-notes').value = doc.notes || '';
     document.getElementById('doc-owner').value = doc.owner || '';
     document.getElementById('doc-status').value = doc.status || 'Revision';
