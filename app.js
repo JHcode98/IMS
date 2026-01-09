@@ -2079,6 +2079,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Global Tooltip Initialization (Convert title to data-tooltip for .icon-btn)
+  function initTooltips(node = document){
+    const elements = node.querySelectorAll ? node.querySelectorAll('.icon-btn[title]') : [];
+    elements.forEach(btn => {
+      btn.setAttribute('data-tooltip', btn.getAttribute('title'));
+      btn.removeAttribute('title');
+    });
+    if(node.matches && node.matches('.icon-btn[title]')){
+      node.setAttribute('data-tooltip', node.getAttribute('title'));
+      node.removeAttribute('title');
+    }
+  }
+
+  const tooltipObserver = new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if(n.nodeType === 1) initTooltips(n);
+      });
+    });
+  });
+  tooltipObserver.observe(document.body, { childList: true, subtree: true });
+  initTooltips();
   // Modal open helper
   window.openDocModal = function(control){
     const doc = docs.find(d => d.controlNumber === control);
