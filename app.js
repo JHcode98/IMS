@@ -299,6 +299,8 @@ function renderDocs(filter){
     } else if(doc.adminStatus === 'Returned'){
       adminStatusHtml = `<span class="returned-label">Returned</span>`;
       if(doc.returnReason){ adminStatusHtml += `<div class="muted" style="font-size:11px;margin-top:4px">Reason: ${escapeHtml(doc.returnReason)}</div>`; }
+    } else {
+      adminStatusHtml = `<span class="muted" style="font-size:12px; font-style:italic">Need User Attention</span>`;
     }
 
     tr.innerHTML = `
@@ -594,6 +596,8 @@ function renderAdminInbox(externalFilter){
       } else if(String(d.adminStatus).toLowerCase() === 'returned'){
         adminHtml = ' <span class="forwarded-label">Admin: Returned' + (d.returnedBy ? ' by ' + escapeHtml(d.returnedBy) + ' at ' + (d.returnedAt ? new Date(Number(d.returnedAt)).toLocaleString() : '') : '') + '</span>';
         if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Reason: ' + escapeHtml(d.returnReason) + '</div>'; }
+      } else if(!d.forwarded){
+        adminHtml = ' <span class="muted" style="font-size:11px; font-style:italic">Need User Attention</span>';
       }
     }
     left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
@@ -1406,6 +1410,8 @@ if(docForm) docForm.addEventListener('submit', e => {
   const owner = document.getElementById('doc-owner').value.trim();
   const status = document.getElementById('doc-status').value;
   const winsStatus = document.getElementById('wins-status').value;
+  const adminStatusEl = document.getElementById('admin-status');
+  const adminStatus = adminStatusEl ? adminStatusEl.value : '';
   const notes = document.getElementById('doc-notes').value.trim();
   if(!controlNumber || !title){ alert('Control number and title are required'); return; }
 
@@ -1458,12 +1464,12 @@ if(docForm) docForm.addEventListener('submit', e => {
       const createdAt = parsedCreated || (existing && existing.createdAt) || Date.now();
       // internal delete during rename (bypass admin check)
       deleteDocInternal(editingKey);
-      addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, notes, createdAt, updatedAt: Date.now() });
+      addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, adminStatus, notes, createdAt, updatedAt: Date.now() });
     } else {
       // update in-place; allow createdAt modification if provided
       const existing = docs.find(d => d.controlNumber === editingKey);
       const createdAt = parsedCreated || (existing && existing.createdAt) || Date.now();
-      addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, notes, createdAt, updatedAt: Date.now() });
+      addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, adminStatus, notes, createdAt, updatedAt: Date.now() });
     }
   } else {
     // new document
@@ -1475,7 +1481,7 @@ if(docForm) docForm.addEventListener('submit', e => {
       return;
     }
     const createdAtForNew = parsedCreated || Date.now();
-    addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, notes, createdAt: createdAtForNew, updatedAt: Date.now() });
+    addOrUpdateDoc({ controlNumber, title, owner, status, winsStatus, adminStatus, notes, createdAt: createdAtForNew, updatedAt: Date.now() });
   }
 
   // cleanup
@@ -1619,6 +1625,8 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     document.getElementById('doc-owner').value = doc.owner || '';
     document.getElementById('doc-status').value = doc.status || 'Revision';
     document.getElementById('wins-status').value = doc.winsStatus || 'Pending for Approve';
+    const adminStatusEl = document.getElementById('admin-status');
+    if(adminStatusEl) adminStatusEl.value = doc.adminStatus || '';
     if(createdAtInput) createdAtInput.value = msToDatetimeLocal(doc.createdAt);
     docForm.dataset.editing = doc.controlNumber;
     const saveBtn = docForm.querySelector('button[type="submit"]');
