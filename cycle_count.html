@@ -56,6 +56,14 @@
     body.dark-mode .calc-display { background: #1a1a1a; color: #fff; border-color: #444; }
     body.dark-mode .calc-btn { background: #333; color: #e0e0e0; }
     body.dark-mode .calc-btn:hover { background: #444; }
+    
+    /* Fix tooltip clipping for top buttons (Position tooltip below button) */
+    #toggle-calc-btn[data-tooltip]::after, #flip-to-chart-btn[data-tooltip]::after { top: 100%; bottom: auto; margin-top: 8px; margin-bottom: 0; }
+    #toggle-calc-btn[data-tooltip]::before, #flip-to-chart-btn[data-tooltip]::before { top: 100%; bottom: auto; margin-top: 3px; margin-bottom: 0; border-top-color: transparent; border-bottom-color: #2c3e50; }
+    
+    /* Calculator Drag Handle */
+    #calc-header { cursor: move; background: #f1f1f1; padding: 5px; border-radius: 4px 4px 0 0; margin: -10px -10px 10px -10px; text-align: center; font-size: 12px; font-weight: bold; color: #555; border-bottom: 1px solid #ddd; }
+    body.dark-mode #calc-header { background: #333; color: #ccc; border-bottom-color: #444; }
 
     /* Dark Mode Header */
 			body.dark-mode header {
@@ -159,6 +167,7 @@
           </div>
           <!-- Calculator Widget -->
           <div id="calculator-widget" class="calc-container">
+            <div id="calc-header">Calculator (Drag me)</div>
             <input type="text" id="calc-display" class="calc-display" readonly>
             <div class="calc-keys">
               <button type="button" class="calc-btn clear" onclick="calcClear()">C</button>
@@ -178,6 +187,7 @@
               <button type="button" class="calc-btn equal" onclick="calcResult()">=</button>
               <button type="button" class="calc-btn" onclick="calcAppend('0')">0</button>
               <button type="button" class="calc-btn" onclick="calcAppend('.')">.</button>
+              <button type="button" class="calc-btn" style="grid-column: span 4; background: #2752a7; color: white; margin-top: 5px;" onclick="calcCopyToPhysical()">Copy to Physical Qty</button>
             </div>
           </div>
       <form id="cycle-count-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
@@ -1297,6 +1307,51 @@
         catch(e){ calcDisplay.value = 'Error'; }
       }
     };
+
+    window.calcCopyToPhysical = function(){
+      const display = document.getElementById('calc-display');
+      const physInput = document.getElementById('physical-qty');
+      if(display && physInput && display.value !== '' && display.value !== 'Error'){
+        physInput.value = display.value;
+      }
+    };
+
+    // Make Calculator Draggable
+    function dragElement(elmnt) {
+      var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      if (document.getElementById("calc-header")) {
+        document.getElementById("calc-header").onmousedown = dragMouseDown;
+      } else {
+        elmnt.onmousedown = dragMouseDown;
+      }
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+      }
+
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+      }
+    }
+    
+    if(calcWidget) dragElement(calcWidget);
   </script>
 </body>
 </html>
