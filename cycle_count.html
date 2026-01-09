@@ -472,11 +472,16 @@
     }
 
     function loadData() {
-      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+      let data = [];
+      try {
+        data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
+      } catch (e) {
+        console.error('Error parsing cycle count data', e);
+      }
       // Add original index to handle deletion after filtering
       data = data.map((item, index) => ({ ...item, originalIndex: index }));
       
-      const searchTerms = cycleCountSearchInput.value.toLowerCase().split(' ').filter(Boolean);
+      const searchTerms = cycleCountSearchInput ? cycleCountSearchInput.value.toLowerCase().split(' ').filter(Boolean) : [];
       let filteredData = data.filter(item => {
         if (searchTerms.length === 0) return true;
         const itemText = [item.itemCode, item.description || '', item.location, item.notes || ''].join(' ').toLowerCase();
@@ -485,12 +490,12 @@
 
       // Date range filter
       let startDate = null;
-      if (startDateInput.value) {
+      if (startDateInput && startDateInput.value) {
         const parts = startDateInput.value.split('-');
         startDate = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
       }
       let endDate = null;
-      if (endDateInput.value) {
+      if (endDateInput && endDateInput.value) {
         const parts = endDateInput.value.split('-');
         endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
       }
@@ -559,6 +564,7 @@
     function renderVarianceDistributionChart(data) {
         const chartCanvas = document.getElementById('variance-distribution-chart');
         if (!chartCanvas) return;
+        if (typeof Chart === 'undefined') return;
 
         let exact = 0, surplus = 0, shortage = 0;
         data.forEach(item => {
@@ -613,6 +619,7 @@
     }
 
     function renderTable(data) {
+      if (!tableBody) return;
       tableBody.innerHTML = '';
       if (data.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center; padding: 20px;">No records found for your search.</td></tr>`;
@@ -1060,12 +1067,12 @@
     }
 
     // Event Listeners
-    cycleCountSearchInput.addEventListener('input', loadData);
+    if(cycleCountSearchInput) cycleCountSearchInput.addEventListener('input', loadData);
     if(varianceFilter) varianceFilter.addEventListener('change', loadData);
     if(filterDateBtn) filterDateBtn.addEventListener('click', loadData);
-    clearDateFilterBtn.addEventListener('click', () => {
-        startDateInput.value = '';
-        endDateInput.value = '';
+    if(clearDateFilterBtn) clearDateFilterBtn.addEventListener('click', () => {
+        if(startDateInput) startDateInput.value = '';
+        if(endDateInput) endDateInput.value = '';
         loadData();
     });
     if(clearAllFiltersBtn) {
@@ -1307,6 +1314,27 @@
         catch(e){ calcDisplay.value = 'Error'; }
       }
     };
+
+    // Calculator Keyboard Support
+    document.addEventListener('keydown', (e) => {
+      const calcWidget = document.getElementById('calculator-widget');
+      if(calcWidget && calcWidget.classList.contains('show')){
+        const key = e.key;
+        if(/[0-9.]/.test(key)){
+          calcAppend(key);
+        } else if(['+','-','*','/'].includes(key)){
+          calcAppend(key);
+        } else if(key === 'Enter' || key === '='){
+          e.preventDefault();
+          calcResult();
+        } else if(key === 'Escape' || key === 'c' || key === 'C'){
+          calcClear();
+        } else if(key === 'Backspace'){
+           const display = document.getElementById('calc-display');
+           if(display) display.value = display.value.slice(0, -1);
+        }
+      }
+    });
 
     window.calcCopyToPhysical = function(){
       const display = document.getElementById('calc-display');
