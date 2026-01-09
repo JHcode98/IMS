@@ -139,8 +139,8 @@
             }
           } catch (e) { console.error('Fetch error', e); }
           // Count statuses
-          const forwarded = docs.filter(d => d.status === 'Forwarded').length;
-          const intervention = docs.filter(d => d.status === 'Need User Attention' || d.status === 'Need Intervention').length;
+          const forwarded = docs.filter(d => d.forwarded === true).length;
+          const intervention = docs.filter(d => !d.adminStatus && !d.forwarded).length;
           
           const bFwd = document.getElementById('badge-forwarded-box');
           const bInt = document.getElementById('badge-intervention-box');
