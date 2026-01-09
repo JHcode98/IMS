@@ -570,7 +570,8 @@ function renderAdminInbox(externalFilter){
   if(f === 'forwarded') list = list.filter(d => d && d.forwarded === true);
   else if(f === 'received') list = list.filter(d => d && String(d.adminStatus).toLowerCase() === 'received');
   else if(f === 'returned') list = list.filter(d => d && String(d.adminStatus).toLowerCase() === 'returned');
-  else list = list.filter(d => d && (d.forwarded || d.adminStatus));
+  else if(f === 'intervention') list = list.filter(d => d && !d.adminStatus && !d.forwarded);
+  else list = list.filter(d => d && (d.forwarded || d.adminStatus || (!d.adminStatus && !d.forwarded)));
   // Apply search query
   if(adminInboxQuery){
     const ql = adminInboxQuery.toLowerCase();
@@ -596,9 +597,9 @@ function renderAdminInbox(externalFilter){
       } else if(String(d.adminStatus).toLowerCase() === 'returned'){
         adminHtml = ' <span class="forwarded-label">Admin: Returned' + (d.returnedBy ? ' by ' + escapeHtml(d.returnedBy) + ' at ' + (d.returnedAt ? new Date(Number(d.returnedAt)).toLocaleString() : '') : '') + '</span>';
         if(d.returnReason){ adminHtml += '<div class="muted" style="font-size:11px;margin-top:4px">Reason: ' + escapeHtml(d.returnReason) + '</div>'; }
-      } else if(!d.forwarded){
-        adminHtml = ' <span class="muted" style="font-size:11px; font-style:italic">Need User Attention</span>';
       }
+    } else if(!d.forwarded){
+      adminHtml = ' <span class="muted" style="font-size:11px; font-style:italic">Need User Attention</span>';
     }
     left.innerHTML = `<strong>${escapeHtml(d.controlNumber||d.control)}</strong> — ${escapeHtml(d.title||'')} <div class="muted" style="font-size:12px">Status: ${escapeHtml(d.status || '')} ${d.forwarded ? ' • Forwarded by ' + escapeHtml(d.forwardedBy || '') + ' at ' + (d.forwardedAt ? new Date(Number(d.forwardedAt)).toLocaleString() : '') : ''}${adminHtml}</div>`;
     const actions = document.createElement('div');
@@ -743,12 +744,13 @@ function computeAdminStatusCounts(){
 } 
 
 function computeAdminInboxCounts(){
-  const res = { forwarded:0, received:0, returned:0 };
+  const res = { forwarded:0, received:0, returned:0, intervention:0 };
   docs.forEach(d => {
     if(!d) return;
     if(d.forwarded) res.forwarded++;
     if(d.adminStatus === 'Received') res.received++;
     if(d.adminStatus === 'Returned') res.returned++;
+    if(!d.adminStatus && !d.forwarded) res.intervention++;
   });
   return res;
 }
@@ -767,6 +769,7 @@ function updateAdminInboxBadge(){
       if(counts.forwarded) parts.push(`<button type="button" class="nav-badge badge-forwarded admin-badge-btn" data-admin-filter="forwarded" aria-label="${counts.forwarded} forwarded">${counts.forwarded}</button>`);
       if(counts.received) parts.push(`<button type="button" class="nav-badge badge-received admin-badge-btn" data-admin-filter="received" aria-label="${counts.received} received">${counts.received}</button>`);
       if(counts.returned) parts.push(`<button type="button" class="nav-badge badge-returned admin-badge-btn" data-admin-filter="returned" aria-label="${counts.returned} returned">${counts.returned}</button>`);
+      if(counts.intervention) parts.push(`<button type="button" class="nav-badge badge-intervention admin-badge-btn" data-admin-filter="intervention" aria-label="${counts.intervention} need attention">${counts.intervention}</button>`);
       btn.innerHTML = parts.join(' ');
     } else {
       // dashboard/minor pages: show only received count if any
@@ -782,6 +785,9 @@ function updateAdminInboxBadge(){
       const bfm = document.getElementById('badge-forwarded-menu'); if(bfm) bfm.textContent = counts.forwarded || 0;
       const brm = document.getElementById('badge-received-menu'); if(brm) brm.textContent = counts.received || 0;
       const brrm = document.getElementById('badge-returned-menu'); if(brrm) brrm.textContent = counts.returned || 0;
+      
+      const bi = document.getElementById('badge-intervention-box'); if(bi) { bi.textContent = counts.intervention || ''; bi.style.display = counts.intervention ? 'inline-block' : 'none'; }
+      const bim = document.getElementById('badge-intervention-menu'); if(bim) bim.textContent = counts.intervention || 0;
     }catch(e){}
     // also update dashboard-specific received badge anchors (e.g., show on users-dashboard link)
     try{
