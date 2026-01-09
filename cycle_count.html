@@ -391,6 +391,8 @@
   <script src="app.js"></script>
   <script>
     if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+    
+    document.addEventListener('DOMContentLoaded', () => {
     // Cycle Count Logic
     const form = document.getElementById('cycle-count-form');
     const tableBody = document.querySelector('#cycle-count-table tbody');
@@ -419,7 +421,7 @@
     const flipToChartBtn = document.getElementById('flip-to-chart-btn');
     const flipToFormBtn = document.getElementById('flip-to-form-btn');
     
-    let currentPage = 1;
+    let ccCurrentPage = 1;
     let rowsPerPage = 10;
     let sortField = null;
     let sortDirection = 'asc';
@@ -552,8 +554,8 @@
 
       const totalRows = filteredData.length;
       const totalPages = Math.ceil(totalRows / rowsPerPage);
-      currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
-      const start = (currentPage - 1) * rowsPerPage;
+      ccCurrentPage = Math.max(1, Math.min(ccCurrentPage, totalPages || 1));
+      const start = (ccCurrentPage - 1) * rowsPerPage;
       const end = start + rowsPerPage;
       const paginatedData = filteredData.slice(start, end);
 
@@ -663,7 +665,7 @@
       });
     }
 
-    form.addEventListener('submit', (e) => {
+    if(form) form.addEventListener('submit', (e) => {
       e.preventDefault();
       const newItem = {
         itemCode: document.getElementById('item-code').value,
@@ -694,7 +696,7 @@
       loadData();
     });
 
-    tableBody.addEventListener('click', (e) => {
+    if(tableBody) tableBody.addEventListener('click', (e) => {
       if (e.target.classList.contains('delete-btn')) {
         if(!confirm('Delete this entry?')) return;
         const originalIndex = e.target.dataset.index;
@@ -794,7 +796,7 @@
     }
 
     // Checkbox highlight logic
-    tableBody.addEventListener('change', (e) => {
+    if(tableBody) tableBody.addEventListener('change', (e) => {
       if(e.target.classList.contains('row-checkbox')){
         const tr = e.target.closest('tr');
         if(e.target.checked) tr.classList.add('selected-row');
@@ -825,22 +827,22 @@
 
       paginationContainer.innerHTML = `
         <button id="prev-page-btn" class="icon-btn" title="Previous Page">‹</button>
-        <span class="current-page" style="padding: 0 10px;">Page ${currentPage} of ${totalPages}</span>
+        <span class="current-page" style="padding: 0 10px;">Page ${ccCurrentPage} of ${totalPages}</span>
         <button id="next-page-btn" class="icon-btn" title="Next Page">›</button>
       `;
 
       const prevBtn = document.getElementById('prev-page-btn');
       const nextBtn = document.getElementById('next-page-btn');
 
-      prevBtn.disabled = currentPage === 1;
-      nextBtn.disabled = currentPage === totalPages;
+      prevBtn.disabled = ccCurrentPage === 1;
+      nextBtn.disabled = ccCurrentPage === totalPages;
 
       prevBtn.onclick = () => {
-        if (currentPage > 1) { currentPage--; loadData(); }
+        if (ccCurrentPage > 1) { ccCurrentPage--; loadData(); }
       };
 
       nextBtn.onclick = () => {
-        if (currentPage < totalPages) { currentPage++; loadData(); }
+        if (ccCurrentPage < totalPages) { ccCurrentPage++; loadData(); }
       };
     }
 
@@ -900,12 +902,12 @@
       URL.revokeObjectURL(url);
     }
 
-    exportBtn.addEventListener('click', exportToCSV);
+    if(exportBtn) exportBtn.addEventListener('click', exportToCSV);
     if(ccDownloadTemplateBtn) ccDownloadTemplateBtn.addEventListener('click', downloadTemplate);
 
-    importBtn.addEventListener('click', () => ccImportFile.click());
+    if(importBtn) importBtn.addEventListener('click', () => ccImportFile.click());
 
-    ccImportFile.addEventListener('change', (e) => {
+    if(ccImportFile) ccImportFile.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -1134,7 +1136,7 @@
           if(isHidden) tableCard.classList.add('compact-view');
           else tableCard.classList.remove('compact-view');
         }
-        currentPage = 1; // Reset to first page
+        ccCurrentPage = 1; // Reset to first page
         loadData();
 
         toggleFormBtn.title = isHidden ? "Show Form" : "Full View (Hide Form)";
@@ -1380,6 +1382,7 @@
     }
     
     if(calcWidget) dragElement(calcWidget);
+    });
   </script>
 </body>
 </html>
