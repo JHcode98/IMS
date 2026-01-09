@@ -131,7 +131,7 @@
 
   <script src="app.js"></script>
   <script>
-    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+    if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
     
     // Load Data and Render Reports
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
