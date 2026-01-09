@@ -32,6 +32,11 @@
     <h1>Users Dashboard</h1>
     <div class="tools">
       <input id="user-search" placeholder="Search users..." />
+      <select id="user-filter-status" style="margin-left:8px; padding:8px; border-radius:6px; border:1px solid #d6dbe6">
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="active">Active</option>
+      </select>
       <button id="user-search-btn" class="icon-btn" title="Search users" aria-label="Search users">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       </button>
@@ -78,6 +83,7 @@
     async function render(){
       const t = document.querySelector('#users-table tbody'); t.innerHTML = '';
       const q = (document.getElementById('user-search') && document.getElementById('user-search').value || '').toLowerCase();
+      const statusFilter = document.getElementById('user-filter-status') ? document.getElementById('user-filter-status').value : 'all';
       const serverUsers = await fetchUsersFromServer();
       if(serverUsers){
         // Sort users: Pending first, then alphabetical
@@ -98,6 +104,8 @@
         sessions.forEach(s => { if(s && s.username) sessionsMap[s.username] = s; });
         serverUsers.forEach(u => {
           if(q && !(u.username||'').toLowerCase().includes(q)) return;
+          if(statusFilter === 'pending' && u.approved !== false) return;
+          if(statusFilter === 'active' && u.approved === false) return;
           const tr = document.createElement('tr');
           const avatarHtml = u.avatar ? `<div class="avatar small"><img src="${u.avatar}" alt="avatar"></div>` : `<div class="avatar small">${(u.username||'').split(' ').map(s=>s[0]||'').join('').slice(0,2).toUpperCase() || '?'}</div>`;
           const pts = pointsMap[u.username] || 0;
@@ -140,6 +148,8 @@
       keys.forEach(k => {
         if(q && !k.toLowerCase().includes(q)) return;
         const u = users[k];
+        if(statusFilter === 'pending' && u.approved !== false) return;
+        if(statusFilter === 'active' && u.approved === false) return;
         const tr = document.createElement('tr');
         // compute points for local fallback from local docs storage
         let localPoints = 0;
@@ -169,6 +179,7 @@
         const users = loadLocalUsers(); delete users[uname]; saveLocalUsers(users); render();
       }));
 
+      if(document.getElementById('user-filter-status')) document.getElementById('user-filter-status').addEventListener('change', render);
       // Initialize tooltips for generated buttons
       document.querySelectorAll('.icon-btn[title]').forEach(btn => {
         btn.setAttribute('data-tooltip', btn.getAttribute('title'));
