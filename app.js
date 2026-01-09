@@ -772,12 +772,12 @@ function updateAdminInboxBadge(){
       if(counts.intervention) parts.push(`<button type="button" class="nav-badge badge-intervention admin-badge-btn" data-admin-filter="intervention" aria-label="${counts.intervention} need attention">${counts.intervention}</button>`);
       btn.innerHTML = parts.join(' ');
     } else {
-      // dashboard/minor pages: show only received count if any
-      if(counts.received){
-        btn.innerHTML = label + ' ' + `<button type="button" class="nav-badge badge-received admin-badge-btn" data-admin-filter="received" aria-label="${counts.received} received">${counts.received}</button>`;
-      } else {
-        btn.innerHTML = label;
-      }
+      // dashboard/minor pages: show counts if any
+      let html = label;
+      if(counts.forwarded) html += ` <button type="button" class="nav-badge badge-forwarded admin-badge-btn" data-admin-filter="forwarded" aria-label="${counts.forwarded} forwarded">${counts.forwarded}</button>`;
+      if(counts.intervention) html += ` <button type="button" class="nav-badge badge-intervention admin-badge-btn" data-admin-filter="intervention" aria-label="${counts.intervention} need attention">${counts.intervention}</button>`;
+      if(counts.received) html += ` <button type="button" class="nav-badge badge-received admin-badge-btn" data-admin-filter="received" aria-label="${counts.received} received">${counts.received}</button>`;
+      btn.innerHTML = html;
     }
     // update inbox box badges/menu counts if present
     try{
