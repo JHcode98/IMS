@@ -216,7 +216,7 @@
 
   <script src="app.js"></script>
   <script>
-    if(!localStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+    if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
     
     const STORAGE_KEY_CC = 'ims_cycle_count_v1';
     const STORAGE_KEY_MASTER = 'ims_master_sku_list_v1';
