@@ -1010,6 +1010,7 @@ function signIn(username, password){
   try{
     const stored = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '{}');
     if(stored && stored[username] && stored[username].password === password){
+      if(stored[username].approved === false) return 'PENDING';
       return stored[username].role || 'user';
     }
   }catch(e){}
@@ -1029,7 +1030,7 @@ function registerUser(username, password, role){
   if(!username || !password) return { ok:false, error:'username and password required' };
   const users = loadUsers();
   if(users[username]) return { ok:false, error:'username already exists' };
-  users[username] = { password, role: role || 'user', createdAt: Date.now() };
+  users[username] = { password, role: role || 'user', createdAt: Date.now(), approved: false };
   saveUsers(users);
   return { ok:true };
 }
@@ -1193,6 +1194,7 @@ if(loginForm) loginForm.addEventListener('submit', e => {
     }).catch(() => { alert('Invalid credentials'); });
   } else {
     const role = maybe;
+    if(role === 'PENDING') { alert('Your account is pending approval by an admin.'); return; }
     if(role){ try{ localStorage.setItem(AUTH_KEY, u); localStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
       showDashboard(u); currentUserRole = role; adjustUIForRole();
     } else { alert('Invalid credentials'); }
@@ -1250,7 +1252,7 @@ if(registerForm){
     const res = registerUser(u,p,role);
     if(!res.ok){ alert(res.error || 'Unable to register'); return; }
     // For local/demo registration, do NOT auto-login; ask user to sign in
-    alert('Registration successful. Please sign in using your new credentials.');
+    alert('Registration successful. Your account is pending approval by an admin.');
     registerBox.classList.add('hidden'); loginBox.classList.remove('hidden'); registerForm.reset();
   });
 }
