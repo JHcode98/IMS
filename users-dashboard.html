@@ -80,6 +80,12 @@
       const q = (document.getElementById('user-search') && document.getElementById('user-search').value || '').toLowerCase();
       const serverUsers = await fetchUsersFromServer();
       if(serverUsers){
+        // Sort users: Pending first, then alphabetical
+        serverUsers.sort((a,b) => {
+           if(a.approved === false && b.approved !== false) return -1;
+           if(a.approved !== false && b.approved === false) return 1;
+           return (a.username||'').localeCompare(b.username||'');
+        });
         // fetch docs to compute points per user (Approved docs count)
         let docs = [];
         try{ const dr = await fetch(API_BASE + '/docs'); if(dr && dr.ok){ const jd = await dr.json(); docs = jd.docs || []; } }catch(e){}
@@ -123,7 +129,13 @@
 
       // fallback to local
       const users = loadLocalUsers();
-      const keys = Object.keys(users).sort();
+      const keys = Object.keys(users).sort((ka, kb) => {
+         const ua = users[ka];
+         const ub = users[kb];
+         if(ua.approved === false && ub.approved !== false) return -1;
+         if(ua.approved !== false && ub.approved === false) return 1;
+         return ka.localeCompare(kb);
+      });
       if(keys.length === 0){ t.innerHTML = '<tr><td colspan="7" class="muted">No users registered.</td></tr>'; return; }
       keys.forEach(k => {
         if(q && !k.toLowerCase().includes(q)) return;
@@ -156,6 +168,12 @@
         if(!confirm('Delete user ' + uname + '?')) return;
         const users = loadLocalUsers(); delete users[uname]; saveLocalUsers(users); render();
       }));
+
+      // Initialize tooltips for generated buttons
+      document.querySelectorAll('.icon-btn[title]').forEach(btn => {
+        btn.setAttribute('data-tooltip', btn.getAttribute('title'));
+        btn.removeAttribute('title');
+      });
     }
 
     render();
