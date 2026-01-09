@@ -855,7 +855,7 @@ function renderNavAvatar(){
     const el = document.getElementById('nav-avatar');
     if(!el) return;
     const local = localStorage.getItem('dms_profile_avatar');
-    const uname = localStorage.getItem(AUTH_KEY) || '';
+    const uname = sessionStorage.getItem(AUTH_KEY) || '';
     // if server available, try fetching server avatar (async) and update when received
     if(USE_SERVER && uname){
       fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar').then(r => r.json()).then(j => {
@@ -937,13 +937,13 @@ function purgeFromRecycle(controlNumber){
 // Forward document to admin (user action)
 function forwardDoc(controlNumber){
   let isUser = (currentUserRole === 'user');
-  try{ if(!isUser && (localStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
+  try{ if(!isUser && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
   if(!isUser){ alert('Only non-admin users can forward documents to admin.'); return; }
   const doc = docs.find(d => d.controlNumber === controlNumber);
   if(!doc){ alert('Document not found'); return; }
   doc.forwarded = true;
   doc.forwardedAt = Date.now();
-  try{ doc.forwardedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
+  try{ doc.forwardedBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
   doc.updatedAt = Date.now();
   saveDocs();
   renderDocs();
@@ -952,13 +952,13 @@ function forwardDoc(controlNumber){
 // Admin receives forwarded document (acknowledge)
 function receiveDoc(controlNumber){
   let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
   if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
   const doc = docs.find(d => d.controlNumber === controlNumber);
   if(!doc){ alert('Document not found'); return; }
   doc.forwarded = false;
   doc.forwardedHandledAt = Date.now();
-  try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
+  try{ doc.forwardedHandledBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; }
   // mark adminStatus (Received) when admin handles it
   doc.adminStatus = 'Received';
   doc.updatedAt = Date.now();
@@ -971,7 +971,7 @@ function receiveDoc(controlNumber){
 // Batch receive: mark multiple forwarded docs as received (respects current adminInboxFilter/search)
 function batchReceiveForwarded(){
   let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
   if(!isAdmin){ alert('Only admin can receive forwarded documents.'); return; }
   // collect matching forwarded docs according to current inbox view
   try{
@@ -989,7 +989,7 @@ function batchReceiveForwarded(){
     if(!confirm('Mark ' + toReceive.length + ' forwarded document(s) as received?')) return;
     toReceive.forEach(ctrl => {
       const doc = docs.find(d => d.controlNumber === ctrl);
-      if(doc){ doc.forwarded = false; doc.forwardedHandledAt = Date.now(); try{ doc.forwardedHandledBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; } doc.adminStatus = 'Received'; doc.updatedAt = Date.now(); }
+      if(doc){ doc.forwarded = false; doc.forwardedHandledAt = Date.now(); try{ doc.forwardedHandledBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; } doc.adminStatus = 'Received'; doc.updatedAt = Date.now(); }
     });
     saveDocs();
     try{ renderAdminInbox(); }catch(e){}
@@ -1009,7 +1009,7 @@ function signIn(username, password){
       return fetch(API_BASE + '/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) }).then(r => {
         if(!r.ok) return null;
         return r.json().then(j => {
-            try{ localStorage.setItem(AUTH_KEY, j.username || username); localStorage.setItem(AUTH_ROLE_KEY, j.role || 'user'); if(j.token) localStorage.setItem(AUTH_TOKEN_KEY, j.token); }catch(e){}
+            try{ sessionStorage.setItem(AUTH_KEY, j.username || username); sessionStorage.setItem(AUTH_ROLE_KEY, j.role || 'user'); if(j.token) sessionStorage.setItem(AUTH_TOKEN_KEY, j.token); }catch(e){}
           return j.role || 'user';
         }).catch(()=>null);
       }).catch(()=>null);
@@ -1048,13 +1048,13 @@ function registerUser(username, password, role){
 // Admin action: return document to originator (IC)
 function returnToIC(controlNumber){
   let isAdmin = (currentUserRole === 'admin');
-  try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+  try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
   if(!isAdmin){ alert('Only admin can return documents to IC.'); return; }
   const doc = docs.find(d => d.controlNumber === controlNumber);
   if(!doc){ alert('Document not found'); return; }
   doc.adminStatus = 'Returned';
   doc.returnedAt = Date.now();
-  try{ doc.returnedBy = localStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.returnedBy = ''; }
+  try{ doc.returnedBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.returnedBy = ''; }
   // keep optional reason
   if(arguments.length > 1 && typeof arguments[1] === 'string'){
     doc.returnReason = arguments[1];
@@ -1077,7 +1077,7 @@ function showDashboard(userName){
   try{ document.body.classList.remove('no-navbar'); }catch(e){}
   usernameDisplay.textContent = userName;
   // restore role from storage if available
-  try{ currentUserRole = localStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
+  try{ currentUserRole = sessionStorage.getItem(AUTH_ROLE_KEY) || currentUserRole; }catch(e){}
   loadDocs();
   try{ renderDocs(); }catch(e){}
   try{ adjustUIForRole(); }catch(e){}
@@ -1131,7 +1131,7 @@ function showLogoutConfirmation() {
 }
 
 function signOut(){
-  try{ localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_ROLE_KEY); localStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){}
+  try{ sessionStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_ROLE_KEY); sessionStorage.removeItem(AUTH_TOKEN_KEY); }catch(e){}
   stopInactivityWatcher();
 
   if(loginSection) {
@@ -1153,7 +1153,7 @@ try{ updateAdminInboxBadge(); }catch(e){}
 
 // Adjust UI and permissions based on role (admin vs user)
 function adjustUIForRole(){
-  try{ currentUserRole = currentUserRole || localStorage.getItem(AUTH_ROLE_KEY) || null; }catch(e){}
+  try{ currentUserRole = currentUserRole || sessionStorage.getItem(AUTH_ROLE_KEY) || null; }catch(e){}
   const isAdmin = (currentUserRole === 'admin');
   const roleBadge = document.getElementById('role-badge');
 
@@ -1198,14 +1198,14 @@ if(loginForm) loginForm.addEventListener('submit', e => {
   const maybe = signIn(u,p);
   if(maybe && typeof maybe.then === 'function'){
     maybe.then(role => {
-      if(role){ try{ localStorage.setItem(AUTH_KEY, u); localStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
+      if(role){ try{ sessionStorage.setItem(AUTH_KEY, u); sessionStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
         showDashboard(u); currentUserRole = role; adjustUIForRole();
       } else { alert('Invalid credentials'); }
     }).catch(() => { alert('Invalid credentials'); });
   } else {
     const role = maybe;
     if(role === 'PENDING') { alert('Your account is pending approval by an admin.'); return; }
-    if(role){ try{ localStorage.setItem(AUTH_KEY, u); localStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
+    if(role){ try{ sessionStorage.setItem(AUTH_KEY, u); sessionStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
       showDashboard(u); currentUserRole = role; adjustUIForRole();
     } else { alert('Invalid credentials'); }
   }
@@ -1239,7 +1239,7 @@ if(registerForm){
     // Only allow creating admin if there is no admin yet or current session is admin
     const users = loadUsers();
     const hasAdmin = Object.keys(users).some(k => users[k].role === 'admin');
-    const currentRole = (localStorage.getItem(AUTH_ROLE_KEY) || null);
+    const currentRole = (sessionStorage.getItem(AUTH_ROLE_KEY) || null);
     if(role === 'admin' && hasAdmin && currentRole !== 'admin'){
       alert('Creating additional admin accounts is restricted.');
       return;
@@ -1247,7 +1247,7 @@ if(registerForm){
 
     // If server is available, attempt server-side registration first so accounts persist
     if(USE_SERVER){
-      const token = localStorage.getItem(AUTH_TOKEN_KEY) || '';
+      const token = sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
       fetch(API_BASE + '/auth/register', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ username: u, password: p, role }) }).then(r => {
         if(!r.ok){ r.json().then(j => alert(j && j.error ? j.error : 'Registration failed on server')); return; }
         r.json().then(j => {
@@ -1351,12 +1351,12 @@ document.addEventListener('click', (ev) => {
 // Change password implementation (used by profile.html form)
 window.changePassword = function(oldPwd, newPwd){
   if(USE_SERVER){
-    const token = localStorage.getItem(AUTH_TOKEN_KEY) || '';
+    const token = sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
     return fetch(API_BASE + '/auth/change', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }) }).then(r => r.json()).then(j => { return j; }).catch(e => ({ ok:false }));
   }
   // local fallback
   try{
-    const current = localStorage.getItem(AUTH_KEY);
+    const current = sessionStorage.getItem(AUTH_KEY);
     if(!current) return Promise.resolve({ ok:false, error:'not signed in' });
     const users = loadUsers();
     if(!users[current]) return Promise.resolve({ ok:false, error:'user not found' });
@@ -1552,7 +1552,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const ctrl = forwardBtn.getAttribute('data-forward');
     // only non-admin users may forward
     let isUser = (currentUserRole === 'user');
-    try{ if(!isUser && (localStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
+    try{ if(!isUser && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'user')) isUser = true; }catch(e){}
     if(!isUser){ alert('Only non-admin users can forward documents to admin.'); return; }
     if(confirm(`Forward document ${ctrl} to admin?`)){
       // prevent forwarding if admin already received it
@@ -1567,7 +1567,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const ctrl = receiveBtn.getAttribute('data-receive');
     // only admin may receive
     let isAdmin = (currentUserRole === 'admin');
-    try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+    try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
     if(!isAdmin){ alert('Only admin may receive forwarded documents.'); return; }
     if(confirm(`Mark document ${ctrl} as received?`)){
       receiveDoc(ctrl);
@@ -1578,7 +1578,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
   if(retBtn){
     const ctrl = retBtn.getAttribute('data-return');
     let isAdmin = (currentUserRole === 'admin');
-    try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+    try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
     if(!isAdmin){ alert('Only admin may return documents to IC.'); return; }
     // prompt for optional reason when returning
     const reason = prompt(`Return document ${ctrl} to IC (optional reason):`);
@@ -1594,7 +1594,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const ctrl = del.getAttribute('data-delete');
     // check permission before prompting
     let isAdmin = (currentUserRole === 'admin');
-    try{ if(!isAdmin && (localStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
+    try{ if(!isAdmin && (sessionStorage.getItem(AUTH_ROLE_KEY) === 'admin')) isAdmin = true; }catch(e){}
     if(!isAdmin){ alert('Permission denied: only admin may delete documents.'); return; }
     if(confirm(`Delete document ${ctrl}?`)){
       deleteDoc(ctrl);
@@ -1815,7 +1815,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // showDashboard(DEMO_USER.username);
   // If a user was previously signed in, restore their session and show dashboard
   try{
-    const storedUser = localStorage.getItem(AUTH_KEY);
+    const storedUser = sessionStorage.getItem(AUTH_KEY);
     if(storedUser){
       showDashboard(storedUser);
     } else {
