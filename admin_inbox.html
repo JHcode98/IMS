@@ -130,27 +130,42 @@
       // Admin-only landing: redirect non-admins back to the main dashboard and show inbox for admins
       async function updateAdminBadges() {
         try {
-          let docs = [];
+          // Use global docs if available, otherwise try to load from storage
+          let localDocs = (typeof window.docs !== 'undefined' && Array.isArray(window.docs)) ? window.docs : [];
+          if (localDocs.length === 0) {
+             try {
+                const stored = localStorage.getItem('dms_docs_v1');
+                if (stored) localDocs = JSON.parse(stored);
+             } catch(e) {}
+          }
+
           try {
             const res = await fetch('/api/docs');
             if (res.ok) {
               const data = await res.json();
-              if (data && Array.isArray(data.docs)) docs = data.docs;
+              if (data && Array.isArray(data.docs)) localDocs = data.docs;
             }
-          } catch (e) { console.error('Fetch error', e); }
+          } catch (e) { /* ignore fetch error */ }
+
           // Count statuses
-          const forwarded = docs.filter(d => d.forwarded === true).length;
-          const intervention = docs.filter(d => !d.adminStatus && !d.forwarded).length;
+          const forwarded = localDocs.filter(d => d.forwarded === true).length;
+          const intervention = localDocs.filter(d => !d.adminStatus && !d.forwarded).length;
+          const received = localDocs.filter(d => String(d.adminStatus).toLowerCase() === 'received').length;
+          const returned = localDocs.filter(d => String(d.adminStatus).toLowerCase() === 'returned').length;
           
           const bFwd = document.getElementById('badge-forwarded-box');
           const bInt = document.getElementById('badge-intervention-box');
           const mFwd = document.getElementById('badge-forwarded-menu');
           const mInt = document.getElementById('badge-intervention-menu');
+          const mRec = document.getElementById('badge-received-menu');
+          const mRet = document.getElementById('badge-returned-menu');
 
           if(bFwd) { bFwd.textContent = forwarded; bFwd.style.display = forwarded > 0 ? 'inline-block' : 'none'; }
           if(bInt) { bInt.textContent = intervention; bInt.style.display = intervention > 0 ? 'inline-block' : 'none'; }
           if(mFwd) mFwd.textContent = forwarded;
           if(mInt) mInt.textContent = intervention;
+          if(mRec) mRec.textContent = received;
+          if(mRet) mRet.textContent = returned;
         } catch(e) { console.error('Badge update error', e); }
       }
 
