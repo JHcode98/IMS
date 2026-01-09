@@ -21,7 +21,7 @@
       <a href="users-dashboard.html" class="nav-btn active">Users</a>
       <a href="recycle_bin.html" class="nav-btn">Recycle Bin</a>
     </div>
-    
+    <div class="nav-title">Document Monitoring System</div>
     <div class="nav-right">
       <div class="nav-user">
         <a class="user-btn" href="profile.html"><span id="nav-avatar" class="avatar small" style="margin-right:8px"></span>Profile</a>
@@ -60,7 +60,7 @@
     const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
     const DOCS_STORAGE_KEY = 'dms_docs_v1';
     // Only allow admin
-    const role = localStorage.getItem(AUTH_ROLE_KEY) || null;
+    const role = sessionStorage.getItem(AUTH_ROLE_KEY) || null;
     if(role !== 'admin'){
       document.getElementById('not-authorized').style.display = '';
       setTimeout(()=>{ window.location.href = 'index.html'; }, 1200);
@@ -72,7 +72,7 @@
     // Try server first (if API reachable), otherwise fallback to localStorage
     async function fetchUsersFromServer(){
       try{
-        const token = localStorage.getItem('dms_auth_token_v1') || '';
+        const token = sessionStorage.getItem('dms_auth_token_v1') || '';
         const r = await fetch(API_BASE + '/users', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
         if(!r.ok) return null;
         const j = await r.json();
@@ -99,7 +99,7 @@
         docs.forEach(d => { try{ if(d && d.owner && String(d.status).toLowerCase() === 'approved'){ pointsMap[d.owner] = (pointsMap[d.owner] || 0) + 1; } }catch(e){} });
         // fetch sessions to compute online status (admin-only)
         let sessions = [];
-        try{ const sr = await fetch(API_BASE + '/sessions', { headers: { 'Authorization': (localStorage.getItem('dms_auth_token_v1') || '') ? ('Bearer ' + localStorage.getItem('dms_auth_token_v1')) : '' } }); if(sr && sr.ok){ const js = await sr.json(); sessions = js.sessions || []; } }catch(e){}
+        try{ const sr = await fetch(API_BASE + '/sessions', { headers: { 'Authorization': (sessionStorage.getItem('dms_auth_token_v1') || '') ? ('Bearer ' + sessionStorage.getItem('dms_auth_token_v1')) : '' } }); if(sr && sr.ok){ const js = await sr.json(); sessions = js.sessions || []; } }catch(e){}
         const sessionsMap = {};
         sessions.forEach(s => { if(s && s.username) sessionsMap[s.username] = s; });
         serverUsers.forEach(u => {
@@ -118,7 +118,7 @@
         // wire server-side actions (use API_BASE)
         document.querySelectorAll('select[data-user]').forEach(s => s.addEventListener('change', async ev => {
           const uname = s.getAttribute('data-user');
-          const token = localStorage.getItem('dms_auth_token_v1') || '';
+          const token = sessionStorage.getItem('dms_auth_token_v1') || '';
           const newRole = s.value;
           const r = await fetch(API_BASE + '/users/' + encodeURIComponent(uname), { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ role: newRole }) });
           if(!r.ok){ const j=await r.json().catch(()=>{}); alert((j && j.error) || 'Unable to update role'); render(); return; }
@@ -127,7 +127,7 @@
         document.querySelectorAll('button[data-delete]').forEach(b => b.addEventListener('click', async ev => {
           const uname = b.getAttribute('data-delete');
           if(!confirm('Delete user ' + uname + '?')) return;
-          const token = localStorage.getItem('dms_auth_token_v1') || '';
+          const token = sessionStorage.getItem('dms_auth_token_v1') || '';
           const r = await fetch(API_BASE + '/users/' + encodeURIComponent(uname), { method: 'DELETE', headers: { 'Authorization': token ? ('Bearer ' + token) : '' } });
           if(!r.ok){ const j=await r.json().catch(()=>{}); alert((j && j.error) || 'Unable to delete'); return; }
           render();
