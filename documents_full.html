@@ -129,7 +129,21 @@
               <input id="control-number" name="controlNumber" placeholder="ECOM-20XX-XXXX" pattern="ECOM-[0-9]{4}-[0-9]{4}" title="Format: ECOM-YYYY-NNNN (e.g. ECOM-2026-0001)" required />
 
               <label for="doc-title">Title</label>
-              <input id="doc-title" name="title" required />
+              <select id="doc-title" name="title" required>
+                <option value="" disabled selected>Select Title</option>
+                <option>Cycle Count</option>
+                <option>Retrieval Concerns</option>
+                <option>B1T1 Adj</option>
+                <option>LBR</option>
+                <option>Rejected Claims</option>
+                <option>SIS</option>
+                <option>Expired</option>
+                <option>Damaged</option>
+                <option>Manual Picked</option>
+                <option>Receiving Error</option>
+                <option>Other</option>
+              </select>
+              <input id="doc-title-other" name="titleOther" placeholder="Enter title..." style="display:none; margin-top:4px;" />
 
               <label for="doc-notes">Notes</label>
               <textarea id="doc-notes" name="notes" rows="3"></textarea>
