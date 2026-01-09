@@ -144,7 +144,7 @@
 
     // Check admin role for Clear Logs button
     const STORAGE_KEY_LOGS = 'ims_system_logs_v1';
-    const role = localStorage.getItem('dms_auth_role_v1');
+    const role = sessionStorage.getItem('dms_auth_role_v1');
     const clearBtn = document.getElementById('clear-logs-btn');
 
     function renderLogs(){
