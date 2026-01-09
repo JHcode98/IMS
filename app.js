@@ -116,6 +116,8 @@ const createdAtInput = document.getElementById('created-at');
 const notesInput = document.getElementById('doc-notes');
 
 let docs = [];
+let currentPage = 1;
+let itemsPerPage = 20;
 let statusFilter = null; // e.g. 'Revision', 'Approved', etc.
 let winsFilter = null; // e.g. 'Approved', 'Pending for Approve', 'Rejected'
 let ageStatusFilter = null; // will mirror statusFilter when filtering by age row clicks
@@ -243,6 +245,27 @@ function renderDocs(filter){
       return 0;
     });
   }
+  
+  // Pagination Logic
+  const paginationControls = document.getElementById('pagination-controls');
+  if(paginationControls){
+    const totalItems = list.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+    
+    if(currentPage > totalPages) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+    
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
+    
+    if(prevBtn) prevBtn.disabled = (currentPage <= 1);
+    if(nextBtn) nextBtn.disabled = (currentPage >= totalPages);
+    if(pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalItems} items)`;
+    
+    const start = (currentPage - 1) * itemsPerPage;
+    list = list.slice(start, start + itemsPerPage);
+  }
 
   if(list.length === 0){
     const tr = document.createElement('tr');
@@ -364,6 +387,7 @@ function renderWinsChart(){
 
 function setWinsFilter(status){
   winsFilter = status;
+  currentPage = 1;
   renderDocs(searchInput.value.trim());
 }
 
@@ -522,6 +546,7 @@ function renderLeftSidebar(){
 
 function setAgeStatusFilter(status){
   ageStatusFilter = status;
+  currentPage = 1;
   // mirror into the main status filter for consistent behavior
   if(status) setStatusFilter(status);
   else setStatusFilter(null);
@@ -803,6 +828,7 @@ function renderStatusChart(){
 
 function setStatusFilter(status){
   statusFilter = status;
+  currentPage = 1;
   renderDocs(searchInput.value.trim());
 }
 
@@ -1653,11 +1679,13 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
 
 if(searchBtn) searchBtn.addEventListener('click', () => {
   const q = searchInput.value.trim();
+  currentPage = 1;
   renderDocs(q);
 });
 
 if(clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
   searchInput.value = '';
+  currentPage = 1;
   renderDocs();
 });
 
@@ -1671,6 +1699,7 @@ function debounce(fn, wait){
 }
 
 const autoSearchHandler = debounce(() => {
+  currentPage = 1;
   renderDocs(searchInput.value.trim());
 }, 300);
 
@@ -1727,6 +1756,7 @@ function setupDocSorting(){
         docSortField = field;
         docSortDirection = 'asc';
       }
+      currentPage = 1;
       renderDocs(searchInput ? searchInput.value.trim() : '');
     });
   });
@@ -1781,6 +1811,29 @@ document.addEventListener('DOMContentLoaded', () => {
       byStatusPage = 1; byWinsPage = 1;
       renderLeftSidebar();
     }, 250));
+  }
+  
+  // Main Pagination Event Listeners
+  const rowsPerPageSelect = document.getElementById('rows-per-page');
+  const prevPageBtn = document.getElementById('prev-page');
+  const nextPageBtn = document.getElementById('next-page');
+
+  if(rowsPerPageSelect){
+    rowsPerPageSelect.addEventListener('change', (e) => {
+      itemsPerPage = parseInt(e.target.value);
+      currentPage = 1;
+      renderDocs(searchInput ? searchInput.value.trim() : '');
+    });
+  }
+  if(prevPageBtn){
+    prevPageBtn.addEventListener('click', () => {
+      if(currentPage > 1){ currentPage--; renderDocs(searchInput ? searchInput.value.trim() : ''); }
+    });
+  }
+  if(nextPageBtn){
+    nextPageBtn.addEventListener('click', () => {
+      currentPage++; renderDocs(searchInput ? searchInput.value.trim() : '');
+    });
   }
 
   // Add "Forgot password" link to login form (if present)
