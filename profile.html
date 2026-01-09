@@ -76,10 +76,10 @@
     <script>
       // Populate profile values and wire sign out
       document.addEventListener('DOMContentLoaded', () => {
-        try{ document.getElementById('profile-username-val').textContent = localStorage.getItem('dms_auth_v1') || '' }catch(e){}
-        try{ document.getElementById('profile-role-val').textContent = localStorage.getItem('dms_auth_role_v1') || '' }catch(e){}
+        try{ document.getElementById('profile-username-val').textContent = sessionStorage.getItem('dms_auth_v1') || '' }catch(e){}
+        try{ document.getElementById('profile-role-val').textContent = sessionStorage.getItem('dms_auth_role_v1') || '' }catch(e){}
         const signout = document.getElementById('profile-signout');
-        if(signout){ signout.addEventListener('click', () => { try{ localStorage.removeItem('dms_auth_v1'); localStorage.removeItem('dms_auth_role_v1'); }catch(e){}; try{ window.signOut && window.signOut(); }catch(ex){}; window.location.href = 'index.html'; }); }
+        if(signout){ signout.addEventListener('click', () => { try{ sessionStorage.removeItem('dms_auth_v1'); sessionStorage.removeItem('dms_auth_role_v1'); }catch(e){}; try{ window.signOut && window.signOut(); }catch(ex){}; window.location.href = 'index.html'; }); }
         const cpBtn = document.getElementById('change-password-btn');
         const cpCard = document.getElementById('change-password-card');
         const cpForm = document.getElementById('change-password-form');
@@ -95,21 +95,21 @@
           try{
             const data = localStorage.getItem('dms_profile_avatar');
             if(data){ avatarEl.innerHTML = '<img src="'+data+'" alt="avatar">'; }
-            else { const uname = (localStorage.getItem('dms_auth_v1')||'').trim(); const initials = uname.split(' ').map(s=>s[0]||'').join('').slice(0,2).toUpperCase(); avatarEl.innerHTML = initials || '?'; }
+            else { const uname = (sessionStorage.getItem('dms_auth_v1')||'').trim(); const initials = uname.split(' ').map(s=>s[0]||'').join('').slice(0,2).toUpperCase(); avatarEl.innerHTML = initials || '?'; }
           }catch(e){ }
         }
         renderAvatar();
         if(avatarUpload){ avatarUpload.addEventListener('change', (ev) => {
           const f = ev.target.files && ev.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = function(){ try{ const data = r.result; localStorage.setItem('dms_profile_avatar', data); renderAvatar(); // also persist to server if available
-                  try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = localStorage.getItem('dms_auth_token_v1') || ''; const uname = localStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: data }) }).catch(()=>{}); } } }catch(e){}
+                  try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = sessionStorage.getItem('dms_auth_token_v1') || ''; const uname = sessionStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: data }) }).catch(()=>{}); } } }catch(e){}
                   alert('Avatar updated'); }catch(e){ alert('Unable to save avatar'); } }; r.readAsDataURL(f);
         }); }
         if(removeAvatar){ removeAvatar.addEventListener('click', () => { try{ localStorage.removeItem('dms_profile_avatar'); renderAvatar(); // remove from server as well if possible
-            try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = localStorage.getItem('dms_auth_token_v1') || ''; const uname = localStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: null }) }).catch(()=>{}); } } }catch(e){} }catch(e){} }); }
+            try{ if(typeof API_BASE !== 'undefined' && navigator.onLine){ const token = sessionStorage.getItem('dms_auth_token_v1') || ''; const uname = sessionStorage.getItem('dms_auth_v1') || ''; if(uname){ fetch(API_BASE + '/users/' + encodeURIComponent(uname) + '/avatar', { method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization': token ? ('Bearer ' + token) : '' }, body: JSON.stringify({ avatar: null }) }).catch(()=>{}); } } }catch(e){} }catch(e){} }); }
         // compute and render points for profile (Approved docs owned by this user)
         async function renderProfilePoints(){
           try{
-            const uname = localStorage.getItem('dms_auth_v1') || '';
+            const uname = sessionStorage.getItem('dms_auth_v1') || '';
             let points = 0;
             // try server first
             try{
