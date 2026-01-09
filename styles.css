@@ -375,6 +375,7 @@ body.no-navbar .navbar{display:none !important}
 .nav-badge.badge-forwarded{background:#f39c12}
 .nav-badge.badge-received{background:#2ecc71}
 .nav-badge.badge-returned{background:#e74c3c}
+.nav-badge.badge-intervention{background:#d97706}
 
 /* The dropdown container */
 .dropdown {
