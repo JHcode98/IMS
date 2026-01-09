@@ -299,6 +299,18 @@ body{padding-top:64px}
   color: white;
   transform: none; 
 }
+.navbar .nav-btn.active {
+  background-color: #34495e;
+  color: white;
+  font-weight: bold;
+}
+
+/* Admin Inbox Filter Menu Items Alignment */
+.admin-filter-item-box {
+  justify-content: flex-start !important;
+  width: 100%;
+  text-align: left;
+}
 
 /* subtle hover for links */
 .navbar a:hover{ background-color: #34495e; color: white; }
