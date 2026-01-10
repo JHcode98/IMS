@@ -1514,6 +1514,7 @@ if(docForm) docForm.addEventListener('submit', e => {
   if(saveBtn) saveBtn.textContent = 'Save';
   newDocFormWrap.classList.add('hidden');
   renderDocs();
+  addNotification(editingKey ? `Document ${controlNumber} updated` : `New document ${controlNumber} added`);
 
   // Toast Notification
   const toast = document.getElementById('toast-notification');
@@ -1624,6 +1625,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     if(confirm(`Delete document ${ctrl}?`)){
       deleteDoc(ctrl);
       renderDocs();
+      addNotification(`Document ${ctrl} deleted`);
     }
     return;
   }
@@ -2493,4 +2495,74 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
   if(e.target.classList.contains('row-checkbox')){
     e.target.closest('tr').classList.toggle('selected-row', e.target.checked);
   }
+});
+
+// --- Notification System ---
+const NOTIFICATIONS_KEY = 'dms_notifications_v1';
+
+function loadNotifications() {
+  try { return JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function saveNotifications(list) {
+  try { localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list)); } catch(e) {}
+}
+
+function addNotification(message, type = 'info') {
+  const list = loadNotifications();
+  list.unshift({ id: Date.now(), message, type, time: Date.now(), read: false });
+  if (list.length > 50) list.pop();
+  saveNotifications(list);
+  updateNotificationBadge();
+}
+window.addNotification = addNotification;
+
+function updateNotificationBadge() {
+  const list = loadNotifications();
+  const count = list.length;
+  const badges = document.querySelectorAll('.notification-badge');
+  badges.forEach(b => {
+    b.textContent = count;
+    b.style.display = count > 0 ? 'block' : 'none';
+  });
+}
+
+function renderNotificationMenu() {
+  const menus = document.querySelectorAll('.notification-menu');
+  const list = loadNotifications();
+  menus.forEach(menu => {
+    const listContainer = menu.querySelector('.notification-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    if (list.length === 0) {
+      listContainer.innerHTML = '<li class="notification-empty">No notifications</li>';
+      return;
+    }
+    list.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'notification-item';
+      li.innerHTML = `<div>${n.message}</div><span class="notification-time">${new Date(n.time).toLocaleString()}</span>`;
+      listContainer.appendChild(li);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateNotificationBadge();
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('.notification-btn');
+    if (btn) {
+      const menu = btn.nextElementSibling;
+      if (menu && menu.classList.contains('notification-menu')) {
+        e.stopPropagation();
+        const isShow = menu.classList.contains('show');
+        document.querySelectorAll('.notification-menu').forEach(m => m.classList.remove('show'));
+        if (!isShow) { renderNotificationMenu(); menu.classList.add('show'); }
+      }
+    } else if (e.target.classList.contains('clear-notifications')) {
+      saveNotifications([]); updateNotificationBadge(); renderNotificationMenu();
+    } else if (!e.target.closest('.notification-menu')) {
+      document.querySelectorAll('.notification-menu').forEach(m => m.classList.remove('show'));
+    }
+  });
 });
