@@ -71,6 +71,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:5px;vertical-align:text-bottom;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           Back to Entry
         </button>
+        <button class="nav-btn" id="print-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:5px;vertical-align:text-bottom;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Print Report
+        </button>
       </div>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
         <span class="bar"></span>
@@ -213,6 +217,20 @@
 
     </div>
   </main>
+
+  <!-- Print Options Modal -->
+  <div id="print-options-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 300px; margin-top: 100px; text-align: center;">
+      <h3>Print Options</h3>
+      <p>Choose what to print:</p>
+      <div style="display:flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+        <button id="print-dashboard-btn" style="background:#2752a7; color:#fff; border:none; padding: 10px; border-radius: 4px; cursor: pointer;">Print Dashboard</button>
+        <button id="print-uncounted-btn" style="background:#fff; color:#333; border:1px solid #ccc; padding: 10px; border-radius: 4px; cursor: pointer;">Print Uncounted SKUs</button>
+        <button id="cancel-print-btn" style="background:transparent; color:#666; border:none; padding: 5px; cursor: pointer; margin-top: 5px;">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
   <script>
@@ -576,6 +594,67 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     });
+
+    // Print Logic
+    const printBtn = document.getElementById('print-btn');
+    const printModal = document.getElementById('print-options-modal');
+    const printDashboardBtn = document.getElementById('print-dashboard-btn');
+    const printUncountedBtn = document.getElementById('print-uncounted-btn');
+    const cancelPrintBtn = document.getElementById('cancel-print-btn');
+
+    if(printBtn && printModal) {
+      printBtn.addEventListener('click', () => {
+        printModal.classList.remove('hidden');
+      });
+      printModal.querySelector('.modal-overlay').addEventListener('click', () => {
+        printModal.classList.add('hidden');
+      });
+    }
+    if(cancelPrintBtn) cancelPrintBtn.addEventListener('click', () => printModal.classList.add('hidden'));
+
+    if(printDashboardBtn) {
+        printDashboardBtn.addEventListener('click', () => {
+            printModal.classList.add('hidden');
+            window.print();
+        });
+    }
+
+    if(printUncountedBtn) {
+        printUncountedBtn.addEventListener('click', () => {
+            printModal.classList.add('hidden');
+            if(currentUncounted.length === 0) { alert('No uncounted items to print.'); return; }
+            
+            const printWindow = window.open('', '_blank');
+            let html = `
+            <html>
+            <head>
+                <title>Uncounted SKUs Report</title>
+                <style>
+                    body { font-family: sans-serif; font-size: 12px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+                    th { background-color: #f0f0f0; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>Uncounted SKUs Report</h2>
+                    <p>Generated on: ${new Date().toLocaleString()}</p>
+                    <p>Total Uncounted: ${currentUncounted.length}</p>
+                </div>
+                <table>
+                    <thead><tr><th>Item Code</th><th>Status</th></tr></thead>
+                    <tbody>
+            `;
+            currentUncounted.forEach(sku => {
+                html += `<tr><td>${sku}</td><td>Pending</td></tr>`;
+            });
+            html += `</tbody></table><script>window.onload = function() { window.print(); window.close(); }<\/script></body></html>`;
+            printWindow.document.write(html);
+            printWindow.document.close();
+        });
+    }
 
     loadCompletionData();
     loadLocationCompletionData();
