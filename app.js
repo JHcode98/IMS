@@ -1522,6 +1522,14 @@ if(docForm) docForm.addEventListener('submit', e => {
   if(saveBtn) saveBtn.textContent = 'Save';
   newDocFormWrap.classList.add('hidden');
   renderDocs();
+
+  // Toast Notification
+  const toast = document.getElementById('toast-notification');
+  if(toast){
+    toast.textContent = editingKey ? 'Document updated successfully!' : 'Document added successfully!';
+    toast.className = "toast show";
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+  }
 });
 
 if(docsTableBody) docsTableBody.addEventListener('click', e => {
