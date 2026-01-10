@@ -814,15 +814,6 @@ function updateAdminInboxBadge(){
       const bi = document.getElementById('badge-intervention-box'); if(bi) { bi.textContent = counts.intervention || ''; bi.style.display = counts.intervention ? 'inline-block' : 'none'; }
       const bim = document.getElementById('badge-intervention-menu'); if(bim) bim.textContent = counts.intervention || 0;
     }catch(e){}
-    // also update dashboard-specific received badge anchors (e.g., show on users-dashboard link)
-    try{
-      // look for any element with id 'users-dashboard-page-btn' or other nav links and append received badge
-      const usersBtn = document.getElementById('users-dashboard-page-btn');
-      if(usersBtn){
-        if(counts.received) usersBtn.innerHTML = 'Users ' + `<span class="nav-badge badge-received" aria-label="${counts.received} received">${counts.received}</span>`;
-        else usersBtn.innerHTML = 'Users';
-      }
-    }catch(e){}
   }catch(e){}
 }
 
@@ -1202,6 +1193,7 @@ function adjustUIForRole(){
   // Admin-only: show users dashboard link
   const usersDashboardBtn = document.getElementById('users-dashboard-page-btn');
   if(usersDashboardBtn) usersDashboardBtn.style.display = isAdmin ? '' : 'none';
+  if(isAdmin) updateUserBadges();
 
   // Re-render docs so per-row actions reflect role
   const q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
