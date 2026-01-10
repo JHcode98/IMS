@@ -380,6 +380,7 @@
     </div>
   </div>
 
+  <div id="toast-notification" class="toast"></div>
   <!-- Delete Confirmation Modal -->
   <div id="delete-confirm-modal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
@@ -1120,10 +1121,12 @@
 
         const processRecord = (newAttachments) => {
             let attachments = newAttachments;
+            let msg = 'Incident report added successfully!';
             
             if (editingId) { // Editing existing record
                 const index = irData.findIndex(i => i.id === editingId);
                 if (index !== -1) {
+                    msg = 'Incident report updated successfully!';
                     // If no new files, keep existing
                     if (!attachments || attachments.length === 0) {
                         attachments = irData[index].attachments || (irData[index].attachment ? [irData[index].attachment] : []);
@@ -1155,6 +1158,13 @@
             applyFilter();
             updateCharts();
             closeModal();
+
+            const toast = document.getElementById('toast-notification');
+            if(toast){
+                toast.textContent = msg;
+                toast.className = "toast show";
+                setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+            }
         };
 
         if(fileInput.files.length > 0) {
