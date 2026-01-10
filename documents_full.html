@@ -307,18 +307,6 @@
         const btn = document.getElementById('refresh-docs');
         if(btn) btn.addEventListener('click', () => { try{ window.renderDocs && window.renderDocs(); }catch(e){} });
 
-        // Toast Notification for Manual Input
-        const docForm = document.getElementById('doc-form');
-        if(docForm) {
-          docForm.addEventListener('submit', () => {
-            const toast = document.getElementById("toast-notification");
-            if(toast) {
-              toast.className = "toast show";
-              setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-            }
-          });
-        }
-
         // Mass Delete Logic
         const massDeleteBtn = document.getElementById('mass-delete-all-btn');
         const deleteModal = document.getElementById('delete-confirm-modal');
