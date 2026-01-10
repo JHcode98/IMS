@@ -389,6 +389,7 @@
     </div>
   </main>
 
+  <div id="toast-notification" class="toast"></div>
   <!-- Calculator Widget (Moved outside form for global dragging) -->
   <div id="calculator-widget" class="calc-container">
     <div id="calc-header">Calculator (Drag me)</div>
@@ -733,11 +734,13 @@
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]');
       
       const editingIndex = form.dataset.editingIndex;
+      let msg = 'Record added successfully!';
       if (editingIndex !== undefined) {
         // Update existing entry
         data[editingIndex] = { ...data[editingIndex], ...newItem };
         delete form.dataset.editingIndex;
         form.querySelector('button[type="submit"]').title = 'Save Entry';
+        msg = 'Record updated successfully!';
       } else {
         // Add new entry
         data.unshift(newItem);
@@ -746,6 +749,13 @@
       localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
       form.reset();
       loadData();
+
+      const toast = document.getElementById('toast-notification');
+      if(toast){
+        toast.textContent = msg;
+        toast.className = "toast show";
+        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+      }
     });
 
     if(tableBody) tableBody.addEventListener('click', (e) => {
