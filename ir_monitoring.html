@@ -196,6 +196,9 @@
           <button id="export-csv-btn" class="icon-btn" title="Export CSV">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           </button>
+          <button id="print-btn" class="icon-btn" title="Print Records">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          </button>
           <button id="import-csv-btn" class="icon-btn" title="Import CSV">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           </button>
@@ -360,6 +363,20 @@
             <button type="submit" class="btn btn-primary">Save Incident</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Print Options Modal -->
+  <div id="print-options-modal" class="modal">
+    <div class="modal-content" style="max-width: 300px; text-align: center;">
+      <span class="close-print" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+      <h3 style="margin-top:0;">Print Options</h3>
+      <p>Choose which records to print:</p>
+      <div style="display:flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+        <button id="print-filtered-btn" class="btn btn-primary">Print Filtered Records</button>
+        <button id="print-all-btn" class="btn" style="background:#fff; color:#333; border:1px solid #ccc;">Print All Records</button>
+        <button id="cancel-print-btn" class="btn" style="background:transparent; color:#666; border:none; margin-top: 5px;">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -974,6 +991,81 @@
         });
     }
 
+    // Print Logic
+    const printBtn = document.getElementById('print-btn');
+    const printModal = document.getElementById('print-options-modal');
+    const closePrintSpan = document.querySelector('.close-print');
+    const printFilteredBtn = document.getElementById('print-filtered-btn');
+    const printAllBtn = document.getElementById('print-all-btn');
+    const cancelPrintBtn = document.getElementById('cancel-print-btn');
+
+    if(printBtn && printModal) {
+        printBtn.addEventListener('click', () => {
+            printModal.style.display = 'block';
+        });
+        if(closePrintSpan) closePrintSpan.onclick = () => printModal.style.display = 'none';
+        if(cancelPrintBtn) cancelPrintBtn.onclick = () => printModal.style.display = 'none';
+    }
+
+    function printData(data, title) {
+        const printWindow = window.open('', '_blank');
+        if(!printWindow) { alert('Please allow popups to print.'); return; }
+        
+        let html = `
+        <html>
+        <head>
+            <title>${title}</title>
+            <style>
+                body { font-family: sans-serif; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+                th { background-color: #f0f0f0; }
+                .header { text-align: center; margin-bottom: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>${title}</h2>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+                <p>Total Records: ${data.length}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>IR Control Number</th>
+                        <th>Updated Date</th>
+                        <th>Created Date</th>
+                        <th>Role</th>
+                        <th>Person Involved</th>
+                        <th>Status</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.forEach(item => {
+            html += `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.updatedDate ? new Date(item.updatedDate).toLocaleString() : ''}</td>
+                    <td>${item.createdDate ? new Date(item.createdDate).toLocaleString() : ''}</td>
+                    <td>${item.role || ''}</td>
+                    <td>${item.person || ''}</td>
+                    <td>${item.status || 'Open'}</td>
+                    <td>${item.description || ''}</td>
+                </tr>
+            `;
+        });
+        
+        html += `</tbody></table><script>window.onload = function() { window.print(); window.close(); }<\/script></body></html>`;
+        printWindow.document.write(html);
+        printWindow.document.close();
+    }
+
+    if(printFilteredBtn) printFilteredBtn.onclick = () => { printData(filteredData, 'Incident Reports - Filtered'); printModal.style.display = 'none'; };
+    if(printAllBtn) printAllBtn.onclick = () => { printData(irData, 'Incident Reports - All Records'); printModal.style.display = 'none'; };
+
     // Modal Logic
     const modal = document.getElementById('incident-modal');
     const btn = document.getElementById('add-incident-btn');
@@ -1003,6 +1095,7 @@
     window.onclick = (event) => { 
         if (event.target == modal) closeModal(); 
         if (event.target == deleteModal) closeDeleteModal();
+        if (event.target == printModal) printModal.style.display = 'none';
     }
 
     document.getElementById('incident-form').addEventListener('submit', async (e) => {
