@@ -159,6 +159,13 @@ function stopInactivityWatcher(){
   ['mousemove','keydown','click','touchstart','scroll'].forEach(ev => window.removeEventListener(ev, resetInactivityTimer));
 }
 
+function getCandidateDates(dateStr) {
+    if (!dateStr) return [];
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return [d];
+    return [];
+}
+
 function loadDocs(){
   if(USE_SERVER){
     // fetch docs from server (async but keep previous docs if any)
@@ -219,6 +226,24 @@ function renderDocs(filter){
   }
   if(ageStatusFilter){
     list = list.filter(d => d.status === ageStatusFilter);
+  }
+
+  // Date Range Filter (if elements exist)
+  const startDateInput = document.getElementById('start-date');
+  const endDateInput = document.getElementById('end-date');
+  if(startDateInput && endDateInput && (startDateInput.value || endDateInput.value)){
+      const start = startDateInput.value ? new Date(startDateInput.value) : null;
+      if(start) start.setHours(0,0,0,0);
+      const end = endDateInput.value ? new Date(endDateInput.value) : null;
+      if(end) end.setHours(23,59,59,999);
+      
+      list = list.filter(d => {
+          const dt = d.createdAt ? new Date(Number(d.createdAt)) : null;
+          if(!dt) return false;
+          if(start && dt < start) return false;
+          if(end && dt > end) return false;
+          return true;
+      });
   }
 
   try{ renderTotalDocs(); }catch(e){}
