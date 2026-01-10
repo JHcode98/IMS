@@ -18,7 +18,7 @@
     <div class="nav-left">
       <a href="documents_full.html" class="nav-btn">Full Docs</a>
       <a href="admin_inbox.html" class="nav-btn">Admin Inbox</a>
-      <a href="users-dashboard.html" class="nav-btn active">Users</a>
+      <a href="users-dashboard.html" id="users-dashboard-page-btn" class="nav-btn active">Users</a>
       <a href="recycle_bin.html" class="nav-btn">Recycle Bin</a>
     </div>
     <div class="nav-title">Document Monitoring System</div>
@@ -185,6 +185,18 @@
         btn.setAttribute('data-tooltip', btn.getAttribute('title'));
         btn.removeAttribute('title');
       });
+
+        // Update Users Badge
+        const btn = document.getElementById('users-dashboard-page-btn');
+        if(btn){
+           let pending = 0; let active = 0;
+           const list = serverUsers || Object.values(users);
+           list.forEach(u => { if(u.approved === false) pending++; else active++; });
+           let html = 'Users';
+           if(pending > 0) html += ` <span class="nav-badge badge-intervention" title="${pending} Pending" style="background:#d97706">${pending}</span>`;
+           if(active > 0) html += ` <span class="nav-badge badge-received" title="${active} Active" style="background:#2ecc71">${active}</span>`;
+           btn.innerHTML = html;
+        }
     }
 
     render();
