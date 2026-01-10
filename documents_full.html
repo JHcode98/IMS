@@ -116,6 +116,16 @@
               <button id="mass-delete-all-btn" class="icon-btn" title="Mass Delete ALL">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
               </button>
+              <select id="date-filter-type" style="padding: 8px; border-radius: 4px; border: 1px solid #d6dbe6; margin-right:4px; display:none;">
+                <option value="created">Created Date</option>
+                <option value="updated">Updated Date</option>
+              </select>
+              <input type="date" id="start-date" style="padding: 8px; border-radius: 4px; border: 1px solid #d6dbe6; margin-right:4px" title="Start Date">
+              <input type="date" id="end-date" style="padding: 8px; border-radius: 4px; border: 1px solid #d6dbe6; margin-right:4px" title="End Date">
+              <button id="filter-date-btn" class="icon-btn" title="Filter Date Range" style="margin-right:4px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              </button>
+              <button id="clear-date-filter-btn" class="icon-btn" title="Clear Date Filter" style="margin-right:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
               <button id="print-btn" class="icon-btn" title="Print Records">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
               </button>
@@ -384,6 +394,25 @@
           if(typeof statusFilter !== 'undefined' && statusFilter) list = list.filter(d => d.status === statusFilter);
           if(typeof winsFilter !== 'undefined' && winsFilter) list = list.filter(d => d.winsStatus === winsFilter);
           if(typeof ageStatusFilter !== 'undefined' && ageStatusFilter) list = list.filter(d => d.status === ageStatusFilter);
+          
+          // Date Filter
+          const startVal = document.getElementById('start-date').value;
+          const endVal = document.getElementById('end-date').value;
+          if(startVal || endVal){
+             const startDate = startVal ? new Date(startVal) : null;
+             if(startDate) startDate.setHours(0,0,0,0);
+             const endDate = endVal ? new Date(endVal) : null;
+             if(endDate) endDate.setHours(23,59,59,999);
+             
+             list = list.filter(d => {
+                 const dateVal = d.createdAt; // Default to created
+                 if(!dateVal) return false;
+                 const dt = new Date(Number(dateVal));
+                 if(startDate && dt < startDate) return false;
+                 if(endDate && dt > endDate) return false;
+                 return true;
+             });
+          }
           return list;
         }
 
@@ -420,6 +449,16 @@
         });
         if(printAllBtn) printAllBtn.addEventListener('click', () => {
            printData(typeof docs !== 'undefined' ? docs : [], 'Documents - All Records'); printModal.classList.add('hidden');
+        });
+
+        // Date Filter Buttons
+        const filterDateBtn = document.getElementById('filter-date-btn');
+        const clearDateBtn = document.getElementById('clear-date-filter-btn');
+        if(filterDateBtn) filterDateBtn.addEventListener('click', () => { if(window.renderDocs) window.renderDocs(); });
+        if(clearDateBtn) clearDateBtn.addEventListener('click', () => {
+            document.getElementById('start-date').value = '';
+            document.getElementById('end-date').value = '';
+            if(window.renderDocs) window.renderDocs();
         });
       });
     </script>
