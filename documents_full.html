@@ -116,6 +116,9 @@
               <button id="mass-delete-all-btn" class="icon-btn" title="Mass Delete ALL">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
               </button>
+              <button id="print-btn" class="icon-btn" title="Print Records">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              </button>
               <input id="import-file" type="file" accept=".csv" />
               <button id="download-template">Download Template</button>
               <button id="export-csv">Export CSV</button>
@@ -255,6 +258,20 @@
       </div>
     </div>
 
+    <!-- Print Options Modal -->
+    <div id="print-options-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 300px; margin-top: 100px; text-align: center;">
+        <h3>Print Options</h3>
+        <p>Choose which records to print:</p>
+        <div style="display:flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+          <button id="print-filtered-btn" style="background:#2752a7; color:#fff; border:none; padding: 10px; border-radius: 4px; cursor: pointer;">Print Filtered Records</button>
+          <button id="print-all-btn" style="background:#fff; color:#333; border:1px solid #ccc; padding: 10px; border-radius: 4px; cursor: pointer;">Print All Records</button>
+          <button id="cancel-print-btn" style="background:transparent; color:#666; border:none; padding: 5px; cursor: pointer; margin-top: 5px;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Mass Delete Confirmation Modal -->
     <div id="delete-confirm-modal" class="modal hidden">
       <div class="modal-overlay"></div>
@@ -333,6 +350,77 @@
              if(deleteModal) deleteModal.classList.add('hidden');
           });
         }
+
+        // Print Logic
+        const printBtn = document.getElementById('print-btn');
+        const printModal = document.getElementById('print-options-modal');
+        const printFilteredBtn = document.getElementById('print-filtered-btn');
+        const printAllBtn = document.getElementById('print-all-btn');
+        const cancelPrintBtn = document.getElementById('cancel-print-btn');
+
+        if(printBtn && printModal) {
+          printBtn.addEventListener('click', () => {
+            printModal.classList.remove('hidden');
+          });
+          printModal.querySelector('.modal-overlay').addEventListener('click', () => {
+            printModal.classList.add('hidden');
+          });
+        }
+        if(cancelPrintBtn) cancelPrintBtn.addEventListener('click', () => printModal.classList.add('hidden'));
+
+        function getFilteredDocs() {
+          const q = (document.getElementById('search-control').value || '').toLowerCase();
+          let list = (typeof docs !== 'undefined' ? docs : []).slice();
+          if(q){
+            list = list.filter(d => {
+              const created = d.createdAt ? new Date(Number(d.createdAt)).toLocaleString() : '';
+              return (d.controlNumber || '').toLowerCase().includes(q)
+                || (d.title || '').toLowerCase().includes(q)
+                || (d.notes || '').toLowerCase().includes(q)
+                || (d.owner || '').toLowerCase().includes(q)
+                || created.toLowerCase().includes(q);
+            });
+          }
+          if(typeof statusFilter !== 'undefined' && statusFilter) list = list.filter(d => d.status === statusFilter);
+          if(typeof winsFilter !== 'undefined' && winsFilter) list = list.filter(d => d.winsStatus === winsFilter);
+          if(typeof ageStatusFilter !== 'undefined' && ageStatusFilter) list = list.filter(d => d.status === ageStatusFilter);
+          return list;
+        }
+
+        function printData(data, title) {
+          const printWindow = window.open('', '_blank');
+          if(!printWindow) { alert('Please allow popups to print.'); return; }
+          let html = `<html><head><title>${title}</title><style>
+            body { font-family: sans-serif; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+            th { background-color: #f0f0f0; }
+            .header { text-align: center; margin-bottom: 20px; }
+          </style></head><body>
+          <div class="header"><h2>${title}</h2><p>Generated on: ${new Date().toLocaleString()}</p><p>Total Records: ${data.length}</p></div>
+          <table><thead><tr>
+            <th>Control #</th><th>Title</th><th>Owner</th><th>Status</th><th>WINS Status</th><th>Created</th><th>Updated</th><th>Notes</th>
+          </tr></thead><tbody>`;
+          data.forEach(d => {
+            html += `<tr>
+              <td>${d.controlNumber}</td><td>${d.title}</td><td>${d.owner||''}</td>
+              <td>${d.status||''}</td><td>${d.winsStatus||''}</td>
+              <td>${d.createdAt ? new Date(Number(d.createdAt)).toLocaleString() : ''}</td>
+              <td>${d.updatedAt ? new Date(Number(d.updatedAt)).toLocaleString() : ''}</td>
+              <td>${d.notes||''}</td>
+            </tr>`;
+          });
+          html += `</tbody></table><script>window.onload = function() { window.print(); window.close(); }<\/script></body></html>`;
+          printWindow.document.write(html);
+          printWindow.document.close();
+        }
+
+        if(printFilteredBtn) printFilteredBtn.addEventListener('click', () => {
+           printData(getFilteredDocs(), 'Documents - Filtered'); printModal.classList.add('hidden');
+        });
+        if(printAllBtn) printAllBtn.addEventListener('click', () => {
+           printData(typeof docs !== 'undefined' ? docs : [], 'Documents - All Records'); printModal.classList.add('hidden');
+        });
       });
     </script>
 
