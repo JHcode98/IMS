@@ -15,7 +15,7 @@ const AUTH_ROLE_KEY = 'dms_auth_role_v1';
 const AUTH_TOKEN_KEY = 'dms_auth_token_v1';
 let currentUserRole = null;
 // Optional server API for shared DB
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? (location.protocol + '//' + location.hostname + ':3000/api') : (location.protocol + '//' + location.hostname + '/api');
+const API_BASE = '/api';
 let USE_SERVER = false;
 let WS_CLIENT = null;
 let WS_RECONNECT_TIMER = null;
@@ -39,7 +39,7 @@ function startWebsocket(){
   try{
     if(WS_CLIENT && (WS_CLIENT.readyState === WebSocket.OPEN || WS_CLIENT.readyState === WebSocket.CONNECTING)) return;
     const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = scheme + '//' + location.hostname + (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? ':3000' : '') + '/ws';
+    const wsUrl = scheme + '//' + location.host + '/ws';
     WS_CLIENT = new WebSocket(wsUrl);
     WS_CLIENT.addEventListener('open', () => { announceStatus('Realtime sync connected'); if(WS_RECONNECT_TIMER){ clearTimeout(WS_RECONNECT_TIMER); WS_RECONNECT_TIMER = null; } });
     WS_CLIENT.addEventListener('message', (ev) => {
@@ -356,6 +356,7 @@ function renderDocs(filter){
       <td class="admin-status-cell">${adminStatusHtml}</td>
       <td class="actions">
         <button class="icon-btn" data-edit="${escapeHtml(doc.controlNumber)}" title="Edit" aria-label="Edit ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg></button>
+        <button class="icon-btn" data-history="${escapeHtml(doc.controlNumber)}" title="History" aria-label="History ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></button>
         ${!isAdmin && !doc.forwarded && String(doc.adminStatus).toLowerCase() !== 'received' ? `<button class="icon-btn forward" data-forward="${escapeHtml(doc.controlNumber)}" title="Forward to Admin" aria-label="Forward ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : (!isAdmin && String(doc.adminStatus).toLowerCase() === 'received' ? `<span class="received-label">Received by Admin</span>` : ''))}
         ${isAdmin && doc.forwarded ? `<button class="icon-btn receive" data-receive="${escapeHtml(doc.controlNumber)}" title="Receive forwarded document" aria-label="Receive ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>` : ''}
         ${isAdmin && doc.adminStatus === 'Received' ? `<button class="icon-btn return" data-return="${escapeHtml(doc.controlNumber)}" title="Return to IC" aria-label="Return ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg><span class="btn-label">Return</span></button>` : (isAdmin && doc.adminStatus === 'Returned' ? `<span class="returned-label">Returned</span>` : '')}
@@ -888,11 +889,40 @@ function renderNavAvatar(){
 }
 window.renderNavAvatar = renderNavAvatar;
 
+function addToHistory(doc, action, details){
+  if(!doc) return;
+  if(!doc.history) doc.history = [];
+  const user = sessionStorage.getItem(AUTH_KEY) || 'unknown';
+  doc.history.unshift({
+    timestamp: Date.now(),
+    user: user,
+    action: action,
+    details: details || ''
+  });
+  // Limit history size
+  if(doc.history.length > 100) doc.history.pop();
+}
+
 function addOrUpdateDoc(doc){
   const idx = docs.findIndex(d => d.controlNumber === doc.controlNumber);
   if(idx >= 0){
     // preserve original createdAt when updating existing record
     const existing = docs[idx];
+    // Preserve history
+    doc.history = existing.history || [];
+
+    // Detect changes for history
+    const changes = [];
+    if(existing.title !== doc.title) changes.push(`Title changed`);
+    if(existing.status !== doc.status) changes.push(`Status: ${existing.status} -> ${doc.status}`);
+    if(existing.winsStatus !== doc.winsStatus) changes.push(`WINS: ${existing.winsStatus} -> ${doc.winsStatus}`);
+    if(existing.owner !== doc.owner) changes.push(`Owner changed`);
+    if(existing.notes !== doc.notes) changes.push(`Notes updated`);
+    
+    if(changes.length > 0){
+        addToHistory(doc, 'Updated', changes.join(', '));
+    }
+
     doc.createdAt = existing.createdAt || existing.createdAt === 0 ? existing.createdAt : existing.createdAt;
     doc.updatedAt = Date.now();
     docs[idx] = doc;
@@ -900,6 +930,8 @@ function addOrUpdateDoc(doc){
     // if caller provided createdAt (e.g. rename preserving original), keep it; otherwise set now
     if(!doc.createdAt) doc.createdAt = Date.now();
     doc.updatedAt = Date.now();
+    doc.history = [];
+    addToHistory(doc, 'Created', 'Document created');
     docs.unshift(doc);
   }
   saveDocs();
@@ -961,6 +993,7 @@ function forwardDoc(controlNumber){
   doc.forwardedAt = Date.now();
   try{ doc.forwardedBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedBy = ''; }
   doc.updatedAt = Date.now();
+  addToHistory(doc, 'Forwarded', 'Forwarded to Admin');
   saveDocs();
   renderDocs();
 }
@@ -978,6 +1011,7 @@ function receiveDoc(controlNumber){
   // mark adminStatus (Received) when admin handles it
   doc.adminStatus = 'Received';
   doc.updatedAt = Date.now();
+  addToHistory(doc, 'Received', 'Received by Admin');
   saveDocs();
   renderDocs();
   // refresh admin inbox view as well
@@ -1005,7 +1039,14 @@ function batchReceiveForwarded(){
     if(!confirm('Mark ' + toReceive.length + ' forwarded document(s) as received?')) return;
     toReceive.forEach(ctrl => {
       const doc = docs.find(d => d.controlNumber === ctrl);
-      if(doc){ doc.forwarded = false; doc.forwardedHandledAt = Date.now(); try{ doc.forwardedHandledBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; } doc.adminStatus = 'Received'; doc.updatedAt = Date.now(); }
+      if(doc){ 
+        doc.forwarded = false; 
+        doc.forwardedHandledAt = Date.now(); 
+        try{ doc.forwardedHandledBy = sessionStorage.getItem(AUTH_KEY) || ''; }catch(e){ doc.forwardedHandledBy = ''; } 
+        doc.adminStatus = 'Received'; 
+        doc.updatedAt = Date.now();
+        addToHistory(doc, 'Received', 'Batch received by Admin');
+      }
     });
     saveDocs();
     try{ renderAdminInbox(); }catch(e){}
@@ -1077,6 +1118,7 @@ function returnToIC(controlNumber){
   }
   doc.forwarded = false;
   doc.updatedAt = Date.now();
+  addToHistory(doc, 'Returned', 'Returned to IC' + (doc.returnReason ? ': ' + doc.returnReason : ''));
   saveDocs();
   renderDocs();
   try{ renderAdminInbox(); }catch(e){}
@@ -1553,6 +1595,7 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     const newNotes = notesTa ? notesTa.value.trim() : '';
     doc.notes = newNotes;
     doc.updatedAt = Date.now();
+    addToHistory(doc, 'Updated', 'Notes updated inline');
     saveDocs();
     // restore cell
     const notesCell = tr.querySelector('.notes-cell');
@@ -1627,6 +1670,13 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
       renderDocs();
       addNotification(`Document ${ctrl} deleted`);
     }
+    return;
+  }
+
+  const histBtn = e.target.closest('button[data-history]');
+  if(histBtn){
+    const ctrl = histBtn.getAttribute('data-history');
+    showHistoryModal(ctrl);
     return;
   }
 
@@ -1722,6 +1772,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     const doc = docs.find(d => d.controlNumber === ctl);
     if(doc){
       doc.status = sel.value;
+      addToHistory(doc, 'Status Change', 'Status changed to ' + sel.value);
       doc.updatedAt = Date.now();
       saveDocs();
       renderDocs(searchInput.value.trim());
@@ -1734,6 +1785,7 @@ if(docsTableBody) docsTableBody.addEventListener('change', e => {
     const doc = docs.find(d => d.controlNumber === ctl);
     if(doc){
       doc.winsStatus = winsSel.value;
+      addToHistory(doc, 'WINS Change', 'WINS Status changed to ' + winsSel.value);
       doc.updatedAt = Date.now();
       saveDocs();
       renderDocs(searchInput.value.trim());
@@ -2516,6 +2568,58 @@ function addNotification(message, type = 'info') {
   updateNotificationBadge();
 }
 window.addNotification = addNotification;
+
+function showHistoryModal(controlNumber){
+  const doc = docs.find(d => d.controlNumber === controlNumber);
+  if(!doc) return;
+  
+  let modal = document.getElementById('history-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'history-modal';
+    modal.className = 'modal hidden';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3 style="margin:0">History: <span id="hist-control"></span></h3>
+          <button type="button" class="icon-btn close-hist" style="font-size:1.2rem;">&times;</button>
+        </div>
+        <div class="modal-body" style="flex:1; overflow-y:auto;">
+          <ul id="hist-list" class="approved-ul"></ul>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.modal-overlay').addEventListener('click', () => modal.classList.add('hidden'));
+    modal.querySelector('.close-hist').addEventListener('click', () => modal.classList.add('hidden'));
+  }
+  
+  const list = modal.querySelector('#hist-list');
+  modal.querySelector('#hist-control').textContent = doc.controlNumber;
+  list.innerHTML = '';
+  
+  const history = doc.history || [];
+  if(history.length === 0){
+    list.innerHTML = '<li class="muted">No history available.</li>';
+  } else {
+    history.forEach(h => {
+      const li = document.createElement('li');
+      li.style.display = 'flex';
+      li.style.flexDirection = 'column';
+      li.style.padding = '8px 0';
+      li.style.borderBottom = '1px solid #eee';
+      
+      const dateStr = new Date(h.timestamp).toLocaleString();
+      li.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><strong>${escapeHtml(h.action)}</strong><span class="muted" style="font-size:0.85em">${escapeHtml(dateStr)}</span></div>
+        <div style="font-size:0.9em">User: <strong>${escapeHtml(h.user)}</strong> &mdash; ${escapeHtml(h.details)}</div>
+      `;
+      list.appendChild(li);
+    });
+  }
+  modal.classList.remove('hidden');
+}
 
 function updateNotificationBadge() {
   const list = loadNotifications();
