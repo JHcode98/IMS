@@ -1176,13 +1176,6 @@
             applyFilter();
             updateCharts();
             closeModal();
-
-            const toast = document.getElementById('toast-notification');
-            if(toast){
-                toast.textContent = msg;
-                toast.className = "toast show";
-                setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-            }
         };
 
         if(fileInput.files.length > 0) {
