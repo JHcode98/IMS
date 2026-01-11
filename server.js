@@ -66,6 +66,7 @@ async function ensureDB(){
     next();
   });
   const http = require('http');
+  const https = require('https');
   const WebSocket = require('ws');
 
   app.get('/api/ping', (req,res) => res.json({ok:true}));
@@ -330,7 +331,16 @@ async function ensureDB(){
   });
 
   // attach WebSocket server to the HTTP server so same port is used
-  const server = http.createServer(app);
+  let server;
+  let isHttps = false;
+  try {
+    const key = await fs.readFile(path.join(__dirname, 'key.pem'));
+    const cert = await fs.readFile(path.join(__dirname, 'cert.pem'));
+    server = https.createServer({ key, cert }, app);
+    isHttps = true;
+  } catch(e) {
+    server = http.createServer(app);
+  }
   const wss = new WebSocket.Server({ server, path: '/ws' });
 
   function broadcast(obj){
@@ -343,16 +353,17 @@ async function ensureDB(){
   server.listen(PORT, ()=>{
     console.log('Monitoring System API (with WS) listening on port', PORT);
     
+    const protocol = isHttps ? 'https' : 'http';
     const os = require('os');
     const nets = os.networkInterfaces();
     for (const name of Object.keys(nets)) {
       for (const net of nets[name]) {
         if (net.family === 'IPv4' && !net.internal) {
-          console.log(`Network Access: http://${net.address}:${PORT}`);
+          console.log(`Network Access: ${protocol}://${net.address}:${PORT}`);
         }
       }
     }
-    console.log(`Local Access:   http://localhost:${PORT}`);
+    console.log(`Local Access:   ${protocol}://localhost:${PORT}`);
   });
 
 })();
