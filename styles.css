@@ -317,7 +317,9 @@ body{padding-top:64px}
 
 /* User dropdown in navbar (right side) */
 .nav-user{
-  position:relative;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 .nav-user .user-btn{
   background:transparent;color:#fff;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:8px
