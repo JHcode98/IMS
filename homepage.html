@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homepage - Inventory Management System</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .dashboard-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid #eef2f6;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 15px;
+      color: #2752a7;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .card-desc {
+      font-size: 14px;
+      color: #666;
+      flex-grow: 1;
+    }
+    .card-link {
+      margin-top: 15px;
+      color: #2752a7;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    .card-link:hover {
+      text-decoration: underline;
+    }
+    /* Dark Mode Header */
+    body.dark-mode header {
+        background: #1a252f;
+        border-bottom: 1px solid #2c3e50;
+    }
+    body.dark-mode header h1 {
+        color: #ecf0f1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav id="app-sidebar">
+    <div class="sidebar-brand">
+      <img src="Logo.jpg" alt="Logo" class="sidebar-logo" style="height:32px;width:auto;margin-right:8px">
+      <span class="brand-text">IMS</span>
+      <button id="main-sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+    </div>
+    <ul class="sidebar-menu">
+      <li>
+        <button class="active" onclick="window.location.href='homepage.html'" data-tooltip="Homepage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span class="menu-text">Homepage</span>
+        </button>
+      </li>
+      <li>
+        <button data-tooltip="Document Monitoring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span class="menu-text">Document Monitoring</span>
+        </button>
+        <ul class="sidebar-submenu">
+            <li><button onclick="window.location.href='index.html'">IAAF Monitoring</button></li>
+            <li><button onclick="window.location.href='ir_monitoring.html'">IR Monitoring</button></li>
+        </ul>
+      </li>
+      <li>
+        <button data-tooltip="Inventory Tracker">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        <span class="menu-text">Inventory Tracker</span>
+        </button>
+        <ul class="sidebar-submenu">
+          <li><button onclick="window.location.href='cycle_count.html'">Cycle Count</button></li>
+          <li><button onclick="window.location.href='cycle_count_reports.html'">Cycle Count Report</button></li>
+          <li><button onclick="window.location.href='cycle_count_completion.html'">Cycle Count Completion</button></li>
+        </ul>
+      </li>
+      <li><button onclick="window.location.href='settings.html'" data-tooltip="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="menu-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span class="menu-text">Settings</span>
+      </button></li>
+    </ul>
+  </nav>
+
+  <header>
+    <h1>Homepage</h1>
+    <div class="navbar" role="navigation">
+      <div class="nav-left"></div>
+      <div class="nav-right">
+        <div class="nav-notifications">
+          <button class="notification-btn" title="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="notification-badge">0</span>
+          </button>
+          <div class="notification-menu">
+            <div class="notification-header"><span>Notifications</span><button class="clear-notifications">Clear All</button></div>
+            <ul class="notification-list"></ul>
+          </div>
+        </div>
+        <div id="clock" class="clock" aria-live="polite"></div>
+        <div class="nav-user" id="nav-user">
+          <a href="profile.html" title="Profile" style="text-decoration:none; margin-right: 4px;"><span id="nav-avatar" class="avatar small"></span></a>
+          <button class="user-btn" id="user-btn" aria-haspopup="true" aria-expanded="false"><span id="username-display"></span> <span id="role-badge" class="role-badge" style="display:none;margin-left:8px"></span></button>
+          <div class="user-menu" id="user-menu" role="menu" aria-label="User menu">
+            <a href="profile.html" id="profile-btn" role="menuitem">Profile</a>
+            <a href="settings.html" role="menuitem">Settings</a>
+            <button id="logout-btn" role="menuitem">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Welcome to IMS</h2>
+      <p class="muted">Select a module to get started.</p>
+      
+      <div class="dashboard-grid">
+        <!-- Document Monitoring -->
+        <div class="dashboard-card" onclick="window.location.href='index.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <div class="card-title">IAAF Monitoring</div>
+          <div class="card-desc">Track and manage IAAF documents, approvals, and status updates.</div>
+          <a href="index.html" class="card-link">Go to IAAF Monitoring &rarr;</a>
+        </div>
+
+        <div class="dashboard-card" onclick="window.location.href='ir_monitoring.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div class="card-title">IR Monitoring</div>
+          <div class="card-desc">Log and monitor incident reports, track resolution status.</div>
+          <a href="ir_monitoring.html" class="card-link">Go to IR Monitoring &rarr;</a>
+        </div>
+
+        <!-- Inventory Tracker -->
+        <div class="dashboard-card" onclick="window.location.href='cycle_count.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <div class="card-title">Cycle Count</div>
+          <div class="card-desc">Perform inventory cycle counts, record physical vs system quantities.</div>
+          <a href="cycle_count.html" class="card-link">Go to Cycle Count &rarr;</a>
+        </div>
+
+        <div class="dashboard-card" onclick="window.location.href='cycle_count_reports.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <div class="card-title">Cycle Count Reports</div>
+          <div class="card-desc">View variance reports and daily count statistics.</div>
+          <a href="cycle_count_reports.html" class="card-link">Go to Reports &rarr;</a>
+        </div>
+
+        <div class="dashboard-card" onclick="window.location.href='cycle_count_completion.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <div class="card-title">Completion Status</div>
+          <div class="card-desc">Track overall progress of cycle counts against master SKU/Location lists.</div>
+          <a href="cycle_count_completion.html" class="card-link">Go to Completion &rarr;</a>
+        </div>
+
+        <!-- Admin / Other -->
+        <div class="dashboard-card" onclick="window.location.href='admin_inbox.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <div class="card-title">Admin Inbox</div>
+          <div class="card-desc">Manage incoming document requests and notifications (Admin only).</div>
+          <a href="admin_inbox.html" class="card-link">Go to Inbox &rarr;</a>
+        </div>
+
+        <div class="dashboard-card" onclick="window.location.href='weekly_overview.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <div class="card-title">Weekly Overview</div>
+          <div class="card-desc">Visual overview of document creation trends per week.</div>
+          <a href="weekly_overview.html" class="card-link">Go to Overview &rarr;</a>
+        </div>
+
+        <div class="dashboard-card" onclick="window.location.href='settings.html'">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <div class="card-title">Settings</div>
+          <div class="card-desc">Configure application preferences, theme, and notifications.</div>
+          <a href="settings.html" class="card-link">Go to Settings &rarr;</a>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+  </script>
+</body>
+</html>
