@@ -331,6 +331,7 @@ body{padding-top:64px}
 .nav-user .user-menu a:hover svg, .nav-user .user-menu button:hover svg{opacity:1}
 .nav-user .user-menu a:hover, .nav-user .user-menu button:hover{background:#f1f5fb}
 .nav-user.open .user-menu{visibility:visible;transform:translateY(0);opacity:1}
+.nav-user:hover .user-menu{visibility:visible;transform:translateY(0);opacity:1}
 
 /* Clock styling inside navbar */
 .navbar .clock{background:rgba(255,255,255,0.1);padding:6px 10px;border-radius:6px;color:#bdc3c7}
@@ -614,6 +615,9 @@ body.inventory-mode .navbar .nav-left {
   background: transparent;
   border: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .sidebar-submenu li button:hover {
   color: #fff;
