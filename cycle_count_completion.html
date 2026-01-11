@@ -156,7 +156,10 @@
       <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
             <h4>Uncounted SKUs Details</h4>
-            <button id="export-uncounted-btn">Export Uncounted CSV</button>
+            <div>
+                <button id="view-uncounted-btn" style="margin-right:5px;">View Report</button>
+                <button id="export-uncounted-btn">Export Uncounted CSV</button>
+            </div>
         </div>
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; background: #fff;">
             <table id="uncounted-table" style="width:100%; border-collapse: collapse;">
@@ -595,6 +598,41 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    });
+
+    // View Uncounted Report
+    document.getElementById('view-uncounted-btn').addEventListener('click', () => {
+        if(currentUncounted.length === 0) { alert('No uncounted items to view.'); return; }
+        
+        const reportWindow = window.open('', '_blank');
+        let html = `
+        <html>
+        <head>
+            <title>Uncounted SKUs Report</title>
+            <style>
+                body { font-family: sans-serif; font-size: 12px; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+                th { background-color: #f0f0f0; }
+                .header { text-align: center; margin-bottom: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>Uncounted SKUs Report</h2>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+                <p>Total Uncounted: ${currentUncounted.length}</p>
+            </div>
+            <table>
+                <thead><tr><th>Item Code</th><th>Status</th></tr></thead>
+                <tbody>
+        `;
+        currentUncounted.forEach(sku => {
+            html += `<tr><td>${sku}</td><td>Pending</td></tr>`;
+        });
+        html += `</tbody></table></body></html>`;
+        reportWindow.document.write(html);
+        reportWindow.document.close();
     });
 
     // Export Uncounted Locations
