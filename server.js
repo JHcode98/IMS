@@ -43,6 +43,11 @@ async function ensureDB(){
   const app = express();
   app.use(cors());
   app.use(express.json());
+  // Prevent access to sensitive files since we are serving the root directory
+  app.use((req, res, next) => {
+    if (['/db.json', '/server.js'].includes(req.path)) return res.status(403).send('Forbidden');
+    next();
+  });
   app.use(express.static(__dirname));
   // middleware: update lastSeen on requests that provide a valid session token
   app.use(async (req, res, next) => {
@@ -337,7 +342,17 @@ async function ensureDB(){
 
   server.listen(PORT, ()=>{
     console.log('Monitoring System API (with WS) listening on port', PORT);
-    console.log(`Access via http://localhost:${PORT} or http://<YOUR_IP>:${PORT}`);
+    
+    const os = require('os');
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log(`Network Access: http://${net.address}:${PORT}`);
+        }
+      }
+    }
+    console.log(`Local Access:   http://localhost:${PORT}`);
   });
 
 })();
