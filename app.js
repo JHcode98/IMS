@@ -2616,6 +2616,22 @@ function addNotification(message, type = 'info') {
   if (list.length > 50) list.pop();
   saveNotifications(list);
   updateNotificationBadge();
+
+  // Show toast popup
+  let toast = document.getElementById('toast-notification');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = message;
+  toast.style.backgroundColor = (type === 'warning' || type === 'error') ? '#e74c3c' : '#2ecc71';
+  toast.classList.add('show');
+
+  if (toast.hideTimeout) clearTimeout(toast.hideTimeout);
+  toast.hideTimeout = setTimeout(() => { toast.classList.remove('show'); }, 3000);
 }
 window.addNotification = addNotification;
 
