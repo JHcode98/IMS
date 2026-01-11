@@ -2792,7 +2792,38 @@ function renderNotificationMenu() {
   });
 }
 
+function checkStaleData() {
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  
+  const check = (key, label, f1, f2) => {
+    try {
+      const data = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!Array.isArray(data) || data.length === 0) return;
+      
+      const lastTime = data.reduce((max, item) => {
+        const t1 = item[f1] ? new Date(item[f1]).getTime() : 0;
+        const t2 = item[f2] ? new Date(item[f2]).getTime() : 0;
+        return Math.max(max, t1 || 0, t2 || 0);
+      }, 0);
+
+      if (lastTime > 0 && (now - lastTime > ONE_DAY_MS)) {
+        const msg = `Alert: No ${label} activity in 24h.`;
+        const notes = loadNotifications();
+        // Prevent spamming: check if same alert exists within last 24h
+        const recent = notes.some(n => n.message === msg && (now - n.time < ONE_DAY_MS));
+        if (!recent) addNotification(msg, 'warning');
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  check('dms_docs_v1', 'Document', 'updatedAt', 'createdAt');
+  check('ims_ir_records_v1', 'IR', 'updatedDate', 'date');
+  check('ims_cycle_count_v1', 'Cycle Count', 'date', 'createdDate');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  checkStaleData();
   updateNotificationBadge();
   document.body.addEventListener('click', (e) => {
     const btn = e.target.closest('.notification-btn');
