@@ -2628,6 +2628,11 @@ function addNotification(message, type = 'info') {
 
   toast.textContent = message;
   toast.style.backgroundColor = (type === 'warning' || type === 'error') ? '#e74c3c' : '#2ecc71';
+
+  if (toast.classList.contains('show')) {
+    toast.classList.remove('show');
+    void toast.offsetWidth; // Force reflow to restart animation
+  }
   toast.classList.add('show');
 
   if (toast.hideTimeout) clearTimeout(toast.hideTimeout);
