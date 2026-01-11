@@ -767,13 +767,6 @@
       localStorage.setItem(STORAGE_KEY_CC, JSON.stringify(data));
       form.reset();
       loadData();
-
-      const toast = document.getElementById('toast-notification');
-      if(toast){
-        toast.textContent = msg;
-        toast.className = "toast show";
-        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-      }
     });
 
     if(tableBody) tableBody.addEventListener('click', (e) => {
