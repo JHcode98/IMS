@@ -176,7 +176,7 @@
 
   <main>
     <div class="card">
-      <h2>Welcome to IMS</h2>
+      <h2 id="welcome-header">Welcome to IMS</h2>
       <p class="muted">Select a module to get started.</p>
       
       <div class="dashboard-grid">
@@ -278,6 +278,10 @@
   <script src="app.js"></script>
   <script>
     if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
+    const currentUser = sessionStorage.getItem('dms_auth_v1');
+    if(currentUser) {
+      document.getElementById('welcome-header').textContent = `Welcome to IMS, ${currentUser}`;
+    }
   </script>
 </body>
 </html>
