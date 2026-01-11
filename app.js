@@ -357,6 +357,7 @@ function renderDocs(filter){
       <td class="actions">
         <button class="icon-btn" data-edit="${escapeHtml(doc.controlNumber)}" title="Edit" aria-label="Edit ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg></button>
         <button class="icon-btn" data-history="${escapeHtml(doc.controlNumber)}" title="History" aria-label="History ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></button>
+        <button class="icon-btn" data-comments="${escapeHtml(doc.controlNumber)}" title="Comments" aria-label="Comments ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></button>
         ${!isAdmin && !doc.forwarded && String(doc.adminStatus).toLowerCase() !== 'received' ? `<button class="icon-btn forward" data-forward="${escapeHtml(doc.controlNumber)}" title="Forward to Admin" aria-label="Forward ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>` : (!isAdmin && doc.forwarded ? `<span class="forwarded-label">Forwarded</span>` : (!isAdmin && String(doc.adminStatus).toLowerCase() === 'received' ? `<span class="received-label">Received by Admin</span>` : ''))}
         ${isAdmin && doc.forwarded ? `<button class="icon-btn receive" data-receive="${escapeHtml(doc.controlNumber)}" title="Receive forwarded document" aria-label="Receive ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>` : ''}
         ${isAdmin && doc.adminStatus === 'Received' ? `<button class="icon-btn return" data-return="${escapeHtml(doc.controlNumber)}" title="Return to IC" aria-label="Return ${escapeHtml(doc.controlNumber)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 4 6 9 1"></polyline><path d="M20 22v-7a4 4 0 0 0-4-4H4"></path></svg><span class="btn-label">Return</span></button>` : (isAdmin && doc.adminStatus === 'Returned' ? `<span class="returned-label">Returned</span>` : '')}
@@ -1115,6 +1116,7 @@ function returnToIC(controlNumber){
   // keep optional reason
   if(arguments.length > 1 && typeof arguments[1] === 'string'){
     doc.returnReason = arguments[1];
+    addComment(doc, arguments[1], 'Return Reason');
   }
   doc.forwarded = false;
   doc.updatedAt = Date.now();
@@ -1680,6 +1682,13 @@ if(docsTableBody) docsTableBody.addEventListener('click', e => {
     return;
   }
 
+  const commBtn = e.target.closest('button[data-comments]');
+  if(commBtn){
+    const ctrl = commBtn.getAttribute('data-comments');
+    showCommentsModal(ctrl);
+    return;
+  }
+
   const editBtn = e.target.closest('button[data-edit]');
   if(editBtn){
     const ctrl = editBtn.getAttribute('data-edit');
@@ -1889,6 +1898,34 @@ function applyTheme(){
 }
 window.applyTheme = applyTheme;
 
+function toggleTheme(){
+  const current = localStorage.getItem('ims_theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('ims_theme', next);
+  applyTheme();
+}
+window.toggleTheme = toggleTheme;
+
+function updateAvatar(base64Image){
+  if(USE_SERVER){
+    const u = sessionStorage.getItem(AUTH_KEY);
+    const token = sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
+    if(!u) return Promise.reject('Not logged in');
+    return fetch(API_BASE + '/users/' + encodeURIComponent(u) + '/avatar', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' },
+      body: JSON.stringify({ avatar: base64Image })
+    }).then(r => r.json());
+  } else {
+    try{
+      localStorage.setItem('dms_profile_avatar', base64Image);
+      renderNavAvatar();
+      return Promise.resolve({ ok: true });
+    }catch(e){ return Promise.resolve({ ok: false, error: e.message }); }
+  }
+}
+window.updateAvatar = updateAvatar;
+
 document.addEventListener('DOMContentLoaded', () => {
   // If you want auto-login during development, uncomment:
   // showDashboard(DEMO_USER.username);
@@ -1916,6 +1953,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   applyTheme();
+  
+  // Inject Dark Mode toggle in header if not present
+  const headerRight = document.querySelector('.header-right');
+  if(headerRight && !document.getElementById('theme-toggle')){
+    const btn = document.createElement('button');
+    btn.id = 'theme-toggle';
+    btn.className = 'icon-btn';
+    btn.title = 'Toggle Dark Mode';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+    btn.addEventListener('click', toggleTheme);
+    headerRight.insertBefore(btn, headerRight.firstChild);
+  }
+
   try{ renderNavAvatar(); }catch(e){}
 
   // Sidebar search & page size
@@ -2583,6 +2633,7 @@ function showHistoryModal(controlNumber){
       <div class="modal-content card" style="max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
         <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
           <h3 style="margin:0">History: <span id="hist-control"></span></h3>
+          <button type="button" class="icon-btn export-hist" title="Export History CSV" style="font-size:1.2rem; margin-right:10px;">⬇</button>
           <button type="button" class="icon-btn close-hist" style="font-size:1.2rem;">&times;</button>
         </div>
         <div class="modal-body" style="flex:1; overflow-y:auto;">
@@ -2593,6 +2644,7 @@ function showHistoryModal(controlNumber){
     document.body.appendChild(modal);
     modal.querySelector('.modal-overlay').addEventListener('click', () => modal.classList.add('hidden'));
     modal.querySelector('.close-hist').addEventListener('click', () => modal.classList.add('hidden'));
+    modal.querySelector('.export-hist').addEventListener('click', () => exportHistoryToCSV(docs.find(d => d.controlNumber === modal.querySelector('#hist-control').textContent)));
   }
   
   const list = modal.querySelector('#hist-list');
@@ -2618,6 +2670,95 @@ function showHistoryModal(controlNumber){
       list.appendChild(li);
     });
   }
+  modal.classList.remove('hidden');
+}
+
+function exportHistoryToCSV(doc){
+  if(!doc || !doc.history || !doc.history.length) { alert('No history to export.'); return; }
+  const headers = ['Timestamp','User','Action','Details'];
+  const lines = [headers.join(',')];
+  doc.history.forEach(h => {
+    const date = new Date(h.timestamp).toLocaleString().replace(',','');
+    lines.push([csvEscape(date), csvEscape(h.user), csvEscape(h.action), csvEscape(h.details)].join(','));
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `history_${doc.controlNumber}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function addComment(doc, text, type='Comment'){
+  if(!doc) return;
+  if(!doc.comments) doc.comments = [];
+  doc.comments.push({
+    id: Date.now(),
+    user: sessionStorage.getItem(AUTH_KEY) || 'unknown',
+    text: text,
+    timestamp: Date.now(),
+    type: type
+  });
+  saveDocs();
+}
+
+function showCommentsModal(controlNumber){
+  const doc = docs.find(d => d.controlNumber === controlNumber);
+  if(!doc) return;
+  
+  let modal = document.getElementById('comments-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'comments-modal';
+    modal.className = 'modal hidden';
+    modal.innerHTML = `
+      <div class="modal-overlay"></div>
+      <div class="modal-content card" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3 style="margin:0">Comments: <span id="comm-control"></span></h3>
+          <button type="button" class="icon-btn close-comm" style="font-size:1.2rem;">&times;</button>
+        </div>
+        <div class="modal-body" style="flex:1; overflow-y:auto; margin-bottom:1rem;">
+          <ul id="comm-list" class="approved-ul"></ul>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:8px;">
+          <input type="text" id="new-comment-text" placeholder="Add a comment..." style="flex:1; padding:8px;">
+          <button type="button" id="add-comment-btn" class="btn-primary">Post</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    const close = () => modal.classList.add('hidden');
+    modal.querySelector('.modal-overlay').addEventListener('click', close);
+    modal.querySelector('.close-comm').addEventListener('click', close);
+    modal.querySelector('#add-comment-btn').addEventListener('click', () => {
+      const input = modal.querySelector('#new-comment-text');
+      const val = input.value.trim();
+      if(val){
+        const ctrl = modal.querySelector('#comm-control').textContent;
+        const d = docs.find(x => x.controlNumber === ctrl);
+        addComment(d, val);
+        input.value = '';
+        showCommentsModal(ctrl); // refresh
+      }
+    });
+  }
+  
+  const list = modal.querySelector('#comm-list');
+  modal.querySelector('#comm-control').textContent = doc.controlNumber;
+  list.innerHTML = '';
+  const comments = doc.comments || [];
+  if(comments.length === 0) list.innerHTML = '<li class="muted">No comments yet.</li>';
+  else comments.forEach(c => {
+    const li = document.createElement('li');
+    li.style.padding = '8px 0'; li.style.borderBottom = '1px solid #eee';
+    li.innerHTML = `<div style="display:flex;justify-content:space-between;font-size:0.85em;color:#666;"><strong>${escapeHtml(c.user)}</strong> <span>${new Date(c.timestamp).toLocaleString()}</span></div><div style="margin-top:4px;">${escapeHtml(c.text)}</div>`;
+    list.appendChild(li);
+  });
   modal.classList.remove('hidden');
 }
 
