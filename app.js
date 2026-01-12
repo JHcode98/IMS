@@ -1142,6 +1142,7 @@ function showDashboard(userName){
   try{ renderDocs(); }catch(e){}
   try{ adjustUIForRole(); }catch(e){}
   try{ renderNavAvatar(); }catch(e){}
+  try{ renderPendingCycleCounts(); }catch(e){}
   // wire title selects to show/hide 'Other' input if present
   try{
     const newTitleSel = document.getElementById('doc-title');
@@ -2832,6 +2833,38 @@ function checkStaleData() {
   check('dms_docs_v1', 'Document', 'updatedAt', 'createdAt');
   check('ims_ir_records_v1', 'IR', 'updatedDate', 'date');
   check('ims_cycle_count_v1', 'Cycle Count', 'date', 'createdDate');
+}
+
+function renderPendingCycleCounts() {
+  const SCHEDULE_KEY = 'ims_cycle_count_schedule_v1';
+  let schedules = [];
+  try { schedules = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '[]'); } catch(e) {}
+  const pending = schedules.filter(s => s.status === 'pending').length;
+
+  const dashboard = document.getElementById('dashboard');
+  if (dashboard) {
+    let widget = document.getElementById('widget-pending-counts');
+    if (!widget) {
+      widget = document.createElement('div');
+      widget.id = 'widget-pending-counts';
+      widget.className = 'card';
+      widget.style.cssText = 'background:#fff; padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin: 0 15px 15px 0; display:inline-block; min-width:200px; vertical-align:top; border-left: 4px solid #e67e22;';
+      
+      // Insert before the first card or chart if possible
+      const firstContainer = dashboard.querySelector('.card') || dashboard.querySelector('#total-docs')?.closest('.card') || dashboard.firstChild;
+      if(firstContainer) {
+          dashboard.insertBefore(widget, firstContainer);
+      } else {
+          dashboard.appendChild(widget);
+      }
+    }
+    
+    widget.innerHTML = `
+      <div style="font-size:12px; color:#666; text-transform:uppercase; font-weight:600;">Pending Cycle Counts</div>
+      <div style="font-size:28px; font-weight:bold; color:#e67e22; margin:5px 0;">${pending}</div>
+      <div style="font-size:12px;"><a href="cycle_count_schedule.html" style="text-decoration:none; color:#2980b9;">View Schedule &rarr;</a></div>
+    `;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
