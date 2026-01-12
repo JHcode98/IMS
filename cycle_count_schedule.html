@@ -118,6 +118,7 @@
     <h1>Cycle Count Schedule</h1>
 
     <div class="schedule-form">
+        <input type="hidden" id="edit-id">
         <div class="form-group">
             <label for="location">Location / Zone</label>
             <input type="text" id="location" placeholder="e.g. Zone A, Bin 101">
@@ -136,10 +137,21 @@
         </div>
         <div class="form-group">
             <button id="addBtn" onclick="addSchedule()">Schedule Count</button>
+            <button id="cancelEditBtn" onclick="cancelEdit()" style="display:none; background-color: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;">Cancel</button>
         </div>
     </div>
 
-    <h2>Schedule Timeline</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Schedule Timeline</h2>
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+            <label for="viewMode" style="margin: 0;">View:</label>
+            <select id="viewMode" onchange="changeViewMode(this.value)" style="padding: 5px;">
+                <option value="Day" selected>Day</option>
+                <option value="Week">Week</option>
+                <option value="Month">Month</option>
+            </select>
+        </div>
+    </div>
     <div id="gantt-chart"></div>
 
     <h2>Upcoming Counts</h2>
@@ -179,6 +191,7 @@
     let schedules = [];
     let currentPage = 1;
     const itemsPerPage = 5;
+    let ganttChart = null;
 
     function loadSchedules() {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -206,7 +219,9 @@
         }
         ganttContainer.innerHTML = ''; // Clear previous
 
-        const tasks = schedules.map(s => {
+        // Group by Assignee (Sort)
+        const sortedSchedules = [...schedules].sort((a, b) => (a.assignee || '').localeCompare(b.assignee || ''));
+        const tasks = sortedSchedules.map(s => {
             // Frappe Gantt expects YYYY-MM-DD
             return {
                 id: s.id,
@@ -219,7 +234,9 @@
             };
         });
 
-        new Gantt("#gantt-chart", tasks, {
+        const viewMode = document.getElementById('viewMode') ? document.getElementById('viewMode').value : 'Day';
+
+        ganttChart = new Gantt("#gantt-chart", tasks, {
             header_height: 50,
             column_width: 30,
             step: 24,
@@ -228,7 +245,7 @@
             bar_corner_radius: 3,
             arrow_curve: 5,
             padding: 18,
-            view_mode: 'Day',
+            view_mode: viewMode,
             date_format: 'YYYY-MM-DD',
             popup_trigger: 'click mouseover',
             custom_popup_html: function(task) {
@@ -240,8 +257,20 @@
                   <p style="margin:0; font-size:12px; color:#666;">${task.start} - ${task.end}</p>
                 </div>
                 `;
+            },
+            on_click: function (task) {
+                editSchedule(task.id);
+            },
+            on_date_change: function(task, start, end) {
+                updateScheduleDates(task.id, start, end);
             }
         });
+    }
+
+    function changeViewMode(mode) {
+        if (ganttChart) {
+            ganttChart.change_view_mode(mode);
+        }
     }
 
     function renderTable() {
@@ -283,6 +312,7 @@
             if (item.status !== 'completed') {
                 actionsHtml += `<button class="action-btn btn-complete" onclick="markComplete('${item.id}')">Complete</button> `;
             }
+            actionsHtml += `<button class="action-btn" style="background-color:#3498db;color:white;" onclick="editSchedule('${item.id}')">Edit</button> `;
             actionsHtml += `<button class="action-btn btn-delete" onclick="deleteRow('${item.id}')">Cancel</button>`;
 
             const dateDisplay = (item.endDate && item.endDate !== item.date) 
@@ -314,6 +344,7 @@
 
     function addSchedule() {
         const location = document.getElementById('location').value;
+        const editId = document.getElementById('edit-id').value;
         const date = document.getElementById('date').value;
         const endDate = document.getElementById('endDate').value;
         const assignee = document.getElementById('assignee').value;
@@ -328,25 +359,80 @@
             return;
         }
 
-        const newItem = {
-            id: Date.now().toString(),
-            location: location,
-            date: date,
-            endDate: endDate || date,
-            assignee: assignee,
-            status: 'pending'
-        };
+        if (editId) {
+            const index = schedules.findIndex(s => s.id === editId);
+            if (index !== -1) {
+                schedules[index].location = location;
+                schedules[index].date = date;
+                schedules[index].endDate = endDate || date;
+                schedules[index].assignee = assignee;
+            }
+            cancelEdit();
+        } else {
+            const newItem = {
+                id: Date.now().toString(),
+                location: location,
+                date: date,
+                endDate: endDate || date,
+                assignee: assignee,
+                status: 'pending'
+            };
+            schedules.push(newItem);
+        }
 
-        schedules.push(newItem);
         saveSchedules();
         renderTable();
         renderGantt();
 
         // Clear inputs
+        if (!editId) {
+            document.getElementById('location').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('assignee').value = '';
+            document.getElementById('date').valueAsDate = new Date();
+        }
+    }
+
+    function editSchedule(id) {
+        const item = schedules.find(s => s.id === id);
+        if (item) {
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('location').value = item.location;
+            document.getElementById('date').value = item.date;
+            document.getElementById('endDate').value = item.endDate || item.date;
+            document.getElementById('assignee').value = item.assignee;
+            
+            document.getElementById('addBtn').textContent = 'Update Schedule';
+            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+            
+            document.querySelector('.schedule-form').scrollIntoView({behavior: 'smooth'});
+        }
+    }
+
+    function cancelEdit() {
+        document.getElementById('edit-id').value = '';
         document.getElementById('location').value = '';
         document.getElementById('endDate').value = '';
         document.getElementById('assignee').value = '';
         document.getElementById('date').valueAsDate = new Date();
+        
+        document.getElementById('addBtn').textContent = 'Schedule Count';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+    }
+
+    function updateScheduleDates(id, start, end) {
+        const item = schedules.find(s => s.id === id);
+        if (item) {
+            const localFmt = d => {
+                const offset = d.getTimezoneOffset() * 60000;
+                const local = new Date(d.getTime() - offset);
+                return local.toISOString().split('T')[0];
+            };
+            item.date = localFmt(start);
+            item.endDate = localFmt(end);
+            saveSchedules();
+            renderTable();
+        }
     }
 
     function deleteRow(id) {
