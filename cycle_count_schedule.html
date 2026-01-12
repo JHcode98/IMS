@@ -170,6 +170,10 @@
             </select>
         </div>
         <div class="form-group">
+            <label for="locationFilter">Filter by Location</label>
+            <input type="text" id="locationFilter" onkeyup="filterTable()" placeholder="Search location...">
+        </div>
+        <div class="form-group">
             <label for="assigneeFilter">Filter by Assignee</label>
             <input type="text" id="assigneeFilter" onkeyup="filterTable()" placeholder="Search name...">
         </div>
@@ -295,11 +299,13 @@
         // Filter logic
         const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
         const assigneeFilter = document.getElementById('assigneeFilter').value.toLowerCase();
+        const locationFilter = document.getElementById('locationFilter').value.toLowerCase();
 
         const filtered = schedules.filter(item => {
             const statusMatch = statusFilter === 'all' || item.status.toLowerCase().includes(statusFilter);
             const assigneeMatch = item.assignee.toLowerCase().includes(assigneeFilter);
-            return statusMatch && assigneeMatch;
+            const locationMatch = item.location.toLowerCase().includes(locationFilter);
+            return statusMatch && assigneeMatch && locationMatch;
         });
 
         // Pagination logic
@@ -463,6 +469,7 @@
     }
 
     function markComplete(id) {
+        if (!confirm("Are you sure you want to mark this schedule as complete?")) return;
         const item = schedules.find(s => s.id === id);
         if (item) {
             item.status = 'completed';
