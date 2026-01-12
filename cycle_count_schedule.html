@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cycle Count Schedule</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+           --accent-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --border-color: #bdc3c7;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; }
+        h2 { color: var(--secondary-color); margin-top: 30px; }
+        
+        /* Form Styles */
+        .schedule-form {
+            background-color: var(--light-bg);
+            padding: 20px;
+            border-radius: 5px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+        input, select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button#addBtn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            height: 42px;
+        }
+        button#addBtn:hover { background-color: #2980b9; }
+
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--secondary-color); color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        .status-pending { color: #e67e22; font-weight: bold; }
+        .status-completed { color: var(--success-color); font-weight: bold; }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+        .btn-complete { background-color: var(--success-color); color: white; }
+        .btn-delete { background-color: var(--danger-color); color: white; }
+        .btn-complete:hover { opacity: 0.9; }
+        .btn-delete:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Cycle Count Schedule</h1>
+
+    <div class="schedule-form">
+        <div class="form-group">
+            <label for="location">Location / Zone</label>
+            <input type="text" id="location" placeholder="e.g. Zone A, Bin 101">
+        </div>
+        <div class="form-group">
+            <label for="date">Scheduled Date</label>
+            <input type="date" id="date">
+        </div>
+        <div class="form-group">
+            <label for="assignee">Assigned To</label>
+            <input type="text" id="assignee" placeholder="Employee Name">
+        </div>
+        <div class="form-group">
+            <button id="addBtn" onclick="addSchedule()">Schedule Count</button>
+        </div>
+    </div>
+
+    <h2>Upcoming Counts</h2>
+    <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-end;">
+        <div class="form-group">
+            <label for="statusFilter">Filter by Status</label>
+            <select id="statusFilter" onchange="filterTable()">
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="assigneeFilter">Filter by Assignee</label>
+            <input type="text" id="assigneeFilter" onkeyup="filterTable()" placeholder="Search name...">
+        </div>
+    </div>
+    <table id="scheduleTable">
+        <thead>
+            <tr>
+                <th>Location</th>
+                <th>Date</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const STORAGE_KEY = 'ims_cycle_count_schedule_v1';
+    let schedules = [];
+
+    function loadSchedules() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                schedules = JSON.parse(stored);
+            } catch (e) {
+                console.error("Failed to parse schedules", e);
+                schedules = [];
+            }
+        }
+        renderTable();
+    }
+
+    function saveSchedules() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules));
+    }
+
+    function renderTable() {
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        
+        schedules.forEach(item => {
+            const row = document.createElement('tr');
+            
+            const statusHtml = item.status === 'completed' 
+                ? '<span class="status-completed">Completed</span>' 
+                : '<span class="status-pending">Pending</span>';
+            
+            let actionsHtml = '';
+            if (item.status !== 'completed') {
+                actionsHtml += `<button class="action-btn btn-complete" onclick="markComplete('${item.id}')">Complete</button> `;
+            }
+            actionsHtml += `<button class="action-btn btn-delete" onclick="deleteRow('${item.id}')">Cancel</button>`;
+
+            row.innerHTML = `
+                <td>${escapeHtml(item.location)}</td>
+                <td>${escapeHtml(item.date)}</td>
+                <td>${escapeHtml(item.assignee)}</td>
+                <td>${statusHtml}</td>
+                <td>${actionsHtml}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        filterTable();
+    }
+
+    function addSchedule() {
+        const location = document.getElementById('location').value;
+        const date = document.getElementById('date').value;
+        const assignee = document.getElementById('assignee').value;
+
+        if (!location || !date || !assignee) {
+            alert("Please fill in all fields");
+            return;
+        }
+
+        const newItem = {
+            id: Date.now().toString(),
+            location: location,
+            date: date,
+            assignee: assignee,
+            status: 'pending'
+        };
+
+        schedules.push(newItem);
+        saveSchedules();
+        renderTable();
+
+        // Clear inputs
+        document.getElementById('location').value = '';
+        document.getElementById('assignee').value = '';
+        document.getElementById('date').valueAsDate = new Date();
+    }
+
+    function deleteRow(id) {
+        if(confirm('Are you sure you want to cancel this schedule?')) {
+            schedules = schedules.filter(s => s.id !== id);
+            saveSchedules();
+            renderTable();
+        }
+    }
+
+    function markComplete(id) {
+        const item = schedules.find(s => s.id === id);
+        if (item) {
+            item.status = 'completed';
+            saveSchedules();
+            renderTable();
+        }
+    }
+
+    function filterTable() {
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const assigneeFilter = document.getElementById('assigneeFilter').value.toLowerCase();
+        const tableBody = document.getElementById('tableBody');
+        const rows = tableBody.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const assigneeText = row.cells[2].textContent.toLowerCase();
+            const statusText = row.cells[3].textContent.toLowerCase();
+
+            const statusMatch = statusFilter === 'all' || statusText.includes(statusFilter);
+            const assigneeMatch = assigneeText.includes(assigneeFilter);
+
+            if (statusMatch && assigneeMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // Set default date to today
+    document.getElementById('date').valueAsDate = new Date();
+
+    // Load data on startup
+    loadSchedules();
+</script>
+
+</body>
+</html>
