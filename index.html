@@ -328,6 +328,9 @@
 						<div style="flex: 1; min-width: 300px; max-width: 100%;">
 							<canvas id="dash-line-week" style="max-height:300px"></canvas>
 						</div>
+						<div style="flex: 1; min-width: 100%; margin-top: 20px;">
+							<canvas id="dash-line-created-forwarded" style="max-height:300px"></canvas>
+						</div>
 					</div>
 				</div>
 
@@ -630,6 +633,47 @@
 									x: { grid: { display: false, drawBorder: false } }
 								},
 								onClick: handleChartClick
+							}
+						});
+					}
+
+					// 4. Created vs Forwarded (Line)
+					const timelineMap = {};
+					docs.forEach(d => {
+						if(d.createdAt){
+							const k = new Date(Number(d.createdAt)).toISOString().split('T')[0];
+							if(!timelineMap[k]) timelineMap[k] = { created: 0, forwarded: 0 };
+							timelineMap[k].created++;
+						}
+						if(d.forwardedAt){
+							const k = new Date(Number(d.forwardedAt)).toISOString().split('T')[0];
+							if(!timelineMap[k]) timelineMap[k] = { created: 0, forwarded: 0 };
+							timelineMap[k].forwarded++;
+						}
+					});
+					const timelineDates = Object.keys(timelineMap).sort();
+					const dataCreated = timelineDates.map(d => timelineMap[d].created);
+					const dataForwarded = timelineDates.map(d => timelineMap[d].forwarded);
+
+					const ctxCvF = document.getElementById('dash-line-created-forwarded');
+					if(ctxCvF){
+						new Chart(ctxCvF, {
+							type: 'line',
+							data: {
+								labels: timelineDates,
+								datasets: [
+									{ label: 'Created', data: dataCreated, borderColor: '#4e73df', backgroundColor: 'rgba(78, 115, 223, 0.05)', tension: 0.3, fill: true },
+									{ label: 'Forwarded to Admin', data: dataForwarded, borderColor: '#1cc88a', backgroundColor: 'rgba(28, 200, 138, 0.05)', tension: 0.3, fill: true }
+								]
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+								plugins: {
+									title: { display: true, text: 'Created vs Forwarded Volume', font: { size: 16, weight: 'bold' }, color: '#5a5c69' },
+									tooltip: { mode: 'index', intersect: false }
+								},
+								scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { borderDash: [2], drawBorder: false, color: '#e3e6f0' } }, x: { grid: { display: false } } }
 							}
 						});
 					}
