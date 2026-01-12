@@ -95,6 +95,9 @@
       }
       body.dark-mode #docs-table tbody tr .actions .icon-btn:hover { background-color: rgba(255,255,255,0.08); }
       body.dark-mode #docs-table tbody tr .actions .icon-btn.delete:hover { background-color: rgba(231, 76, 60, 0.2); }
+
+      /* Ensure tooltips are not clipped by cell overflow */
+      #docs-table td.actions { overflow: visible !important; }
   </style>
   
   <body class="full-view no-navbar">
