@@ -97,6 +97,12 @@
         #gantt-chart { overflow-x: auto; margin-bottom: 30px; }
         .gantt .bar-label { fill: #fff; font-size: 12px; }
         .gantt .bar-progress { fill: var(--success-color); opacity: 0.6; }
+
+        /* Custom Gantt Colors based on status */
+        .gantt .bar-wrapper.bar-completed .bar { fill: var(--success-color); }
+        .gantt .bar-wrapper.bar-pending .bar { fill: #e67e22; }
+        .gantt .bar-wrapper.bar-completed .bar-progress { fill: #1e8449; }
+        .gantt .bar-wrapper.bar-pending .bar-progress { fill: #d35400; }
     </style>
 </head>
 <body>
@@ -117,8 +123,12 @@
             <input type="text" id="location" placeholder="e.g. Zone A, Bin 101">
         </div>
         <div class="form-group">
-            <label for="date">Scheduled Date</label>
+            <label for="date">Start Date</label>
             <input type="date" id="date">
+        </div>
+        <div class="form-group">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate">
         </div>
         <div class="form-group">
             <label for="assignee">Assigned To</label>
@@ -151,7 +161,7 @@
         <thead>
             <tr>
                 <th>Location</th>
-                <th>Date</th>
+                <th>Schedule</th>
                 <th>Assigned To</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -202,7 +212,7 @@
                 id: s.id,
                 name: s.location,
                 start: s.date,
-                end: s.date, // Single day event
+                end: s.endDate || s.date, // Use endDate if available
                 progress: s.status === 'completed' ? 100 : 0,
                 dependencies: '',
                 custom_class: s.status === 'completed' ? 'bar-completed' : 'bar-pending'
@@ -227,7 +237,7 @@
                 <div class="details-container" style="padding:10px; background:#fff; border:1px solid #eee; border-radius:4px; box-shadow:0 2px 5px rgba(0,0,0,0.1); width: 200px;">
                   <h5 style="margin:0 0 5px 0;">${task.name}</h5>
                   <p style="margin:0; font-size:12px; color:#666;">Assigned: ${item ? item.assignee : 'N/A'}</p>
-                  <p style="margin:0; font-size:12px; color:#666;">Date: ${task.start}</p>
+                  <p style="margin:0; font-size:12px; color:#666;">${task.start} - ${task.end}</p>
                 </div>
                 `;
             }
@@ -275,9 +285,13 @@
             }
             actionsHtml += `<button class="action-btn btn-delete" onclick="deleteRow('${item.id}')">Cancel</button>`;
 
+            const dateDisplay = (item.endDate && item.endDate !== item.date) 
+                ? `${escapeHtml(item.date)} to ${escapeHtml(item.endDate)}`
+                : escapeHtml(item.date);
+
             row.innerHTML = `
                 <td>${escapeHtml(item.location)}</td>
-                <td>${escapeHtml(item.date)}</td>
+                <td>${dateDisplay}</td>
                 <td>${escapeHtml(item.assignee)}</td>
                 <td>${statusHtml}</td>
                 <td>${actionsHtml}</td>
@@ -301,10 +315,16 @@
     function addSchedule() {
         const location = document.getElementById('location').value;
         const date = document.getElementById('date').value;
+        const endDate = document.getElementById('endDate').value;
         const assignee = document.getElementById('assignee').value;
 
         if (!location || !date || !assignee) {
             alert("Please fill in all fields");
+            return;
+        }
+        
+        if (endDate && new Date(endDate) < new Date(date)) {
+            alert("End Date cannot be before Start Date");
             return;
         }
 
@@ -312,6 +332,7 @@
             id: Date.now().toString(),
             location: location,
             date: date,
+            endDate: endDate || date,
             assignee: assignee,
             status: 'pending'
         };
@@ -323,6 +344,7 @@
 
         // Clear inputs
         document.getElementById('location').value = '';
+        document.getElementById('endDate').value = '';
         document.getElementById('assignee').value = '';
         document.getElementById('date').valueAsDate = new Date();
     }
