@@ -52,18 +52,23 @@
             border-radius: 4px;
             font-size: 1rem;
         }
-        button#addBtn {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
+
+        /* Icon Button Styles */
+        .icon-btn {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            background: white;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #555;
+            margin-right: 5px;
         }
-        button#addBtn:hover { background-color: #2980b9; }
+        .icon-btn:hover { background: #f0f0f0; transform: translateY(-1px); }
+        .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
         /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -74,18 +79,14 @@
         .status-pending { color: #e67e22; font-weight: bold; }
         .status-completed { color: var(--success-color); font-weight: bold; }
         
-        .action-btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-right: 5px;
-        }
-        .btn-complete { background-color: var(--success-color); color: white; }
-        .btn-delete { background-color: var(--danger-color); color: white; }
-        .btn-complete:hover { opacity: 0.9; }
-        .btn-delete:hover { opacity: 0.9; }
+        .btn-complete { color: var(--success-color); border-color: var(--success-color); }
+        .btn-complete:hover { background-color: var(--success-color); color: white; }
+        
+        .btn-edit { color: var(--accent-color); border-color: var(--accent-color); }
+        .btn-edit:hover { background-color: var(--accent-color); color: white; }
+        
+        .btn-delete { color: var(--danger-color); border-color: var(--danger-color); }
+        .btn-delete:hover { background-color: var(--danger-color); color: white; }
 
         /* Pagination Styles */
         .pagination { display: flex; justify-content: flex-end; gap: 5px; margin-top: 15px; }
@@ -135,9 +136,13 @@
             <label for="assignee">Assigned To</label>
             <input type="text" id="assignee" placeholder="Employee Name">
         </div>
-        <div class="form-group">
-            <button id="addBtn" onclick="addSchedule()">Schedule Count</button>
-            <button id="cancelEditBtn" onclick="cancelEdit()" style="display:none; background-color: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;">Cancel</button>
+        <div class="form-group" style="flex-direction: row; gap: 5px;">
+            <button id="addBtn" onclick="addSchedule()" class="icon-btn" style="background-color: var(--accent-color); color: white; border: none;" title="Schedule Count">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button id="cancelEditBtn" onclick="cancelEdit()" class="icon-btn" style="display:none; color: #95a5a6; border-color: #95a5a6;" title="Cancel Edit">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
     </div>
 
@@ -168,9 +173,13 @@
             <label for="assigneeFilter">Filter by Assignee</label>
             <input type="text" id="assigneeFilter" onkeyup="filterTable()" placeholder="Search name...">
         </div>
-        <div class="form-group">
-            <button onclick="exportScheduleToCSV()" style="padding: 10px 15px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Export CSV</button>
-            <button onclick="document.getElementById('importFile').click()" style="padding: 10px 15px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px;">Import CSV</button>
+        <div class="form-group" style="flex-direction: row; gap: 5px;">
+            <button onclick="exportScheduleToCSV()" class="icon-btn" style="background-color: #27ae60; color: white; border: none;" title="Export CSV">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
+            <button onclick="document.getElementById('importFile').click()" class="icon-btn" style="background-color: #3498db; color: white; border: none;" title="Import CSV">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </button>
             <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="handleImport(this)">
         </div>
     </div>
@@ -315,10 +324,10 @@
             
             let actionsHtml = '';
             if (item.status !== 'completed') {
-                actionsHtml += `<button class="action-btn btn-complete" onclick="markComplete('${item.id}')">Complete</button> `;
+                actionsHtml += `<button class="icon-btn btn-complete" onclick="markComplete('${item.id}')" title="Mark as Completed"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></button> `;
             }
-            actionsHtml += `<button class="action-btn" style="background-color:#3498db;color:white;" onclick="editSchedule('${item.id}')">Edit</button> `;
-            actionsHtml += `<button class="action-btn btn-delete" onclick="deleteRow('${item.id}')">Cancel</button>`;
+            actionsHtml += `<button class="icon-btn btn-edit" onclick="editSchedule('${item.id}')" title="Edit Schedule"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button> `;
+            actionsHtml += `<button class="icon-btn btn-delete" onclick="deleteRow('${item.id}')" title="Delete Schedule"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>`;
 
             const dateDisplay = (item.endDate && item.endDate !== item.date) 
                 ? `${escapeHtml(item.date)} to ${escapeHtml(item.endDate)}`
@@ -407,8 +416,10 @@
             document.getElementById('endDate').value = item.endDate || item.date;
             document.getElementById('assignee').value = item.assignee;
             
-            document.getElementById('addBtn').textContent = 'Update Schedule';
-            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+            const addBtn = document.getElementById('addBtn');
+            addBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>';
+            addBtn.title = 'Update Schedule';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
             
             document.querySelector('.schedule-form').scrollIntoView({behavior: 'smooth'});
         }
@@ -421,7 +432,9 @@
         document.getElementById('assignee').value = '';
         document.getElementById('date').valueAsDate = new Date();
         
-        document.getElementById('addBtn').textContent = 'Schedule Count';
+        const addBtn = document.getElementById('addBtn');
+        addBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        addBtn.title = 'Schedule Count';
         document.getElementById('cancelEditBtn').style.display = 'none';
     }
 
