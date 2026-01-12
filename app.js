@@ -1261,14 +1261,14 @@ if(loginForm) loginForm.addEventListener('submit', e => {
   if(maybe && typeof maybe.then === 'function'){
     maybe.then(role => {
       if(role){ try{ sessionStorage.setItem(AUTH_KEY, u); sessionStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
-        showDashboard(u); currentUserRole = role; adjustUIForRole();
+        window.location.href = 'homepage.html';
       } else { alert('Invalid credentials'); }
     }).catch(() => { alert('Invalid credentials'); });
   } else {
     const role = maybe;
     if(role === 'PENDING') { alert('Your account is pending approval by an admin.'); return; }
     if(role){ try{ sessionStorage.setItem(AUTH_KEY, u); sessionStorage.setItem(AUTH_ROLE_KEY, role); }catch(e){}
-      showDashboard(u); currentUserRole = role; adjustUIForRole();
+      window.location.href = 'homepage.html';
     } else { alert('Invalid credentials'); }
   }
 });
