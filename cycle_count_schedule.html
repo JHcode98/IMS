@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cycle Count Schedule</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -84,11 +86,29 @@
         .btn-delete { background-color: var(--danger-color); color: white; }
         .btn-complete:hover { opacity: 0.9; }
         .btn-delete:hover { opacity: 0.9; }
+
+        /* Pagination Styles */
+        .pagination { display: flex; justify-content: flex-end; gap: 5px; margin-top: 15px; }
+        .pagination button { padding: 5px 10px; border: 1px solid var(--border-color); background: white; cursor: pointer; border-radius: 4px; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination span { padding: 5px 10px; }
+
+        /* Gantt Styles */
+        #gantt-chart { overflow-x: auto; margin-bottom: 30px; }
+        .gantt .bar-label { fill: #fff; font-size: 12px; }
+        .gantt .bar-progress { fill: var(--success-color); opacity: 0.6; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>
+            <a href="homepage.html" style="text-decoration: none; color: var(--accent-color); font-weight: 600; margin-right: 15px;">&larr; Homepage</a>
+            <a href="cycle_count.html" style="text-decoration: none; color: var(--accent-color); font-weight: 600;">&larr; Cycle Count</a>
+        </div>
+    </div>
+
     <h1>Cycle Count Schedule</h1>
 
     <div class="schedule-form">
@@ -108,6 +128,9 @@
             <button id="addBtn" onclick="addSchedule()">Schedule Count</button>
         </div>
     </div>
+
+    <h2>Schedule Timeline</h2>
+    <div id="gantt-chart"></div>
 
     <h2>Upcoming Counts</h2>
     <div style="margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-end;">
@@ -138,11 +161,14 @@
             <!-- Rows will be populated by JavaScript -->
         </tbody>
     </table>
+    <div id="pagination" class="pagination"></div>
 </div>
 
 <script>
     const STORAGE_KEY = 'ims_cycle_count_schedule_v1';
     let schedules = [];
+    let currentPage = 1;
+    const itemsPerPage = 5;
 
     function loadSchedules() {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -155,17 +181,88 @@
             }
         }
         renderTable();
+        renderGantt();
     }
 
     function saveSchedules() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules));
     }
 
+    function renderGantt() {
+        const ganttContainer = document.getElementById('gantt-chart');
+        if (schedules.length === 0) {
+            ganttContainer.innerHTML = '<p style="color:#666; font-style:italic;">No schedules to display.</p>';
+            return;
+        }
+        ganttContainer.innerHTML = ''; // Clear previous
+
+        const tasks = schedules.map(s => {
+            // Frappe Gantt expects YYYY-MM-DD
+            return {
+                id: s.id,
+                name: s.location,
+                start: s.date,
+                end: s.date, // Single day event
+                progress: s.status === 'completed' ? 100 : 0,
+                dependencies: '',
+                custom_class: s.status === 'completed' ? 'bar-completed' : 'bar-pending'
+            };
+        });
+
+        new Gantt("#gantt-chart", tasks, {
+            header_height: 50,
+            column_width: 30,
+            step: 24,
+            view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+            bar_height: 25,
+            bar_corner_radius: 3,
+            arrow_curve: 5,
+            padding: 18,
+            view_mode: 'Day',
+            date_format: 'YYYY-MM-DD',
+            popup_trigger: 'click mouseover',
+            custom_popup_html: function(task) {
+                const item = schedules.find(s => s.id === task.id);
+                return `
+                <div class="details-container" style="padding:10px; background:#fff; border:1px solid #eee; border-radius:4px; box-shadow:0 2px 5px rgba(0,0,0,0.1); width: 200px;">
+                  <h5 style="margin:0 0 5px 0;">${task.name}</h5>
+                  <p style="margin:0; font-size:12px; color:#666;">Assigned: ${item ? item.assignee : 'N/A'}</p>
+                  <p style="margin:0; font-size:12px; color:#666;">Date: ${task.start}</p>
+                </div>
+                `;
+            }
+        });
+    }
+
     function renderTable() {
         const tableBody = document.getElementById('tableBody');
+        const paginationDiv = document.getElementById('pagination');
         tableBody.innerHTML = '';
         
-        schedules.forEach(item => {
+        // Filter logic
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const assigneeFilter = document.getElementById('assigneeFilter').value.toLowerCase();
+
+        const filtered = schedules.filter(item => {
+            const statusMatch = statusFilter === 'all' || item.status.toLowerCase().includes(statusFilter);
+            const assigneeMatch = item.assignee.toLowerCase().includes(assigneeFilter);
+            return statusMatch && assigneeMatch;
+        });
+
+        // Pagination logic
+        const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = filtered.slice(start, end);
+
+        if (pageItems.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#666;">No schedules found.</td></tr>';
+        }
+
+        pageItems.forEach(item => {
             const row = document.createElement('tr');
             
             const statusHtml = item.status === 'completed' 
@@ -188,7 +285,17 @@
             tableBody.appendChild(row);
         });
 
-        filterTable();
+        // Render Pagination Controls
+        paginationDiv.innerHTML = `
+            <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
+            <span>Page ${currentPage} of ${totalPages}</span>
+            <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+        `;
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        renderTable();
     }
 
     function addSchedule() {
@@ -212,6 +319,7 @@
         schedules.push(newItem);
         saveSchedules();
         renderTable();
+        renderGantt();
 
         // Clear inputs
         document.getElementById('location').value = '';
@@ -224,6 +332,7 @@
             schedules = schedules.filter(s => s.id !== id);
             saveSchedules();
             renderTable();
+            renderGantt();
         }
     }
 
@@ -233,29 +342,13 @@
             item.status = 'completed';
             saveSchedules();
             renderTable();
+            renderGantt();
         }
     }
 
     function filterTable() {
-        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-        const assigneeFilter = document.getElementById('assigneeFilter').value.toLowerCase();
-        const tableBody = document.getElementById('tableBody');
-        const rows = tableBody.getElementsByTagName('tr');
-
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const assigneeText = row.cells[2].textContent.toLowerCase();
-            const statusText = row.cells[3].textContent.toLowerCase();
-
-            const statusMatch = statusFilter === 'all' || statusText.includes(statusFilter);
-            const assigneeMatch = assigneeText.includes(assigneeFilter);
-
-            if (statusMatch && assigneeMatch) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        }
+        currentPage = 1;
+        renderTable();
     }
 
     function escapeHtml(text) {
