@@ -60,6 +60,15 @@
       body.dark-mode .pagination-controls { border-top-color: #333; }
       body.dark-mode .pagination-controls select { background-color: #2c2c2c; color: #fff; border-color: #444; }
 
+      /* Row highlighting */
+      #docs-table tbody tr {
+        transition: background-color 0.15s ease;
+      }
+      #docs-table tbody tr:hover {
+        background-color: #f1f6fd;
+      }
+      body.dark-mode #docs-table tbody tr:hover { background-color: #2a2a2a; }
+
       /* Outlook-style action buttons: smaller, transparent, and appear on hover */
       #docs-table tbody tr .actions .icon-btn {
         opacity: 0;
@@ -78,6 +87,7 @@
         background-color: rgba(0,0,0,0.08);
         color: var(--accent);
         transform: none; /* Disable the lift effect */
+        z-index: 100; /* Ensure tooltip overlays the row */
       }
       #docs-table tbody tr .actions .icon-btn.delete:hover {
         background-color: rgba(231, 76, 60, 0.1);
