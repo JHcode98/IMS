@@ -70,9 +70,12 @@
       body.dark-mode #docs-table tbody tr:hover { background-color: #2a2a2a; }
 
       /* Outlook-style action buttons: smaller, transparent, and appear on hover */
-      #docs-table tbody tr .actions .icon-btn {
+      #docs-table tbody tr .actions .icon-btn,
+      #docs-table tbody tr .actions .returned-label {
         opacity: 0;
         transition: opacity 0.2s, background-color 0.2s;
+      }
+      #docs-table tbody tr .actions .icon-btn {
         padding: 4px; /* Make button smaller */
         background: transparent; /* Remove default gradient */
         color: var(--muted); /* Use a more subtle color for the icon */
@@ -80,7 +83,9 @@
         border: none;
       }
       #docs-table tbody tr:hover .actions .icon-btn,
-      #docs-table tbody tr:focus-within .actions .icon-btn {
+      #docs-table tbody tr:focus-within .actions .icon-btn,
+      #docs-table tbody tr:hover .actions .returned-label,
+      #docs-table tbody tr:focus-within .actions .returned-label {
         opacity: 1;
       }
       #docs-table tbody tr .actions .icon-btn:hover {
