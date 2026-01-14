@@ -6,6 +6,7 @@
   <title>Daily Cycle Counters - IMS</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     /* Dark Mode Header */
     body.dark-mode header { background: #1a252f; border-bottom: 1px solid #2c3e50; }
@@ -312,13 +313,13 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
-                <button id="email-hourly-btn" class="icon-btn" title="Email Report" style="margin-right:5px;">
+                <button id="email-hourly-btn" class="icon-btn" title="Email Report (Text)" style="margin-right:5px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                 </button>
                 <button id="clear-hourly-btn" class="icon-btn" title="Clear Actuals" style="margin-right:5px; color:#e74c3c;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                 </button>
-                <button id="share-hourly-btn" class="icon-btn" title="Share Report" style="margin-right:5px;">
+                <button id="share-hourly-btn" class="icon-btn" title="Visualize & Share" style="margin-right:5px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                 </button>
                 <button id="export-hourly-btn" class="icon-btn" title="Export CSV" style="margin-right:5px;">
@@ -328,11 +329,33 @@
                 <button class="icon-btn close-modal">&times;</button>
             </div>
         </div>
+        <div id="hourly-report-content" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
         <div style="position:relative; height:400px; width:100%;">
             <canvas id="hourly-chart"></canvas>
         </div>
         <div id="hourly-details" style="margin-top:20px; flex: 1; overflow-y: auto;">
             <!-- Hourly input fields will be generated here -->
+        </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Snapshot Modal -->
+  <div id="snapshot-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 900px; margin: 50px auto; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0">Report Snapshot</h3>
+            <button class="icon-btn close-modal">&times;</button>
+        </div>
+        <div id="snapshot-container" style="overflow:auto; max-height:60vh; border:1px solid #eee; margin-bottom:15px;"></div>
+        <div style="display:flex; justify-content:center; gap:10px;">
+            <button id="snapshot-share-btn" class="icon-btn" style="background:#2752a7; color:white; padding:8px 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg> Share Image
+            </button>
+            <button id="snapshot-download-btn" class="icon-btn" style="background:#fff; color:#333; border:1px solid #ccc; padding:8px 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download
+            </button>
         </div>
     </div>
   </div>
@@ -363,6 +386,11 @@
         
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
+        const snapshotModal = document.getElementById('snapshot-modal');
+        const snapshotContainer = document.getElementById('snapshot-container');
+        const snapshotShareBtn = document.getElementById('snapshot-share-btn');
+        const snapshotDownloadBtn = document.getElementById('snapshot-download-btn');
+        let currentSnapshotBlob = null;
         let hourlyChart = null;
 
         // Flip elements
@@ -803,35 +831,84 @@
             return text;
         }
 
-        // Share Hourly Report
+        // Share Hourly Report (Visualize)
         const shareHourlyBtn = document.getElementById('share-hourly-btn');
         if (shareHourlyBtn) {
             shareHourlyBtn.addEventListener('click', async () => {
-                const text = getHourlyReportText();
-                const canvas = document.getElementById('hourly-chart');
+                const content = document.getElementById('hourly-report-content');
+                const details = document.getElementById('hourly-details');
                 
-                if (navigator.canShare && navigator.share && canvas) {
-                    canvas.toBlob(async (blob) => {
-                        const file = new File([blob], "hourly_chart.png", { type: "image/png" });
-                        const shareData = {
-                            title: 'Hourly Output Report',
-                            text: text,
-                            files: [file]
-                        };
-                        try {
-                            if (navigator.canShare(shareData)) {
-                                await navigator.share(shareData);
-                            } else {
-                                // Fallback without file
-                                await navigator.share({ title: 'Hourly Output Report', text: text });
-                            }
-                        } catch (err) {
-                            console.error(err);
-                        }
+                // Temporarily expand details for full capture
+                const originalOverflow = details.style.overflow;
+                const originalHeight = details.style.height;
+                const originalFlex = details.style.flex;
+                
+                details.style.overflow = 'visible';
+                details.style.height = 'auto';
+                details.style.flex = 'none';
+                
+                try {
+                    const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#ffffff' });
+                    
+                    // Restore styles
+                    details.style.overflow = originalOverflow;
+                    details.style.height = originalHeight;
+                    details.style.flex = originalFlex;
+                    
+                    snapshotContainer.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png');
+                    img.style.maxWidth = '100%';
+                    snapshotContainer.appendChild(img);
+                    
+                    canvas.toBlob(blob => {
+                        currentSnapshotBlob = blob;
+                        snapshotModal.classList.remove('hidden');
                     });
-                } else {
-                    navigator.clipboard.writeText(text).then(() => alert('Report summary (text only) copied to clipboard!'));
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to generate image snapshot.');
+                    // Restore styles in case of error
+                    details.style.overflow = originalOverflow;
+                    details.style.height = originalHeight;
+                    details.style.flex = originalFlex;
                 }
+            });
+        }
+
+        if (snapshotShareBtn) {
+            snapshotShareBtn.addEventListener('click', async () => {
+                if (!currentSnapshotBlob) return;
+                const file = new File([currentSnapshotBlob], "hourly_report.png", { type: "image/png" });
+                
+                if (navigator.canShare && navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: 'Hourly Output Report',
+                            text: 'Here is the hourly output report.',
+                            files: [file]
+                        });
+                    } catch (err) {
+                        console.error(err);
+                        alert('Sharing failed or cancelled.');
+                    }
+                } else {
+                    alert('Web Share API not supported on this browser. Please use Download.');
+                }
+            });
+        }
+
+        if (snapshotDownloadBtn) {
+            snapshotDownloadBtn.addEventListener('click', () => {
+                if (!currentSnapshotBlob) return;
+                const url = URL.createObjectURL(currentSnapshotBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hourly_report_${new Date().toISOString().slice(0,10)}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             });
         }
 
