@@ -61,6 +61,10 @@
         border-top-color: transparent;
         border-bottom-color: #2c3e50;
     }
+    main.full-view-counters #attendance-card,
+    main.full-view-attendance .flip-container {
+        display: none;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -102,6 +106,15 @@
   </header>
 
   <main>
+    <div class="card" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 15px;">
+      <strong style="color: var(--accent);">Global Date Filter:</strong>
+      <label for="global-start-date">From:</label>
+      <input type="date" id="global-start-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+      <label for="global-end-date">To:</label>
+      <input type="date" id="global-end-date" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+      <button id="apply-global-filter" class="icon-btn" title="Apply Filter" style="background: #2752a7; color: white;">Filter</button>
+      <button id="clear-global-filter" class="icon-btn" title="Clear Filter">Clear</button>
+    </div>
     <div class="flip-container" id="counters-flip-container">
       <div class="flip-inner">
         <!-- Front: Manage Counters -->
@@ -113,6 +126,9 @@
         </div>
         <div style="display:flex; gap:5px;">
             <input type="text" id="counters-search" placeholder="Search date or shift..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button id="clear-counters-filters-btn" class="icon-btn" title="Clear Filters">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            </button>
             <button id="view-productivity-btn" class="icon-btn" title="View Productivity (Target vs Actual)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </button>
@@ -217,6 +233,9 @@
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <input type="text" id="att-search" placeholder="Search name..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button id="print-att-btn" class="icon-btn" title="Print List">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            </button>
             <button id="delete-selected-att-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; display:none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
             </button>
@@ -402,8 +421,12 @@
         const attForm = document.getElementById('att-modal-form');
         const addAttBtn = document.getElementById('add-att-btn');
         const exportAttBtn = document.getElementById('export-att-btn');
+        const printAttBtn = document.getElementById('print-att-btn');
         const attSearchInput = document.getElementById('att-search');
         const countersSearchInput = document.getElementById('counters-search');
+        const clearCountersFiltersBtn = document.getElementById('clear-counters-filters-btn');
+        const globalStartDate = document.getElementById('global-start-date');
+        const globalEndDate = document.getElementById('global-end-date');
         
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
@@ -491,6 +514,19 @@
                     item.date.toLowerCase().includes(searchTerm) || 
                     item.shift.toLowerCase().includes(searchTerm)
                 );
+            }
+
+            // Global Date Filter
+            if (globalStartDate.value || globalEndDate.value) {
+                const start = globalStartDate.value ? new Date(globalStartDate.value) : null;
+                if (start) start.setHours(0,0,0,0);
+                const end = globalEndDate.value ? new Date(globalEndDate.value) : null;
+                if (end) end.setHours(23,59,59,999);
+
+                data = data.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return (!start || itemDate >= start) && (!end || itemDate <= end);
+                });
             }
             
             // Group by Date
@@ -606,6 +642,16 @@
 
         if (countersSearchInput) {
             countersSearchInput.addEventListener('input', () => {
+                countersCurrentPage = 1;
+                renderCountersTable();
+            });
+        }
+
+        if (clearCountersFiltersBtn) {
+            clearCountersFiltersBtn.addEventListener('click', () => {
+                if (countersSearchInput) countersSearchInput.value = '';
+                showArchiveOnly = false;
+                if (archiveBtn) archiveBtn.classList.remove('active-filter');
                 countersCurrentPage = 1;
                 renderCountersTable();
             });
@@ -1090,13 +1136,23 @@
             return (h > 0 ? h + 'h ' : '') + m + 'm';
         }
 
-        function renderAttendanceTable() {
-            if (!attendanceTableBody) return;
-            const attRowsPerPageSelect = document.getElementById('att-rows-per-page');
-            if (attRowsPerPageSelect) attItemsPerPage = parseInt(attRowsPerPageSelect.value, 10);
+        function getFilteredAttendanceData() {
+            let data = getAttendanceData();
 
-            let data = getAttendanceData().sort((a, b) => new Date(b.date) - new Date(a.date));
-            
+            // Global date filter
+            if (globalStartDate.value || globalEndDate.value) {
+                const start = globalStartDate.value ? new Date(globalStartDate.value) : null;
+                if (start) start.setHours(0,0,0,0);
+                const end = globalEndDate.value ? new Date(globalEndDate.value) : null;
+                if (end) end.setHours(23,59,59,999);
+
+                data = data.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return (!start || itemDate >= start) && (!end || itemDate <= end);
+                });
+            }
+
+            // Search filter
             const searchTerm = attSearchInput ? attSearchInput.value.toLowerCase() : '';
             if (searchTerm) {
                 data = data.filter(item => 
@@ -1105,6 +1161,16 @@
                     (item.area && item.area.toLowerCase().includes(searchTerm))
                 );
             }
+            
+            return data.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
+        function renderAttendanceTable() {
+            if (!attendanceTableBody) return;
+            const attRowsPerPageSelect = document.getElementById('att-rows-per-page');
+            if (attRowsPerPageSelect) attItemsPerPage = parseInt(attRowsPerPageSelect.value, 10);
+
+            let data = getFilteredAttendanceData();
 
             // Pagination
             const totalItems = data.length;
@@ -1148,6 +1214,43 @@
                     </td>
                 `;
                 attendanceTableBody.appendChild(tr);
+            });
+        }
+
+        if (printAttBtn) {
+            printAttBtn.addEventListener('click', () => {
+                const dataToPrint = getFilteredAttendanceData();
+                if (dataToPrint.length === 0) {
+                    alert('No records to print.');
+                    return;
+                }
+
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Attendance Report</title>');
+                printWindow.document.write('<style>body{font-family:sans-serif;font-size:12px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:6px;text-align:left;} th{background:#f0f0f0;} .sig{height:40px;}</style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write('<h2>Attendance Report</h2>');
+                printWindow.document.write(`<p>Generated: ${new Date().toLocaleString()}</p>`);
+                printWindow.document.write('<table><thead><tr>');
+                const headers = ['Date', 'Shift', 'Name', 'Role', 'Area', 'Signature'];
+                headers.forEach(h => printWindow.document.write(`<th>${h}</th>`));
+                printWindow.document.write('</tr></thead><tbody>');
+
+                dataToPrint.forEach(item => {
+                    printWindow.document.write('<tr>');
+                    printWindow.document.write(`<td>${item.date}</td>`);
+                    printWindow.document.write(`<td>${item.shift}</td>`);
+                    printWindow.document.write(`<td>${item.name}</td>`);
+                    printWindow.document.write(`<td>${item.role || '-'}</td>`);
+                    printWindow.document.write(`<td>${item.area || '-'}</td>`);
+                    printWindow.document.write('<td class="sig"></td>'); // Empty signature cell
+                    printWindow.document.write('</tr>');
+                });
+
+                printWindow.document.write('</tbody></table>');
+                printWindow.document.write('<script>window.onload=function(){window.print();window.close();}<\/script>');
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
             });
         }
 
@@ -1440,17 +1543,29 @@
         }
 
         // Expand/Collapse Card Logic
-        document.querySelectorAll('.expand-toggle-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const card = e.target.closest('.card');
-                const content = card.querySelector('.card-content');
-                if (content) {
-                    content.classList.toggle('hidden');
-                    const isHidden = content.classList.contains('hidden');
-                    btn.title = isHidden ? 'Expand' : 'Collapse';
-                    btn.innerHTML = isHidden ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+        const countersToggleButton = document.querySelector('#manage-counters-card .expand-toggle-btn');
+        const attendanceToggleButton = document.querySelector('#attendance-card .expand-toggle-btn');
+        const mainEl = document.querySelector('main');
+
+        function updateToggleButtons() {
+            const isCountersFull = mainEl.classList.contains('full-view-counters');
+            const isAttendanceFull = mainEl.classList.contains('full-view-attendance');
+            const fullViewActive = isCountersFull || isAttendanceFull;
+
+            [countersToggleButton, attendanceToggleButton].forEach(btn => {
+                if (btn) {
+                    const isMyCardFull = (btn === countersToggleButton && isCountersFull) || (btn === attendanceToggleButton && isAttendanceFull);
+                    btn.title = isMyCardFull ? 'Show All' : 'Expand';
+                    btn.innerHTML = isMyCardFull ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
                 }
             });
+        }
+
+        if (countersToggleButton) countersToggleButton.addEventListener('click', () => {
+            mainEl.classList.remove('full-view-attendance'); mainEl.classList.toggle('full-view-counters'); updateToggleButtons();
+        });
+        if (attendanceToggleButton) attendanceToggleButton.addEventListener('click', () => {
+            mainEl.classList.remove('full-view-counters'); mainEl.classList.toggle('full-view-attendance'); updateToggleButtons();
         });
 
         // Productivity / Flip Logic
@@ -1463,6 +1578,21 @@
         if(backToCountersBtn && flipContainer) {
             backToCountersBtn.addEventListener('click', () => {
                 flipContainer.classList.remove('flipped');
+            });
+        }
+
+        // Global Filter Logic
+        const applyGlobalFilterBtn = document.getElementById('apply-global-filter');
+        const clearGlobalFilterBtn = document.getElementById('clear-global-filter');
+        if (applyGlobalFilterBtn) {
+            applyGlobalFilterBtn.addEventListener('click', () => {
+                renderCountersTable(); renderAttendanceTable();
+            });
+        }
+        if (clearGlobalFilterBtn) {
+            clearGlobalFilterBtn.addEventListener('click', () => {
+                globalStartDate.value = ''; globalEndDate.value = '';
+                renderCountersTable(); renderAttendanceTable();
             });
         }
 
