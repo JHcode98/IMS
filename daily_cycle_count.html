@@ -35,6 +35,13 @@
         min-width: 300px;
         min-height: 200px;
     }
+    /* Full height chart container for back card */
+    .chart-container-back {
+        flex: 1;
+        position: relative;
+        width: 100%;
+        min-height: 0;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -154,14 +161,14 @@
         </div>
         
         <!-- Back: Productivity View -->
-        <div class="flip-back card resizable-box">
+        <div class="flip-back card resizable-box" style="display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h2 style="margin:0;">Productivity: Target vs Actual</h2>
                 <button id="back-to-counters-btn" class="icon-btn" title="Back">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
                 </button>
             </div>
-            <div style="position:relative; height:400px; width:100%;">
+            <div class="chart-container-back">
                 <canvas id="productivity-chart"></canvas>
             </div>
         </div>
@@ -286,7 +293,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
-                <button id="save-hourly-targets-btn" class="icon-btn" title="Save Hourly Targets" style="background:#2752a7; color:white;">Save Targets</button>
+                <button id="save-hourly-targets-btn" class="icon-btn" title="Save Hourly Data" style="background:#2752a7; color:white;">Save Data</button>
                 <button class="icon-btn close-modal">&times;</button>
             </div>
         </div>
@@ -507,33 +514,44 @@
              const hourlyData = {};
              const hourlyTargets = {};
              const defaultHourlyTarget = counterEntry && counterEntry.targetOutput > 0 ? Math.round(counterEntry.targetOutput / 8) : 0;
+             const savedActuals = counterEntry && counterEntry.hourlyActuals ? counterEntry.hourlyActuals : null;
 
              // Initialize hours
              for (let d = new Date(start); d < end; d.setHours(d.getHours() + 1)) {
                  const h = d.getHours();
                  const label = `${h}:00 - ${h+1}:00`;
-                 hourlyData[label] = 0;
+                 
+                 if (savedActuals && savedActuals[label] !== undefined) {
+                     hourlyData[label] = savedActuals[label];
+                 } else {
+                     hourlyData[label] = 0;
+                 }
+                 
                  // Use saved hourly target or default
                  const savedTarget = counterEntry && counterEntry.hourlyTargets && counterEntry.hourlyTargets[label];
                  hourlyTargets[label] = savedTarget !== undefined ? savedTarget : defaultHourlyTarget;
              }
  
-             cycleCounts.forEach(c => {
-                 const ts = c.createdDate || c.date;
-                 if (ts) {
-                     const d = new Date(ts);
-                     if (d >= start && d < end) {
-                         const h = d.getHours();
-                         const label = `${h}:00 - ${h+1}:00`;
-                         if (hourlyData.hasOwnProperty(label)) hourlyData[label]++;
+             // Only calculate from cycleCounts if no manual actuals are saved
+             if (!savedActuals) {
+                 cycleCounts.forEach(c => {
+                     const ts = c.createdDate || c.date;
+                     if (ts) {
+                         const d = new Date(ts);
+                         if (d >= start && d < end) {
+                             const h = d.getHours();
+                             const label = `${h}:00 - ${h+1}:00`;
+                             if (hourlyData.hasOwnProperty(label)) hourlyData[label]++;
+                         }
                      }
-                 }
-             });
+                 });
+             }
  
              // Build details table and populate targets
              Object.keys(hourlyData).forEach(label => {
                 hourlyDetailsHtml += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 5px 0;">
-                    <div>${label}</div><div>${hourlyData[label]}</div>
+                    <div>${label}</div>
+                    <div><input type="number" class="hourly-actual-input" data-hour="${label}" value="${hourlyData[label]}" style="width: 80px; padding: 4px;"></div>
                     <div><input type="number" class="hourly-target-input" data-hour="${label}" value="${hourlyTargets[label]}" style="width: 80px; padding: 4px;"></div></div>`;
              });
              hourlyDetailsContainer.innerHTML = hourlyDetailsHtml;
@@ -580,6 +598,8 @@
 
                 if (counterIndex > -1) {
                     if (!counters[counterIndex].hourlyTargets) counters[counterIndex].hourlyTargets = {};
+                    if (!counters[counterIndex].hourlyActuals) counters[counterIndex].hourlyActuals = {};
+                    
                     document.querySelectorAll('.hourly-target-input').forEach(input => {
                         const hour = input.dataset.hour;
                         const value = parseInt(input.value, 10);
@@ -587,8 +607,22 @@
                             counters[counterIndex].hourlyTargets[hour] = value;
                         }
                     });
+                    document.querySelectorAll('.hourly-actual-input').forEach(input => {
+                        const hour = input.dataset.hour;
+                        const value = parseInt(input.value, 10);
+                        if (!isNaN(value) && value >= 0) {
+                            counters[counterIndex].hourlyActuals[hour] = value;
+                        }
+                    });
+                    
                     saveCountersData(counters);
-                    alert('Hourly targets saved!');
+                    alert('Hourly data saved!');
+                    // Refresh chart in modal
+                    openHourlyModal(dateStr, shift);
+                    // Refresh main productivity chart if visible
+                    if (document.getElementById('counters-flip-container').classList.contains('flipped')) {
+                        renderProductivityChart();
+                    }
                 }
             });
         }
@@ -1026,7 +1060,14 @@
                 labels.push(`${c.date} (${c.shift.split('-')[0]})`);
                 targetData.push(c.targetOutput || 0);
                 const key = `${c.date}|${c.shift}`;
-                actualData.push(actualsMap[key] || 0);
+                
+                let actual = 0;
+                if (c.hourlyActuals) {
+                    actual = Object.values(c.hourlyActuals).reduce((a, b) => a + (Number(b)||0), 0);
+                } else {
+                    actual = actualsMap[key] || 0;
+                }
+                actualData.push(actual);
             });
 
             if(productivityChart) productivityChart.destroy();
