@@ -441,60 +441,71 @@
         }
 
         function openHourlyModal(dateStr, shift) {
-            document.getElementById('hourly-modal-title').textContent = `Hourly Output: ${dateStr} (${shift.split('-')[0]})`;
-            hourlyModal.classList.remove('hidden');
-            
-            // Determine time range
-            const start = new Date(dateStr);
-            const end = new Date(dateStr);
-            
-            if (shift.includes('1st Shift')) {
-                start.setHours(6,0,0,0); end.setHours(14,0,0,0);
-            } else if (shift.includes('2nd Shift')) {
-                start.setHours(14,0,0,0); end.setHours(22,0,0,0);
-            } else { // 3rd Shift
-                start.setHours(22,0,0,0); 
-                end.setDate(end.getDate() + 1); end.setHours(6,0,0,0);
-            }
-
-            // Fetch and filter data
-            let cycleCounts = [];
-            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
-            
-            const hourlyData = {};
-            // Initialize hours
-            for (let d = new Date(start); d < end; d.setHours(d.getHours() + 1)) {
-                const h = d.getHours();
-                const label = `${h}:00 - ${h+1}:00`;
-                hourlyData[label] = 0;
-            }
-
-            cycleCounts.forEach(c => {
-                const ts = c.createdDate || c.date;
-                if (ts) {
-                    const d = new Date(ts);
-                    if (d >= start && d < end) {
-                        const h = d.getHours();
-                        const label = `${h}:00 - ${h+1}:00`;
-                        if (hourlyData.hasOwnProperty(label)) hourlyData[label]++;
-                    }
-                }
-            });
-
-            const ctx = document.getElementById('hourly-chart');
-            if (hourlyChart) hourlyChart.destroy();
-            hourlyChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(hourlyData),
-                    datasets: [{
-                        label: 'Items Counted',
-                        data: Object.values(hourlyData),
-                        backgroundColor: '#36b9cc'
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
+             document.getElementById('hourly-modal-title').textContent = `Hourly Output: ${dateStr} (${shift.split('-')[0]})`;
+             hourlyModal.classList.remove('hidden');
+             
+             // Determine time range
+             const start = new Date(dateStr);
+             const end = new Date(dateStr);
+             
+             if (shift.includes('1st Shift')) {
+                 start.setHours(6,0,0,0); end.setHours(14,0,0,0);
+             } else if (shift.includes('2nd Shift')) {
+                 start.setHours(14,0,0,0); end.setHours(22,0,0,0);
+             } else { // 3rd Shift
+                 start.setHours(22,0,0,0); 
+                 end.setDate(end.getDate() + 1); end.setHours(6,0,0,0);
+             }
+ 
+             // Fetch and filter data
+             let cycleCounts = [];
+             try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+             
+             const hourlyData = {};
+             // Initialize hours
+             for (let d = new Date(start); d < end; d.setHours(d.getHours() + 1)) {
+                 const h = d.getHours();
+                 const label = `${h}:00 - ${h+1}:00`;
+                 hourlyData[label] = 0;
+             }
+ 
+             cycleCounts.forEach(c => {
+                 const ts = c.createdDate || c.date;
+                 if (ts) {
+                     const d = new Date(ts);
+                     if (d >= start && d < end) {
+                         const h = d.getHours();
+                         const label = `${h}:00 - ${h+1}:00`;
+                         if (hourlyData.hasOwnProperty(label)) hourlyData[label]++;
+                     }
+                 }
+             });
+ 
+             // Calculate cumulative data
+             const hourlyValues = Object.values(hourlyData);
+             const cumulativeData = [];
+             let sum = 0;
+             for (const value of hourlyValues) {
+                 sum += value;
+                 cumulativeData.push(sum);
+             }
+ 
+             const ctx = document.getElementById('hourly-chart');
+             if (hourlyChart) hourlyChart.destroy();
+             hourlyChart = new Chart(ctx, {
+                 type: 'bar',
+                 data: {
+                     labels: Object.keys(hourlyData),
+                     datasets: [
+                         { label: 'Hourly Output', data: hourlyValues, backgroundColor: '#36b9cc' },
+                         { label: 'Cumulative Total', data: cumulativeData, type: 'line', borderColor: '#e74c3c', backgroundColor: 'transparent', tension: 0.1, yAxisID: 'y' }
+                     ]
+                 },
+                 options: { 
+                     responsive: true, maintainAspectRatio: false, 
+                     scales: { y: { beginAtZero: true, title: { display: true, text: 'Items Counted' } } } 
+                 }
+             });
         }
 
         if (exportCountersBtn) {
@@ -739,7 +750,10 @@
         }
 
         document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', () => attModal.classList.add('hidden'));
+            btn.addEventListener('click', (e) => {
+                const modal = e.target.closest('.modal');
+                if (modal) modal.classList.add('hidden');
+            });
         });
 
         if (attForm) {
