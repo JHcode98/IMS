@@ -61,6 +61,11 @@
         border-top-color: transparent;
         border-bottom-color: #2c3e50;
     }
+    /* Sortable headers */
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background-color: #f1f1f1; }
+    .sort-icon { margin-left: 5px; font-size: 10px; }
+    body.dark-mode th.sortable:hover { background-color: #333; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -231,7 +236,18 @@
             <h2 style="margin:0;">Attendance Sheet</h2>
             <button class="icon-btn expand-toggle-btn" title="Collapse" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
         </div>
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <select id="att-filter-role" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <option value="">All Roles</option>
+                <option value="Counter">Counter</option>
+                <option value="IC Support">IC Support</option>
+                <option value="IC Back up">IC Back up</option>
+            </select>
+            <select id="att-filter-area" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+                <option value="">All Areas</option>
+                <option value="Pick Bin">Pick Bin</option>
+                <option value="Reserved Bin">Reserved Bin</option>
+            </select>
             <input type="text" id="att-search" placeholder="Search name..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
             <button id="print-att-btn" class="icon-btn" title="Print List">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -253,14 +269,14 @@
               <thead>
                   <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
                       <th style="padding: 12px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-att" title="Select All"></th>
-                      <th style="padding: 12px; text-align: left;">Date</th>
-                      <th style="padding: 12px; text-align: left;">Shift</th>
-                      <th style="padding: 12px; text-align: left;">Name</th>
-                      <th style="padding: 12px; text-align: left;">Role</th>
-                      <th style="padding: 12px; text-align: left;">Area</th>
+                      <th class="sortable" data-sort="date" style="padding: 12px; text-align: left;">Date <span class="sort-icon"></span></th>
+                      <th class="sortable" data-sort="shift" style="padding: 12px; text-align: left;">Shift <span class="sort-icon"></span></th>
+                      <th class="sortable" data-sort="name" style="padding: 12px; text-align: left;">Name <span class="sort-icon"></span></th>
+                      <th class="sortable" data-sort="role" style="padding: 12px; text-align: left;">Role <span class="sort-icon"></span></th>
+                      <th class="sortable" data-sort="area" style="padding: 12px; text-align: left;">Area <span class="sort-icon"></span></th>
                       <th style="padding: 12px; text-align: left;">Break Out</th>
                       <th style="padding: 12px; text-align: left;">Break In</th>
-                      <th style="padding: 12px; text-align: left;">Duration</th>
+                      <th class="sortable" data-sort="duration" style="padding: 12px; text-align: left;">Duration <span class="sort-icon"></span></th>
                       <th style="padding: 12px; text-align: left;">Action</th>
                   </tr>
               </thead>
@@ -441,6 +457,8 @@
         const exportAttBtn = document.getElementById('export-att-btn');
         const printAttBtn = document.getElementById('print-att-btn');
         const attSearchInput = document.getElementById('att-search');
+        const attFilterRole = document.getElementById('att-filter-role');
+        const attFilterArea = document.getElementById('att-filter-area');
         const countersSearchInput = document.getElementById('counters-search');
         const deleteSelectedCountersBtn = document.getElementById('delete-selected-counters-btn');
         const clearCountersFiltersBtn = document.getElementById('clear-counters-filters-btn');
@@ -475,6 +493,8 @@
         let attItemsPerPage = 20;
         let countersCurrentPage = 1;
         let countersItemsPerPage = 7;
+        let attSortField = 'date';
+        let attSortDirection = 'desc';
 
         // Helper to set local date
         function setLocalDate(input) {
@@ -696,6 +716,60 @@
                 if (archiveBtn) archiveBtn.classList.remove('active-filter');
                 countersCurrentPage = 1;
                 renderCountersTable();
+            });
+        }
+
+        // Daily Counters Actions (Edit, Delete, Duplicate)
+        if (countersTableBody) {
+            countersTableBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const id = btn.dataset.id;
+
+                if (btn.classList.contains('delete-counter-btn')) {
+                    if(confirm('Delete this record?')) {
+                        let data = getCountersData();
+                        data = data.filter(item => item.id !== id);
+                        saveCountersData(data);
+                        renderCountersTable();
+                    }
+                } else if (btn.classList.contains('edit-counter-btn')) {
+                    const data = getCountersData();
+                    const item = data.find(i => i.id === id);
+                    if (item) {
+                        document.getElementById('counter-edit-id').value = item.id;
+                        document.getElementById('counter-date').value = item.date;
+                        document.getElementById('counter-shift').value = item.shift;
+                        document.getElementById('counter-required').value = item.required;
+                        document.getElementById('counter-rate').value = item.standardRate || '';
+                        document.getElementById('counter-target').value = item.targetOutput || '';
+                        document.getElementById('counter-note').value = item.note || '';
+                        
+                        saveCounterBtn.innerHTML = 'Update';
+                        cancelCounterEditBtn.style.display = 'inline-flex';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                } else if (btn.classList.contains('duplicate-counter-btn')) {
+                    const data = getCountersData();
+                    const item = data.find(i => i.id === id);
+                    if (item) {
+                        const d = new Date(item.date);
+                        d.setDate(d.getDate() + 1);
+                        const nextDate = d.toISOString().split('T')[0];
+                        
+                        const exists = data.find(x => x.date === nextDate && x.shift === item.shift);
+                        if (exists) {
+                            alert(`An entry for ${nextDate} - ${item.shift} already exists. Duplicate skipped.`);
+                            return;
+                        }
+                        
+                        const newItem = { ...item, id: Date.now().toString(), date: nextDate, hourlyActuals: {} };
+                        data.push(newItem);
+                        saveCountersData(data);
+                        renderCountersTable();
+                        alert(`Duplicated entry to ${nextDate}`);
+                    }
+                }
             });
         }
 
@@ -1204,7 +1278,32 @@
                 );
             }
             
-            return data.sort((a, b) => new Date(b.date) - new Date(a.date));
+            // Role and Area filters
+            const roleFilter = attFilterRole ? attFilterRole.value : '';
+            if (roleFilter) {
+                data = data.filter(item => item.role === roleFilter);
+            }
+            const areaFilter = attFilterArea ? attFilterArea.value : '';
+            if (areaFilter) {
+                data = data.filter(item => item.area === areaFilter);
+            }
+            
+            // Sorting
+            data.sort((a, b) => {
+                let valA = a[attSortField] || '';
+                let valB = b[attSortField] || '';
+                
+                if (attSortField === 'duration') {
+                    valA = getDuration(a.breakOut, a.breakIn);
+                    valB = getDuration(b.breakOut, b.breakIn);
+                }
+                
+                if (valA < valB) return attSortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return attSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            return data;
         }
 
         function renderAttendanceTable() {
@@ -1232,6 +1331,13 @@
                     document.getElementById('att-prev-page').disabled = attCurrentPage <= 1;
                     document.getElementById('att-next-page').disabled = attCurrentPage >= totalPages;
                 }
+            }
+            
+            // Update sort icons
+            document.querySelectorAll('#attendance-table th.sortable .sort-icon').forEach(icon => icon.textContent = '');
+            const activeHeader = document.querySelector(`#attendance-table th[data-sort="${attSortField}"]`);
+            if(activeHeader) {
+                activeHeader.querySelector('.sort-icon').textContent = attSortDirection === 'asc' ? '↑' : '↓';
             }
 
             if (paginatedData.length === 0) {
@@ -1377,6 +1483,23 @@
                 renderAttendanceTable();
             });
         }
+
+        // Attendance Sorting Listeners
+        document.querySelectorAll('#attendance-table th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const field = th.dataset.sort;
+                if (attSortField === field) {
+                    attSortDirection = attSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    attSortField = field;
+                    attSortDirection = 'asc';
+                }
+                renderAttendanceTable();
+            });
+        });
+
+        if (attFilterRole) attFilterRole.addEventListener('change', () => { attCurrentPage = 1; renderAttendanceTable(); });
+        if (attFilterArea) attFilterArea.addEventListener('change', () => { attCurrentPage = 1; renderAttendanceTable(); });
 
         const attPaginationControls = document.getElementById('att-pagination-controls');
         if (attPaginationControls) {
@@ -1659,6 +1782,13 @@
                 renderCountersTable(); renderAttendanceTable();
             });
         }
+
+        // Restore tooltips for buttons in tables (since app.js might strip titles)
+        setInterval(() => {
+            document.querySelectorAll('button[title]').forEach(btn => {
+                if(!btn.hasAttribute('data-tooltip')) btn.setAttribute('data-tooltip', btn.getAttribute('title'));
+            });
+        }, 2000);
 
         function getShiftFromTimestamp(ts) {
             const d = new Date(ts);
