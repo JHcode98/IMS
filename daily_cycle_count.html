@@ -670,6 +670,7 @@
                 tr.innerHTML = html;
                 countersTableBody.appendChild(tr);
             });
+            setTimeout(fixTooltips, 0);
         }
 
         if (countersTableBody) {
@@ -1374,6 +1375,7 @@
                 `;
                 attendanceTableBody.appendChild(tr);
             });
+            setTimeout(fixTooltips, 0);
         }
 
         if (printAttBtn) {
@@ -1772,7 +1774,8 @@
         if(viewProdBtn && flipContainer) {
             viewProdBtn.addEventListener('click', () => {
                 flipContainer.classList.add('flipped');
-                setTimeout(renderProductivityChart, 100);
+                renderProductivityChart();
+                setTimeout(() => { if(productivityChart) productivityChart.resize(); }, 600);
             });
         }
         if(backToCountersBtn && flipContainer) {
@@ -1860,14 +1863,14 @@
             });
         }
 
-        // Fix tooltips in tables (use native title to avoid clipping)
-        setInterval(() => {
-            const tableBtns = document.querySelectorAll('table button[data-tooltip]');
-            tableBtns.forEach(btn => {
+        // Fix tooltips globally to use native title (avoids clipping/z-index issues)
+        function fixTooltips() {
+            document.querySelectorAll('.icon-btn[data-tooltip]').forEach(btn => {
                 btn.setAttribute('title', btn.getAttribute('data-tooltip'));
                 btn.removeAttribute('data-tooltip');
             });
-        }, 2000);
+        }
+        setInterval(fixTooltips, 1000);
 
         function getShiftFromTimestamp(ts) {
             const d = new Date(ts);
@@ -1944,7 +1947,8 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
+                    scales: { y: { beginAtZero: true } },
+                    animation: false
                 }
             });
         }
