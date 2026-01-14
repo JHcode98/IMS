@@ -56,9 +56,14 @@
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2 style="margin:0;">Manage Daily Counters</h2>
-        <button id="archive-btn" class="icon-btn" title="Archive (Past Days)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
-        </button>
+        <div style="display:flex; gap:5px;">
+            <button id="export-counters-btn" class="icon-btn" title="Export CSV">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
+            <button id="archive-btn" class="icon-btn" title="Archive (Past Days)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+            </button>
+        </div>
       </div>
 
       <!-- Form -->
@@ -109,9 +114,12 @@
     <div class="card" style="margin-top: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2 style="margin:0;">Attendance Sheet</h2>
-        <button id="add-att-btn" class="icon-btn" style="background: #2752a7; color: white; padding: 8px 12px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Entry
-        </button>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="att-search" placeholder="Search name..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button id="add-att-btn" class="icon-btn" style="background: #2752a7; color: white; padding: 8px 12px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Entry
+            </button>
+        </div>
       </div>
       <div style="overflow-x: auto;">
           <table id="attendance-table" style="width:100%; border-collapse: collapse;">
@@ -202,6 +210,7 @@
         const cancelCounterEditBtn = document.getElementById('cancel-counter-edit-btn');
         const saveCounterBtn = document.getElementById('save-counter-btn');
         const archiveBtn = document.getElementById('archive-btn');
+        const exportCountersBtn = document.getElementById('export-counters-btn');
         const dateInput = document.getElementById('counter-date');
         
         const attendanceTableBody = document.querySelector('#attendance-table tbody');
@@ -210,6 +219,7 @@
         const attModal = document.getElementById('att-modal');
         const attForm = document.getElementById('att-modal-form');
         const addAttBtn = document.getElementById('add-att-btn');
+        const attSearchInput = document.getElementById('att-search');
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
         const STORAGE_KEY_ATTENDANCE = 'ims_daily_attendance_v1';
@@ -303,6 +313,51 @@
             });
         }
 
+        if (exportCountersBtn) {
+            exportCountersBtn.addEventListener('click', () => {
+                const counters = getCountersData();
+                const attendance = getAttendanceData();
+                
+                if (counters.length === 0) {
+                    alert('No data to export.');
+                    return;
+                }
+
+                // Sort by date desc, then shift
+                counters.sort((a, b) => {
+                    if (a.date !== b.date) return new Date(b.date) - new Date(a.date);
+                    return a.shift.localeCompare(b.shift);
+                });
+
+                const headers = ['Date', 'Shift', 'Required', 'Active', 'Completion %'];
+                const rows = [headers.join(',')];
+
+                counters.forEach(item => {
+                    const req = Number(item.required) || 1;
+                    const act = attendance.filter(a => a.date === item.date && a.shift === item.shift).length;
+                    const pct = Math.round((act / req) * 100);
+                    
+                    rows.push([
+                        item.date,
+                        `"${item.shift}"`,
+                        req,
+                        act,
+                        `${pct}%`
+                    ].join(','));
+                });
+
+                const csvContent = rows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'daily_counters_summary.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
         if (archiveBtn) {
             archiveBtn.addEventListener('click', () => {
                 showArchiveOnly = !showArchiveOnly;
@@ -324,7 +379,17 @@
 
         function renderAttendanceTable() {
             if (!attendanceTableBody) return;
-            const data = getAttendanceData().sort((a, b) => new Date(b.date) - new Date(a.date));
+            let data = getAttendanceData().sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const searchTerm = attSearchInput ? attSearchInput.value.toLowerCase() : '';
+            if (searchTerm) {
+                data = data.filter(item => 
+                    (item.name && item.name.toLowerCase().includes(searchTerm)) ||
+                    (item.role && item.role.toLowerCase().includes(searchTerm)) ||
+                    (item.area && item.area.toLowerCase().includes(searchTerm))
+                );
+            }
+
             attendanceTableBody.innerHTML = '';
             if (data.length === 0) {
                 attendanceTableBody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
@@ -348,6 +413,10 @@
                 `;
                 attendanceTableBody.appendChild(tr);
             });
+        }
+
+        if (attSearchInput) {
+            attSearchInput.addEventListener('input', renderAttendanceTable);
         }
 
         if (countersForm) {
