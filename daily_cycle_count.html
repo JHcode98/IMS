@@ -302,8 +302,20 @@
                     const item = grouped[date][shift];
                     if (item) {
                         const req = Number(item.required) || 1;
-                        const act = attendance.filter(a => a.date === item.date && a.shift === item.shift).length;
+                        const shiftAtt = attendance.filter(a => a.date === date && a.shift === shift);
+                        const act = shiftAtt.length;
                         const pct = Math.round((act / req) * 100);
+                        
+                        // Breakdowns
+                        const areaCounts = {};
+                        const roleCounts = {};
+                        shiftAtt.forEach(a => {
+                            if(a.area) areaCounts[a.area] = (areaCounts[a.area] || 0) + 1;
+                            if(a.role) roleCounts[a.role] = (roleCounts[a.role] || 0) + 1;
+                        });
+                        const areaStr = Object.entries(areaCounts).map(([k,v]) => `${k}: ${v}`).join(', ');
+                        const roleStr = Object.entries(roleCounts).map(([k,v]) => `${k}: ${v}`).join(', ');
+
                         let pctClass = 'completion-low';
                         if(pct >= 100) pctClass = 'completion-high';
                         else if(pct >= 80) pctClass = 'completion-med';
@@ -311,7 +323,9 @@
                         html += `
                         <td style="padding:12px;border-bottom:1px solid #eee; vertical-align:top;">
                             <div style="font-size:13px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong></div>
-                            <div class="${pctClass}" style="margin-top:4px;">${pct}% Completed</div>
+                            <div class="${pctClass}" style="margin-top:4px; margin-bottom:6px;">${pct}% Completed</div>
+                            ${areaStr ? `<div style="font-size:11px; color:#666; margin-bottom:2px;"><strong>Area:</strong> ${areaStr}</div>` : ''}
+                            ${roleStr ? `<div style="font-size:11px; color:#666; margin-bottom:4px;"><strong>Role:</strong> ${roleStr}</div>` : ''}
                             <div style="margin-top:6px;">
                                 <button class="icon-btn edit-counter-btn" data-id="${item.id}" title="Edit" style="padding:2px 6px; font-size:12px;">✎</button>
                                 <button class="icon-btn delete-counter-btn" data-id="${item.id}" title="Delete" style="padding:2px 6px; font-size:12px; color:#d9534f;">&times;</button>
@@ -440,7 +454,7 @@
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.area || '-'}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.breakOut || '-'}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.breakIn || '-'}</td>
-                    <td style="padding:12px;border-bottom:1px solid #eee; font-weight:bold; color:#555;">${getDuration(item.breakIn, item.breakOut)}</td>
+                    <td style="padding:12px;border-bottom:1px solid #eee; font-weight:bold; color:#555;">${getDuration(item.breakOut, item.breakIn)}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">
                         <button class="icon-btn edit-att-btn" data-id="${item.id}" title="Edit" style="margin-right:5px">✎</button>
                         <button class="icon-btn delete-att-btn" data-id="${item.id}" title="Delete" style="color:#d9534f">&times;</button>
