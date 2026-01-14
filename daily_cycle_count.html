@@ -312,6 +312,9 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
+                <button id="email-hourly-btn" class="icon-btn" title="Email Report" style="margin-right:5px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </button>
                 <button id="clear-hourly-btn" class="icon-btn" title="Clear Actuals" style="margin-right:5px; color:#e74c3c;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                 </button>
@@ -781,23 +784,65 @@
             });
         }
 
+        function getHourlyReportText() {
+            const dateStr = document.getElementById('hourly-date-val').value;
+            const shift = document.getElementById('hourly-shift-val').value;
+            const tAct = document.getElementById('hourly-total-act') ? document.getElementById('hourly-total-act').textContent : '0';
+            const tTgt = document.getElementById('hourly-total-tgt') ? document.getElementById('hourly-total-tgt').textContent : '0';
+            const tVar = document.getElementById('hourly-total-var') ? document.getElementById('hourly-total-var').textContent : '0';
+            
+            let text = `Hourly Output Report\nDate: ${dateStr}\nShift: ${shift}\n\nTotal Actual: ${tAct}\nTotal Target: ${tTgt}\nVariance: ${tVar}\n\nDetails:\nHour | Act | Tgt | Var\n---|---|---|---\n`;
+            
+            document.querySelectorAll('#hourly-details .hourly-actual-input').forEach(input => {
+                const row = input.closest('div[style*="display:grid"]');
+                const hour = row.children[0].textContent.trim();
+                const tgt = row.querySelector('.hourly-target-input').value;
+                const variance = row.querySelector('.hourly-variance').textContent;
+                text += `${hour} | ${input.value} | ${tgt} | ${variance}\n`;
+            });
+            return text;
+        }
+
         // Share Hourly Report
         const shareHourlyBtn = document.getElementById('share-hourly-btn');
         if (shareHourlyBtn) {
-            shareHourlyBtn.addEventListener('click', () => {
-                const dateStr = document.getElementById('hourly-date-val').value;
-                const shift = document.getElementById('hourly-shift-val').value;
-                const tAct = document.getElementById('hourly-total-act') ? document.getElementById('hourly-total-act').textContent : '0';
-                const tTgt = document.getElementById('hourly-total-tgt') ? document.getElementById('hourly-total-tgt').textContent : '0';
-                const tVar = document.getElementById('hourly-total-var') ? document.getElementById('hourly-total-var').textContent : '0';
+            shareHourlyBtn.addEventListener('click', async () => {
+                const text = getHourlyReportText();
+                const canvas = document.getElementById('hourly-chart');
                 
-                const text = `Hourly Output Report\nDate: ${dateStr}\nShift: ${shift}\n\nTotal Actual: ${tAct}\nTotal Target: ${tTgt}\nVariance: ${tVar}`;
-                
-                if (navigator.share) {
-                    navigator.share({ title: 'Hourly Output Report', text: text }).catch(console.error);
+                if (navigator.canShare && navigator.share && canvas) {
+                    canvas.toBlob(async (blob) => {
+                        const file = new File([blob], "hourly_chart.png", { type: "image/png" });
+                        const shareData = {
+                            title: 'Hourly Output Report',
+                            text: text,
+                            files: [file]
+                        };
+                        try {
+                            if (navigator.canShare(shareData)) {
+                                await navigator.share(shareData);
+                            } else {
+                                // Fallback without file
+                                await navigator.share({ title: 'Hourly Output Report', text: text });
+                            }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
                 } else {
-                    navigator.clipboard.writeText(text).then(() => alert('Report summary copied to clipboard!'));
+                    navigator.clipboard.writeText(text).then(() => alert('Report summary (text only) copied to clipboard!'));
                 }
+            });
+        }
+
+        // Email Hourly Report
+        const emailHourlyBtn = document.getElementById('email-hourly-btn');
+        if (emailHourlyBtn) {
+            emailHourlyBtn.addEventListener('click', () => {
+                const text = getHourlyReportText();
+                const subject = `Hourly Output Report - ${document.getElementById('hourly-date-val').value}`;
+                const recipient = prompt("Enter recipient email (optional):", "") || "";
+                window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
             });
         }
 
@@ -1119,6 +1164,18 @@
                     breakOut: document.getElementById('att-break-out').value
                 };
                 if(!newEntry.name) return;
+
+                // Duplicate check
+                const existing = getAttendanceData().find(a => 
+                    a.date === newEntry.date && 
+                    a.shift === newEntry.shift && 
+                    a.name.toLowerCase() === newEntry.name.toLowerCase() &&
+                    a.id !== newEntry.id
+                );
+                if (existing) {
+                    alert('Duplicate entry: This person is already listed for this shift.');
+                    return;
+                }
 
                 let data = getAttendanceData();
                 if (editId) {
