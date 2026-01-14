@@ -215,6 +215,9 @@
             <button id="delete-selected-att-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; display:none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
             </button>
+            <button id="export-att-btn" class="icon-btn" title="Export CSV" style="margin-right:5px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
             <button id="add-att-btn" class="icon-btn" style="background: #2752a7; color: white; padding: 8px 12px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Entry
             </button>
@@ -392,6 +395,7 @@
         const attModal = document.getElementById('att-modal');
         const attForm = document.getElementById('att-modal-form');
         const addAttBtn = document.getElementById('add-att-btn');
+        const exportAttBtn = document.getElementById('export-att-btn');
         const attSearchInput = document.getElementById('att-search');
         
         // Hourly Modal
@@ -548,6 +552,7 @@
                             ${roleStr ? `<div style="font-size:11px; color:#666; margin-bottom:4px;"><strong>Role:</strong> ${roleStr}</div>` : ''}
                             <div style="margin-top:6px;">
                                 <button class="icon-btn edit-counter-btn" data-id="${item.id}" title="Edit" style="padding:2px 6px; font-size:12px;">✎</button>
+                                <button class="icon-btn duplicate-counter-btn" data-id="${item.id}" title="Duplicate to Next Day" style="padding:2px 6px; font-size:12px;">📋</button>
                                 <button class="icon-btn hourly-btn" data-date="${date}" data-shift="${shift}" title="Hourly Monitor" style="padding:2px 6px; font-size:12px; background:#6f42c1; color:white; border:none;">Hourly</button>
                                 <button class="icon-btn delete-counter-btn" data-id="${item.id}" title="Delete" style="padding:2px 6px; font-size:12px; color:#d9534f;">&times;</button>
                             </div>
@@ -1254,6 +1259,27 @@
                         cancelCounterEditBtn.style.display = 'inline-flex';
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
+                } else if (btn.classList.contains('duplicate-counter-btn')) {
+                    const data = getCountersData();
+                    const item = data.find(i => i.id === id);
+                    if (item) {
+                        const d = new Date(item.date);
+                        d.setDate(d.getDate() + 1);
+                        const nextDate = d.toISOString().split('T')[0];
+                        
+                        const exists = data.find(x => x.date === nextDate && x.shift === item.shift);
+                        if (exists) {
+                            alert(`An entry for ${nextDate} - ${item.shift} already exists.`);
+                            return;
+                        }
+                        
+                        const newItem = { ...item, id: Date.now().toString(), date: nextDate, hourlyActuals: {} };
+                        // Keep hourlyTargets if they exist as part of the plan
+                        data.push(newItem);
+                        saveCountersData(data);
+                        renderCountersTable();
+                        alert(`Duplicated entry to ${nextDate}`);
+                    }
                 }
             });
         }
@@ -1327,6 +1353,30 @@
                 attModal.classList.add('hidden');
                 renderAttendanceTable();
                 renderCountersTable(); // Update counts
+            });
+        }
+
+        if (exportAttBtn) {
+            exportAttBtn.addEventListener('click', () => {
+                const data = getAttendanceData();
+                if (data.length === 0) { alert('No attendance records to export.'); return; }
+                
+                const headers = ['Date', 'Shift', 'Name', 'Role', 'Area', 'Break Out', 'Break In', 'Duration'];
+                const rows = [headers.join(',')];
+                
+                data.forEach(item => {
+                    const dur = getDuration(item.breakOut, item.breakIn);
+                    const row = [
+                        item.date, `"${item.shift}"`, `"${item.name}"`, item.role || '', item.area || '', item.breakOut || '', item.breakIn || '', dur
+                    ];
+                    rows.push(row.join(','));
+                });
+                
+                const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'attendance_sheet.csv';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
             });
         }
 
