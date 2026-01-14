@@ -265,6 +265,9 @@
           <button id="clear-all-filters-btn" class="icon-btn" title="Clear All Filters" style="margin-left: 4px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
           </button>
+          <button id="daily-counters-btn" class="icon-btn" title="Manage Daily Counters" style="margin-left: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </button>
           <button id="mass-delete-btn" class="icon-btn" title="Mass Delete ALL Records (Reset)" style="margin-left: 4px; color: #fff; background-color: #d9534f;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
           </button>
@@ -1170,6 +1173,108 @@
     if(flipToFormBtn && entryFlipContainer) {
         flipToFormBtn.addEventListener('click', () => {
             entryFlipContainer.classList.remove('flipped');
+        });
+    }
+
+    // Daily Counters Logic
+    const dailyCountersBtn = document.getElementById('daily-counters-btn');
+    const countersModal = document.getElementById('daily-counters-modal');
+    const closeCountersModalBtn = document.getElementById('close-counters-modal');
+    const countersForm = document.getElementById('daily-counters-form');
+    const countersTableBody = document.querySelector('#daily-counters-table tbody');
+    const cancelCounterEditBtn = document.getElementById('cancel-counter-edit-btn');
+
+    const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
+
+    function getCountersData() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY_COUNTERS) || '[]');
+        } catch (e) {
+            console.error('Error parsing daily counters data', e);
+            return [];
+        }
+    }
+
+    function saveCountersData(data) {
+        localStorage.setItem(STORAGE_KEY_COUNTERS, JSON.stringify(data));
+    }
+
+    function renderCountersTable() {
+        if (!countersTableBody) return;
+        const data = getCountersData().sort((a, b) => new Date(b.date) - new Date(a.date));
+        countersTableBody.innerHTML = '';
+        if (data.length === 0) {
+            countersTableBody.innerHTML = `<tr><td colspan="5" class="muted" style="text-align:center; padding: 20px;">No daily counter records found.</td></tr>`;
+            return;
+        }
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding:8px;border-bottom:1px solid #eee">${item.date}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee">${item.shift}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee">${item.required}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee">${item.active}</td>
+                <td style="padding:8px;border-bottom:1px solid #eee">
+                    <button class="icon-btn edit-counter-btn" data-id="${item.id}" title="Edit">✎</button>
+                    <button class="icon-btn delete-counter-btn" data-id="${item.id}" title="Delete" style="color:#d9534f">&times;</button>
+                </td>
+            `;
+            countersTableBody.appendChild(tr);
+        });
+    }
+
+    if (dailyCountersBtn) {
+        dailyCountersBtn.addEventListener('click', () => {
+            countersModal.classList.remove('hidden');
+            renderCountersTable();
+            const dateInput = document.getElementById('counter-date');
+            if (!dateInput.value) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
+    }
+
+    if (closeCountersModalBtn) {
+        closeCountersModalBtn.addEventListener('click', () => countersModal.classList.add('hidden'));
+        countersModal.querySelector('.modal-overlay').addEventListener('click', () => countersModal.classList.add('hidden'));
+    }
+
+    if (countersForm) {
+        countersForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('counter-edit-id').value;
+            const newEntry = {
+                id: editId || Date.now().toString(),
+                date: document.getElementById('counter-date').value,
+                shift: document.getElementById('counter-shift').value,
+                required: Number(document.getElementById('counter-required').value),
+                active: Number(document.getElementById('counter-active').value)
+            };
+
+            let data = getCountersData();
+            if (editId) {
+                const index = data.findIndex(item => item.id === editId);
+                if (index > -1) data[index] = newEntry;
+            } else {
+                data.push(newEntry);
+            }
+            saveCountersData(data);
+            renderCountersTable();
+            countersForm.reset();
+            document.getElementById('counter-edit-id').value = '';
+            document.getElementById('save-counter-btn').title = 'Save';
+            cancelCounterEditBtn.style.display = 'none';
+            document.getElementById('counter-date').valueAsDate = new Date();
+        });
+    }
+
+    if (cancelCounterEditBtn) {
+        cancelCounterEditBtn.addEventListener('click', () => {
+            countersForm.reset();
+            document.getElementById('counter-edit-id').value = '';
+            document.getElementById('save-counter-btn').title = 'Save';
+            cancelCounterEditBtn.style.display = 'none';
+            document.getElementById('counter-date').valueAsDate = new Date();
         });
     }
 
