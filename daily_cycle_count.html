@@ -61,10 +61,6 @@
         border-top-color: transparent;
         border-bottom-color: #2c3e50;
     }
-    main.full-view-counters #attendance-card,
-    main.full-view-attendance .flip-container {
-        display: none;
-    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -115,17 +111,20 @@
       <button id="apply-global-filter" class="icon-btn" title="Apply Filter" style="background: #2752a7; color: white;">Filter</button>
       <button id="clear-global-filter" class="icon-btn" title="Clear Filter">Clear</button>
     </div>
-    <div class="flip-container" id="counters-flip-container">
+    <div class="flip-container" id="counters-flip-container" style="min-height: 600px;">
       <div class="flip-inner">
         <!-- Front: Manage Counters -->
         <div class="flip-front card resizable-box" id="manage-counters-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Manage Daily Counters</h2>
-            <button class="icon-btn expand-toggle-btn" title="Toggle View" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+            <button class="icon-btn expand-toggle-btn" title="Collapse" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
         </div>
         <div style="display:flex; gap:5px;">
             <input type="text" id="counters-search" placeholder="Search date or shift..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button id="delete-selected-counters-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+            </button>
             <button id="clear-counters-filters-btn" class="icon-btn" title="Clear Filters">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
             </button>
@@ -188,6 +187,7 @@
           <table id="daily-counters-table" style="width:100%; border-collapse: collapse;">
               <thead>
                   <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+                      <th style="padding: 12px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-counters" title="Select All"></th>
                       <th style="padding: 12px; text-align: left;">Date</th>
                       <th style="padding: 12px; text-align: left;">1st Shift (6am-2pm)</th>
                       <th style="padding: 12px; text-align: left;">2nd Shift (2pm-10pm)</th>
@@ -200,7 +200,7 @@
       <div id="counters-pagination-controls" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-top: 1px solid #eee;">
         <div style="display:flex; align-items:center; gap:8px;">
             <label for="counters-rows-per-page" style="font-size:13px; color:var(--muted);">Rows:</label>
-            <select id="counters-rows-per-page" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #d6dbe6;"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select>
+            <select id="counters-rows-per-page" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #d6dbe6;"><option value="3">3</option><option value="7" selected>7</option><option value="14">14</option></select>
         </div>
         <span id="counters-page-info" style="font-size: 13px; font-weight: 600; color: var(--muted);"></span>
         <div style="display:flex; gap:8px;">
@@ -229,7 +229,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Attendance Sheet</h2>
-            <button class="icon-btn expand-toggle-btn" title="Toggle View" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+            <button class="icon-btn expand-toggle-btn" title="Collapse" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
         </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <input type="text" id="att-search" placeholder="Search name..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
@@ -397,6 +397,24 @@
     </div>
   </div>
 
+  <!-- Supervisor Delete Modal -->
+  <div id="supervisor-delete-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 400px;">
+      <h3 id="supervisor-modal-title">Confirm Deletion</h3>
+      <p>You are about to delete <strong id="supervisor-delete-count">0</strong> records.</p>
+      <p class="muted">This action cannot be undone. Please enter Supervisor Code to proceed.</p>
+      <div style="margin: 15px 0;">
+        <label for="supervisor-code" style="display:block; margin-bottom:5px; font-weight:bold;">Supervisor Code</label>
+        <input type="password" id="supervisor-code" style="width:100%;" placeholder="Enter code">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="icon-btn close-modal">Cancel</button>
+        <button type="button" id="confirm-supervisor-delete-btn" class="icon-btn" style="background:#d9534f; color:white;">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   <script>
     if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
@@ -424,6 +442,7 @@
         const printAttBtn = document.getElementById('print-att-btn');
         const attSearchInput = document.getElementById('att-search');
         const countersSearchInput = document.getElementById('counters-search');
+        const deleteSelectedCountersBtn = document.getElementById('delete-selected-counters-btn');
         const clearCountersFiltersBtn = document.getElementById('clear-counters-filters-btn');
         const globalStartDate = document.getElementById('global-start-date');
         const globalEndDate = document.getElementById('global-end-date');
@@ -435,6 +454,10 @@
         const snapshotShareBtn = document.getElementById('snapshot-share-btn');
         const snapshotDownloadBtn = document.getElementById('snapshot-download-btn');
         let currentSnapshotBlob = null;
+        const supervisorDeleteModal = document.getElementById('supervisor-delete-modal');
+        const confirmSupervisorDeleteBtn = document.getElementById('confirm-supervisor-delete-btn');
+        let supervisorDeleteCallback = null;
+
         let hourlyChart = null;
 
         // Flip elements
@@ -451,7 +474,7 @@
         let attCurrentPage = 1;
         let attItemsPerPage = 20;
         let countersCurrentPage = 1;
-        let countersItemsPerPage = 10;
+        let countersItemsPerPage = 7;
 
         // Helper to set local date
         function setLocalDate(input) {
@@ -554,7 +577,7 @@
 
             countersTableBody.innerHTML = '';
             if (paginatedDates.length === 0) {
-                countersTableBody.innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center; padding: 20px;">No daily counter records found.</td></tr>`;
+                countersTableBody.innerHTML = `<tr><td colspan="5" class="muted" style="text-align:center; padding: 20px;">No daily counter records found.</td></tr>`;
                 return;
             }
             
@@ -562,7 +585,7 @@
             
             paginatedDates.forEach(date => {
                 const tr = document.createElement('tr');
-                let html = `<td style="padding:12px;border-bottom:1px solid #eee; font-weight:bold;">${date}</td>`;
+                let html = `<td style="padding:12px;border-bottom:1px solid #eee;"><input type="checkbox" class="counter-row-checkbox" data-date="${date}"></td><td style="padding:12px;border-bottom:1px solid #eee; font-weight:bold;">${date}</td>`;
                 
                 shifts.forEach(shift => {
                     const item = grouped[date][shift];
@@ -618,6 +641,17 @@
             });
         }
 
+        if (countersTableBody) {
+            countersTableBody.addEventListener('change', (e) => {
+                if (e.target.classList.contains('counter-row-checkbox')) {
+                    const selectedCount = document.querySelectorAll('.counter-row-checkbox:checked').length;
+                    if (deleteSelectedCountersBtn) {
+                        deleteSelectedCountersBtn.style.display = selectedCount > 0 ? 'inline-flex' : 'none';
+                    }
+                }
+            });
+        }
+
         // Counters Pagination Listeners
         const countersPaginationControls = document.getElementById('counters-pagination-controls');
         if (countersPaginationControls) {
@@ -644,6 +678,14 @@
             countersSearchInput.addEventListener('input', () => {
                 countersCurrentPage = 1;
                 renderCountersTable();
+            });
+        }
+
+        const selectAllCounters = document.getElementById('select-all-counters');
+        if (selectAllCounters) {
+            selectAllCounters.addEventListener('change', (e) => {
+                document.querySelectorAll('.counter-row-checkbox').forEach(cb => cb.checked = e.target.checked);
+                if (deleteSelectedCountersBtn) deleteSelectedCountersBtn.style.display = e.target.checked ? 'inline-flex' : 'none';
             });
         }
 
@@ -1283,15 +1325,49 @@
         if (deleteSelectedAttBtn) {
             deleteSelectedAttBtn.addEventListener('click', () => {
                 const selectedIds = Array.from(document.querySelectorAll('.att-row-checkbox:checked')).map(cb => cb.dataset.id);
-                if (selectedIds.length === 0) { alert('No items selected.'); return; }
-                if (confirm(`Are you sure you want to delete ${selectedIds.length} selected attendance records?`)) {
+                if (selectedIds.length === 0) return;
+
+                showSupervisorDeleteModal(selectedIds.length, () => {
                     let data = getAttendanceData();
                     data = data.filter(item => !selectedIds.includes(item.id));
                     saveAttendanceData(data);
                     renderAttendanceTable();
                     renderCountersTable();
                     updateAttendanceActionButtons();
-                }
+                });
+            });
+        }
+
+        if (deleteSelectedCountersBtn) {
+            deleteSelectedCountersBtn.addEventListener('click', () => {
+                const selectedDates = Array.from(document.querySelectorAll('.counter-row-checkbox:checked')).map(cb => cb.dataset.date);
+                if (selectedDates.length === 0) return;
+
+                showSupervisorDeleteModal(selectedDates.length, () => {
+                    let data = getCountersData();
+                    data = data.filter(item => !selectedDates.includes(item.date));
+                    saveCountersData(data);
+                    renderCountersTable();
+                    deleteSelectedCountersBtn.style.display = 'none';
+                    if(selectAllCounters) selectAllCounters.checked = false;
+                });
+            });
+        }
+
+        function showSupervisorDeleteModal(count, callback) {
+            if (!supervisorDeleteModal) return;
+            document.getElementById('supervisor-delete-count').textContent = count;
+            document.getElementById('supervisor-code').value = '';
+            supervisorDeleteCallback = callback;
+            supervisorDeleteModal.classList.remove('hidden');
+        }
+
+        if (confirmSupervisorDeleteBtn) {
+            confirmSupervisorDeleteBtn.addEventListener('click', () => {
+                const code = document.getElementById('supervisor-code').value;
+                if (code !== '12345' && code !== 'admin') { alert('Invalid Supervisor Code.'); return; }
+                if (typeof supervisorDeleteCallback === 'function') supervisorDeleteCallback();
+                supervisorDeleteModal.classList.add('hidden');
             });
         }
 
@@ -1543,29 +1619,17 @@
         }
 
         // Expand/Collapse Card Logic
-        const countersToggleButton = document.querySelector('#manage-counters-card .expand-toggle-btn');
-        const attendanceToggleButton = document.querySelector('#attendance-card .expand-toggle-btn');
-        const mainEl = document.querySelector('main');
-
-        function updateToggleButtons() {
-            const isCountersFull = mainEl.classList.contains('full-view-counters');
-            const isAttendanceFull = mainEl.classList.contains('full-view-attendance');
-            const fullViewActive = isCountersFull || isAttendanceFull;
-
-            [countersToggleButton, attendanceToggleButton].forEach(btn => {
-                if (btn) {
-                    const isMyCardFull = (btn === countersToggleButton && isCountersFull) || (btn === attendanceToggleButton && isAttendanceFull);
-                    btn.title = isMyCardFull ? 'Show All' : 'Expand';
-                    btn.innerHTML = isMyCardFull ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+        document.querySelectorAll('.expand-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const card = e.target.closest('.card');
+                const content = card.querySelector('.card-content');
+                if (content) {
+                    content.classList.toggle('hidden');
+                    const isHidden = content.classList.contains('hidden');
+                    btn.title = isHidden ? 'Expand' : 'Collapse';
+                    btn.innerHTML = isHidden ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
                 }
             });
-        }
-
-        if (countersToggleButton) countersToggleButton.addEventListener('click', () => {
-            mainEl.classList.remove('full-view-attendance'); mainEl.classList.toggle('full-view-counters'); updateToggleButtons();
-        });
-        if (attendanceToggleButton) attendanceToggleButton.addEventListener('click', () => {
-            mainEl.classList.remove('full-view-counters'); mainEl.classList.toggle('full-view-attendance'); updateToggleButtons();
         });
 
         // Productivity / Flip Logic
