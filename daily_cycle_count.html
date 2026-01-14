@@ -130,6 +130,29 @@
               <input type="text" id="att-name" required placeholder="Enter Name" style="width:100%">
           </div>
           <div>
+              <label for="att-role">Role</label>
+              <select id="att-role" style="width:100%">
+                  <option value="Counter">Counter</option>
+                  <option value="IC Support">IC Support</option>
+                  <option value="IC Back up">IC Back up</option>
+              </select>
+          </div>
+          <div>
+              <label for="att-area">Area</label>
+              <select id="att-area" style="width:100%">
+                  <option value="Pick Bin">Pick Bin</option>
+                  <option value="Reserved Bin">Reserved Bin</option>
+              </select>
+          </div>
+          <div>
+              <label for="att-break-in">Break In</label>
+              <input type="time" id="att-break-in" style="width:100%">
+          </div>
+          <div>
+              <label for="att-break-out">Break Out</label>
+              <input type="time" id="att-break-out" style="width:100%">
+          </div>
+          <div>
               <button type="submit" class="icon-btn" style="background: #2752a7; color: white; height: 38px; width: 100%; justify-content: center;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Add
               </button>
@@ -142,6 +165,10 @@
                       <th style="padding: 12px; text-align: left;">Date</th>
                       <th style="padding: 12px; text-align: left;">Shift</th>
                       <th style="padding: 12px; text-align: left;">Name</th>
+                      <th style="padding: 12px; text-align: left;">Role</th>
+                      <th style="padding: 12px; text-align: left;">Area</th>
+                      <th style="padding: 12px; text-align: left;">Break In</th>
+                      <th style="padding: 12px; text-align: left;">Break Out</th>
                       <th style="padding: 12px; text-align: left;">Action</th>
                   </tr>
               </thead>
@@ -257,7 +284,7 @@
             const data = getAttendanceData().sort((a, b) => new Date(b.date) - new Date(a.date));
             attendanceTableBody.innerHTML = '';
             if (data.length === 0) {
-                attendanceTableBody.innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
+                attendanceTableBody.innerHTML = `<tr><td colspan="8" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
                 return;
             }
             data.forEach(item => {
@@ -266,6 +293,10 @@
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.date}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.shift}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.name}</td>
+                    <td style="padding:12px;border-bottom:1px solid #eee">${item.role || '-'}</td>
+                    <td style="padding:12px;border-bottom:1px solid #eee">${item.area || '-'}</td>
+                    <td style="padding:12px;border-bottom:1px solid #eee">${item.breakIn || '-'}</td>
+                    <td style="padding:12px;border-bottom:1px solid #eee">${item.breakOut || '-'}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">
                         <button class="icon-btn delete-att-btn" data-id="${item.id}" title="Delete" style="color:#d9534f">&times;</button>
                     </td>
@@ -354,7 +385,11 @@
                     id: Date.now().toString(),
                     date: document.getElementById('att-date').value,
                     shift: document.getElementById('att-shift').value,
-                    name: document.getElementById('att-name').value.trim()
+                    name: document.getElementById('att-name').value.trim(),
+                    role: document.getElementById('att-role').value,
+                    area: document.getElementById('att-area').value,
+                    breakIn: document.getElementById('att-break-in').value,
+                    breakOut: document.getElementById('att-break-out').value
                 };
                 if(!newEntry.name) return;
 
@@ -363,6 +398,8 @@
                 saveAttendanceData(data);
                 
                 document.getElementById('att-name').value = '';
+                document.getElementById('att-break-in').value = '';
+                document.getElementById('att-break-out').value = '';
                 renderAttendanceTable();
                 renderCountersTable(); // Update counts
             });
