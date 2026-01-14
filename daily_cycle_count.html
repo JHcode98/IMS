@@ -44,6 +44,22 @@
     }
     /* Ensure modal is on top of navbar (z-index 9999) */
     .modal { z-index: 10001 !important; }
+    
+    /* Fix tooltips inside modal to appear below buttons */
+    .modal-content .icon-btn[data-tooltip]::after {
+        top: 100%;
+        bottom: auto;
+        margin-top: 8px;
+        margin-bottom: 0;
+    }
+    .modal-content .icon-btn[data-tooltip]::before {
+        top: 100%;
+        bottom: auto;
+        margin-top: 3px;
+        margin-bottom: 0;
+        border-top-color: transparent;
+        border-bottom-color: #2c3e50;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -296,6 +312,9 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
+                <button id="share-hourly-btn" class="icon-btn" title="Share Report" style="margin-right:5px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                </button>
                 <button id="export-hourly-btn" class="icon-btn" title="Export CSV" style="margin-right:5px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 </button>
@@ -651,6 +670,33 @@
                         tVarDiv.textContent = (tVar > 0 ? '+' : '') + tVar;
                         tVarDiv.style.color = tVar >= 0 ? '#2ecc71' : '#e74c3c';
                     }
+                    
+                    // Update Chart Real-time
+                    if (hourlyChart) {
+                        const rows = document.querySelectorAll('#hourly-details > div[style*="display:grid"]');
+                        const actuals = [];
+                        const targets = [];
+                        let cumulative = [];
+                        let sum = 0;
+                        
+                        rows.forEach(r => {
+                            const aIn = r.querySelector('.hourly-actual-input');
+                            const tIn = r.querySelector('.hourly-target-input');
+                            if (aIn && tIn) {
+                                const aVal = parseInt(aIn.value) || 0;
+                                const tVal = parseInt(tIn.value) || 0;
+                                actuals.push(aVal);
+                                targets.push(tVal);
+                                sum += aVal;
+                                cumulative.push(sum);
+                            }
+                        });
+                        
+                        if (hourlyChart.data.datasets[0]) hourlyChart.data.datasets[0].data = actuals;
+                        if (hourlyChart.data.datasets[1]) hourlyChart.data.datasets[1].data = cumulative;
+                        if (hourlyChart.data.datasets[2]) hourlyChart.data.datasets[2].data = targets;
+                        hourlyChart.update('none');
+                    }
                 }
             });
         }
@@ -729,6 +775,26 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+            });
+        }
+
+        // Share Hourly Report
+        const shareHourlyBtn = document.getElementById('share-hourly-btn');
+        if (shareHourlyBtn) {
+            shareHourlyBtn.addEventListener('click', () => {
+                const dateStr = document.getElementById('hourly-date-val').value;
+                const shift = document.getElementById('hourly-shift-val').value;
+                const tAct = document.getElementById('hourly-total-act') ? document.getElementById('hourly-total-act').textContent : '0';
+                const tTgt = document.getElementById('hourly-total-tgt') ? document.getElementById('hourly-total-tgt').textContent : '0';
+                const tVar = document.getElementById('hourly-total-var') ? document.getElementById('hourly-total-var').textContent : '0';
+                
+                const text = `Hourly Output Report\nDate: ${dateStr}\nShift: ${shift}\n\nTotal Actual: ${tAct}\nTotal Target: ${tTgt}\nVariance: ${tVar}`;
+                
+                if (navigator.share) {
+                    navigator.share({ title: 'Hourly Output Report', text: text }).catch(console.error);
+                } else {
+                    navigator.clipboard.writeText(text).then(() => alert('Report summary copied to clipboard!'));
+                }
             });
         }
 
