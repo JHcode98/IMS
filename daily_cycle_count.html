@@ -56,6 +56,9 @@
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2 style="margin:0;">Manage Daily Counters</h2>
+        <button id="archive-btn" class="icon-btn" title="Archive (Past Days)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        </button>
       </div>
 
       <!-- Form -->
@@ -157,6 +160,7 @@
         const countersTableBody = document.querySelector('#daily-counters-table tbody');
         const cancelCounterEditBtn = document.getElementById('cancel-counter-edit-btn');
         const saveCounterBtn = document.getElementById('save-counter-btn');
+        const archiveBtn = document.getElementById('archive-btn');
         const dateInput = document.getElementById('counter-date');
         
         const attendanceForm = document.getElementById('attendance-form');
@@ -165,6 +169,8 @@
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
         const STORAGE_KEY_ATTENDANCE = 'ims_daily_attendance_v1';
+        
+        let showArchiveOnly = false;
 
         // Set default date
         if(dateInput) dateInput.valueAsDate = new Date();
@@ -197,8 +203,13 @@
 
         function renderCountersTable() {
             if (!countersTableBody) return;
-            const data = getCountersData().sort((a, b) => new Date(b.date) - new Date(a.date));
+            let data = getCountersData().sort((a, b) => new Date(b.date) - new Date(a.date));
             const attendance = getAttendanceData();
+            
+            if (showArchiveOnly) {
+                const today = new Date().toISOString().split('T')[0];
+                data = data.filter(d => d.date < today);
+            }
 
             countersTableBody.innerHTML = '';
             if (data.length === 0) {
@@ -230,6 +241,14 @@
                     </td>
                 `;
                 countersTableBody.appendChild(tr);
+            });
+        }
+
+        if (archiveBtn) {
+            archiveBtn.addEventListener('click', () => {
+                showArchiveOnly = !showArchiveOnly;
+                archiveBtn.classList.toggle('active-filter', showArchiveOnly);
+                renderCountersTable();
             });
         }
 
