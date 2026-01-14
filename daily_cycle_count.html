@@ -66,6 +66,11 @@
     th.sortable:hover { background-color: #f1f1f1; }
     .sort-icon { margin-left: 5px; font-size: 10px; }
     body.dark-mode th.sortable:hover { background-color: #333; }
+    
+    /* Full View Styles */
+    main.full-view-counters #attendance-card { display: none; }
+    main.full-view-attendance #counters-flip-container { display: none; }
+    main.full-view-attendance #attendance-card { min-height: 80vh; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -1434,8 +1439,9 @@
                 if (selectedIds.length === 0) return;
 
                 showSupervisorDeleteModal(selectedIds.length, () => {
+                    const selectedSet = new Set(selectedIds);
                     let data = getAttendanceData();
-                    data = data.filter(item => !selectedIds.includes(item.id));
+                    data = data.filter(item => !selectedSet.has(item.id));
                     saveAttendanceData(data);
                     renderAttendanceTable();
                     renderCountersTable();
@@ -1450,8 +1456,9 @@
                 if (selectedDates.length === 0) return;
 
                 showSupervisorDeleteModal(selectedDates.length, () => {
+                    const selectedSet = new Set(selectedDates);
                     let data = getCountersData();
-                    data = data.filter(item => !selectedDates.includes(item.date));
+                    data = data.filter(item => !selectedSet.has(item.date));
                     saveCountersData(data);
                     renderCountersTable();
                     deleteSelectedCountersBtn.style.display = 'none';
@@ -1759,7 +1766,7 @@
         if(viewProdBtn && flipContainer) {
             viewProdBtn.addEventListener('click', () => {
                 flipContainer.classList.add('flipped');
-                renderProductivityChart();
+                setTimeout(renderProductivityChart, 100);
             });
         }
         if(backToCountersBtn && flipContainer) {
@@ -1783,10 +1790,12 @@
             });
         }
 
-        // Restore tooltips for buttons in tables (since app.js might strip titles)
+        // Fix tooltips in tables (use native title to avoid clipping)
         setInterval(() => {
-            document.querySelectorAll('button[title]').forEach(btn => {
-                if(!btn.hasAttribute('data-tooltip')) btn.setAttribute('data-tooltip', btn.getAttribute('title'));
+            const tableBtns = document.querySelectorAll('table button[data-tooltip]');
+            tableBtns.forEach(btn => {
+                btn.setAttribute('title', btn.getAttribute('data-tooltip'));
+                btn.removeAttribute('data-tooltip');
             });
         }, 2000);
 
@@ -1821,7 +1830,7 @@
             
             // Aggregate Actuals
             const actualsMap = {}; // Key: "Date|Shift" -> count
-            cycleCounts.forEach(c => {
+            (cycleCounts || []).forEach(c => {
                 const ts = c.createdDate || c.date;
                 if(ts) {
                     const info = getShiftFromTimestamp(ts);
@@ -1832,7 +1841,7 @@
 
             // Prepare Chart Data (Sort by date desc, take top 10 or so)
             // We use counters list as the base for X-axis
-            const sortedCounters = counters.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10); // Last 10 shifts
+            const sortedCounters = [...counters].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10); // Last 10 shifts
             
             const labels = [];
             const targetData = [];
@@ -1852,7 +1861,7 @@
                 actualData.push(actual);
             });
 
-            if(productivityChart) productivityChart.destroy();
+            if(productivityChart) { productivityChart.destroy(); productivityChart = null; }
             productivityChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
