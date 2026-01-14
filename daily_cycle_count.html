@@ -104,6 +104,10 @@
               <input type="number" id="counter-required" required min="1" style="width:100%">
           </div>
           <div>
+              <label for="counter-rate">Standard Rate</label>
+              <input type="number" id="counter-rate" min="1" placeholder="Per Person" style="width:100%">
+          </div>
+          <div>
               <label for="counter-target">Target Output</label>
               <input type="number" id="counter-target" min="0" placeholder="Optional" style="width:100%">
           </div>
@@ -248,6 +252,20 @@
     </div>
   </div>
 
+  <!-- Hourly Monitor Modal -->
+  <div id="hourly-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 800px; margin: 50px auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
+            <button class="icon-btn close-modal">&times;</button>
+        </div>
+        <div style="position:relative; height:400px; width:100%;">
+            <canvas id="hourly-chart"></canvas>
+        </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   <script>
     if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
@@ -260,6 +278,9 @@
         const archiveBtn = document.getElementById('archive-btn');
         const exportCountersBtn = document.getElementById('export-counters-btn');
         const dateInput = document.getElementById('counter-date');
+        const rateInput = document.getElementById('counter-rate');
+        const reqInput = document.getElementById('counter-required');
+        const targetInput = document.getElementById('counter-target');
         
         const attendanceTableBody = document.querySelector('#attendance-table tbody');
         
@@ -269,6 +290,10 @@
         const addAttBtn = document.getElementById('add-att-btn');
         const attSearchInput = document.getElementById('att-search');
         
+        // Hourly Modal
+        const hourlyModal = document.getElementById('hourly-modal');
+        let hourlyChart = null;
+
         // Flip elements
         const flipContainer = document.getElementById('counters-flip-container');
         const viewProdBtn = document.getElementById('view-productivity-btn');
@@ -285,6 +310,15 @@
 
         // Set default date
         if(dateInput) dateInput.valueAsDate = new Date();
+
+        // Auto-calc target in form
+        function autoCalcTarget() {
+            const req = parseInt(reqInput.value) || 0;
+            const rate = parseInt(rateInput.value) || 0;
+            if (req > 0 && rate > 0) targetInput.value = req * rate;
+        }
+        if(rateInput) rateInput.addEventListener('input', autoCalcTarget);
+        if(reqInput) reqInput.addEventListener('input', autoCalcTarget);
 
         function getCountersData() {
             try {
@@ -350,6 +384,10 @@
                         const act = shiftAtt.length;
                         const pct = Math.round((act / req) * 100);
                         
+                        // Calculate dynamic target based on active counters if rate exists
+                        const rate = item.standardRate || 0;
+                        const activeTarget = rate > 0 ? (act * rate) : (item.targetOutput || 0);
+                        
                         // Visual indicator for shortage
                         const isShort = act < req;
                         const shortIndicator = isShort ? `<span title="Shortage: ${req - act}" style="color:#e74c3c; margin-left:5px; cursor:help;">⚠️</span>` : '';
@@ -370,12 +408,14 @@
                         
                         html += `
                         <td style="padding:12px;border-bottom:1px solid #eee; vertical-align:top;">
-                            <div style="font-size:13px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong> ${shortIndicator}</div>
+                            <div style="font-size:13px; margin-bottom:4px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong> ${shortIndicator}</div>
+                            ${rate > 0 ? `<div style="font-size:12px; color:#2752a7; margin-bottom:4px;">Target (Act): <strong>${activeTarget}</strong> <span class="muted" style="font-size:11px">(@${rate}/p)</span></div>` : ''}
                             <div class="${pctClass}" style="margin-top:4px; margin-bottom:6px;">${pct}% Completed</div>
                             ${areaStr ? `<div style="font-size:11px; color:#666; margin-bottom:2px;"><strong>Area:</strong> ${areaStr}</div>` : ''}
                             ${roleStr ? `<div style="font-size:11px; color:#666; margin-bottom:4px;"><strong>Role:</strong> ${roleStr}</div>` : ''}
                             <div style="margin-top:6px;">
                                 <button class="icon-btn edit-counter-btn" data-id="${item.id}" title="Edit" style="padding:2px 6px; font-size:12px;">✎</button>
+                                <button class="icon-btn hourly-btn" data-date="${date}" data-shift="${shift}" title="Hourly Monitor" style="padding:2px 6px; font-size:12px; background:#6f42c1; color:white; border:none;">Hourly</button>
                                 <button class="icon-btn delete-counter-btn" data-id="${item.id}" title="Delete" style="padding:2px 6px; font-size:12px; color:#d9534f;">&times;</button>
                             </div>
                         </td>`;
@@ -385,6 +425,75 @@
                 });
                 tr.innerHTML = html;
                 countersTableBody.appendChild(tr);
+            });
+        }
+
+        // Hourly Monitor Logic
+        if (countersTableBody) {
+            countersTableBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.hourly-btn');
+                if (btn) {
+                    const date = btn.dataset.date;
+                    const shift = btn.dataset.shift;
+                    openHourlyModal(date, shift);
+                }
+            });
+        }
+
+        function openHourlyModal(dateStr, shift) {
+            document.getElementById('hourly-modal-title').textContent = `Hourly Output: ${dateStr} (${shift.split('-')[0]})`;
+            hourlyModal.classList.remove('hidden');
+            
+            // Determine time range
+            const start = new Date(dateStr);
+            const end = new Date(dateStr);
+            
+            if (shift.includes('1st Shift')) {
+                start.setHours(6,0,0,0); end.setHours(14,0,0,0);
+            } else if (shift.includes('2nd Shift')) {
+                start.setHours(14,0,0,0); end.setHours(22,0,0,0);
+            } else { // 3rd Shift
+                start.setHours(22,0,0,0); 
+                end.setDate(end.getDate() + 1); end.setHours(6,0,0,0);
+            }
+
+            // Fetch and filter data
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            
+            const hourlyData = {};
+            // Initialize hours
+            for (let d = new Date(start); d < end; d.setHours(d.getHours() + 1)) {
+                const h = d.getHours();
+                const label = `${h}:00 - ${h+1}:00`;
+                hourlyData[label] = 0;
+            }
+
+            cycleCounts.forEach(c => {
+                const ts = c.createdDate || c.date;
+                if (ts) {
+                    const d = new Date(ts);
+                    if (d >= start && d < end) {
+                        const h = d.getHours();
+                        const label = `${h}:00 - ${h+1}:00`;
+                        if (hourlyData.hasOwnProperty(label)) hourlyData[label]++;
+                    }
+                }
+            });
+
+            const ctx = document.getElementById('hourly-chart');
+            if (hourlyChart) hourlyChart.destroy();
+            hourlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(hourlyData),
+                    datasets: [{
+                        label: 'Items Counted',
+                        data: Object.values(hourlyData),
+                        backgroundColor: '#36b9cc'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
             });
         }
 
@@ -549,6 +658,7 @@
                     date: document.getElementById('counter-date').value,
                     shift: document.getElementById('counter-shift').value,
                     required: Number(document.getElementById('counter-required').value),
+                    standardRate: Number(document.getElementById('counter-rate').value) || 0,
                     targetOutput: Number(document.getElementById('counter-target').value) || 0
                     // active is now derived
                 };
@@ -595,6 +705,7 @@
                         document.getElementById('counter-date').value = item.date;
                         document.getElementById('counter-shift').value = item.shift;
                         document.getElementById('counter-required').value = item.required;
+                        document.getElementById('counter-rate').value = item.standardRate || '';
                         document.getElementById('counter-target').value = item.targetOutput || '';
                         
                         saveCounterBtn.innerHTML = 'Update';
@@ -611,6 +722,7 @@
                 document.getElementById('counter-edit-id').value = '';
                 saveCounterBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save';
                 cancelCounterEditBtn.style.display = 'none';
+                document.getElementById('counter-rate').value = '';
                 document.getElementById('counter-date').valueAsDate = new Date();
             });
         }
