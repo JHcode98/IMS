@@ -139,6 +139,17 @@
               <tbody></tbody>
           </table>
       </div>
+      <div id="att-pagination-controls" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-top: 1px solid #eee;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <label for="att-rows-per-page" style="font-size:13px; color:var(--muted);">Rows:</label>
+            <select id="att-rows-per-page" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #d6dbe6;"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option></select>
+        </div>
+        <span id="att-page-info" style="font-size: 13px; font-weight: 600; color: var(--muted);"></span>
+        <div style="display:flex; gap:8px;">
+            <button id="att-prev-page" class="icon-btn" title="Previous">‹</button>
+            <button id="att-next-page" class="icon-btn" title="Next">›</button>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -225,6 +236,8 @@
         const STORAGE_KEY_ATTENDANCE = 'ims_daily_attendance_v1';
         
         let showArchiveOnly = false;
+        let attCurrentPage = 1;
+        let attItemsPerPage = 20;
 
         // Set default date
         if(dateInput) dateInput.valueAsDate = new Date();
@@ -379,6 +392,9 @@
 
         function renderAttendanceTable() {
             if (!attendanceTableBody) return;
+            const attRowsPerPageSelect = document.getElementById('att-rows-per-page');
+            if (attRowsPerPageSelect) attItemsPerPage = parseInt(attRowsPerPageSelect.value, 10);
+
             let data = getAttendanceData().sort((a, b) => new Date(b.date) - new Date(a.date));
             
             const searchTerm = attSearchInput ? attSearchInput.value.toLowerCase() : '';
@@ -390,12 +406,31 @@
                 );
             }
 
+            // Pagination
+            const totalItems = data.length;
+            const totalPages = Math.ceil(totalItems / attItemsPerPage) || 1;
+            if (attCurrentPage > totalPages) attCurrentPage = totalPages;
+
+            const paginatedData = data.slice((attCurrentPage - 1) * attItemsPerPage, attCurrentPage * attItemsPerPage);
+
             attendanceTableBody.innerHTML = '';
-            if (data.length === 0) {
+            const paginationControls = document.getElementById('att-pagination-controls');
+            if (paginationControls) {
+                if (totalItems <= attItemsPerPage) {
+                    paginationControls.style.display = 'none';
+                } else {
+                    paginationControls.style.display = 'flex';
+                    document.getElementById('att-page-info').textContent = `Page ${attCurrentPage} of ${totalPages} (${totalItems} records)`;
+                    document.getElementById('att-prev-page').disabled = attCurrentPage <= 1;
+                    document.getElementById('att-next-page').disabled = attCurrentPage >= totalPages;
+                }
+            }
+
+            if (paginatedData.length === 0) {
                 attendanceTableBody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
                 return;
             }
-            data.forEach(item => {
+            paginatedData.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.date}</td>
@@ -416,7 +451,30 @@
         }
 
         if (attSearchInput) {
-            attSearchInput.addEventListener('input', renderAttendanceTable);
+            attSearchInput.addEventListener('input', () => {
+                attCurrentPage = 1;
+                renderAttendanceTable();
+            });
+        }
+
+        const attPaginationControls = document.getElementById('att-pagination-controls');
+        if (attPaginationControls) {
+            attPaginationControls.addEventListener('click', (e) => {
+                if (e.target.id === 'att-prev-page' && !e.target.disabled) {
+                    attCurrentPage--;
+                    renderAttendanceTable();
+                } else if (e.target.id === 'att-next-page' && !e.target.disabled) {
+                    attCurrentPage++;
+                    renderAttendanceTable();
+                }
+            });
+            const attRowsPerPageSelect = document.getElementById('att-rows-per-page');
+            if (attRowsPerPageSelect) {
+                attRowsPerPageSelect.addEventListener('change', () => {
+                    attCurrentPage = 1;
+                    renderAttendanceTable();
+                });
+            }
         }
 
         if (countersForm) {
