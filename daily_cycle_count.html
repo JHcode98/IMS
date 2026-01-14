@@ -28,6 +28,13 @@
   <style>
     /* Card content expand/collapse */
     .card-content.hidden { display: none; }
+    /* Resizable box */
+    .resizable-box {
+        resize: both;
+        overflow: auto;
+        min-width: 300px;
+        min-height: 200px;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -72,7 +79,7 @@
     <div class="flip-container" id="counters-flip-container">
       <div class="flip-inner">
         <!-- Front: Manage Counters -->
-        <div class="flip-front card" id="manage-counters-card">
+        <div class="flip-front card resizable-box" id="manage-counters-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Manage Daily Counters</h2>
@@ -147,7 +154,7 @@
         </div>
         
         <!-- Back: Productivity View -->
-        <div class="flip-back card">
+        <div class="flip-back card resizable-box">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h2 style="margin:0;">Productivity: Target vs Actual</h2>
                 <button id="back-to-counters-btn" class="icon-btn" title="Back">
@@ -161,7 +168,7 @@
       </div>
     </div>
 
-    <div class="card" id="attendance-card" style="margin-top: 20px;">
+    <div class="card resizable-box" id="attendance-card" style="margin-top: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Attendance Sheet</h2>
@@ -182,10 +189,10 @@
           <table id="attendance-table" style="width:100%; border-collapse: collapse;">
               <thead>
                   <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+                      <th style="padding: 12px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-att" title="Select All"></th>
                       <th style="padding: 12px; text-align: left;">Date</th>
                       <th style="padding: 12px; text-align: left;">Shift</th>
                       <th style="padding: 12px; text-align: left;">Name</th>
-                      <th style="padding: 12px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-att" title="Select All"></th>
                       <th style="padding: 12px; text-align: left;">Role</th>
                       <th style="padding: 12px; text-align: left;">Area</th>
                       <th style="padding: 12px; text-align: left;">Break Out</th>
@@ -273,7 +280,9 @@
   <!-- Hourly Monitor Modal -->
   <div id="hourly-modal" class="modal hidden">
     <div class="modal-overlay"></div>
-    <div class="modal-content card" style="max-width: 800px; margin: 50px auto;">
+    <div class="modal-content card resizable-box" style="max-width: 800px; margin: 50px auto;">
+        <input type="hidden" id="hourly-date-val">
+        <input type="hidden" id="hourly-shift-val">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
@@ -467,6 +476,8 @@
         function openHourlyModal(dateStr, shift) {
              document.getElementById('hourly-modal-title').textContent = `Hourly Output: ${dateStr} (${shift.split('-')[0]})`;
              hourlyModal.classList.remove('hidden');
+             document.getElementById('hourly-date-val').value = dateStr;
+             document.getElementById('hourly-shift-val').value = shift;
              
              // Find the counter entry to get the main target
              const counters = getCountersData();
@@ -561,19 +572,18 @@
         const saveHourlyTargetsBtn = document.getElementById('save-hourly-targets-btn');
         if (saveHourlyTargetsBtn) {
             saveHourlyTargetsBtn.addEventListener('click', () => {
-                const title = document.getElementById('hourly-modal-title').textContent;
-                const [dateStr, shiftName] = title.replace('Hourly Output: ', '').split(' (');
-                const shift = shiftName.slice(0, -1) + ' Shift-(6am-2pm)'.substring(3); // Reconstruct shift name
+                const dateStr = document.getElementById('hourly-date-val').value;
+                const shift = document.getElementById('hourly-shift-val').value;
 
                 const counters = getCountersData();
-                const counterIndex = counters.findIndex(c => c.date === dateStr && c.shift.startsWith(shift));
+                const counterIndex = counters.findIndex(c => c.date === dateStr && c.shift === shift);
 
                 if (counterIndex > -1) {
                     if (!counters[counterIndex].hourlyTargets) counters[counterIndex].hourlyTargets = {};
                     document.querySelectorAll('.hourly-target-input').forEach(input => {
                         const hour = input.dataset.hour;
                         const value = parseInt(input.value, 10);
-                        if (!isNaN(value)) {
+                        if (!isNaN(value) && value >= 0) {
                             counters[counterIndex].hourlyTargets[hour] = value;
                         }
                     });
