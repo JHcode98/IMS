@@ -58,8 +58,8 @@
     body.dark-mode .calc-btn:hover { background: #444; }
     
     /* Fix tooltip clipping for top buttons (Position tooltip below button) */
-    #toggle-calc-btn[data-tooltip]::after, #flip-to-chart-btn[data-tooltip]::after, #flip-to-form-btn[data-tooltip]::after { top: 100%; bottom: auto; margin-top: 8px; margin-bottom: 0; }
-    #toggle-calc-btn[data-tooltip]::before, #flip-to-chart-btn[data-tooltip]::before, #flip-to-form-btn[data-tooltip]::before { top: 100%; bottom: auto; margin-top: 3px; margin-bottom: 0; border-top-color: transparent; border-bottom-color: #2c3e50; }
+    #daily-counters-btn[data-tooltip]::after, #toggle-calc-btn[data-tooltip]::after, #flip-to-chart-btn[data-tooltip]::after, #flip-to-form-btn[data-tooltip]::after { top: 100%; bottom: auto; margin-top: 8px; margin-bottom: 0; }
+    #daily-counters-btn[data-tooltip]::before, #toggle-calc-btn[data-tooltip]::before, #flip-to-chart-btn[data-tooltip]::before, #flip-to-form-btn[data-tooltip]::before { top: 100%; bottom: auto; margin-top: 3px; margin-bottom: 0; border-top-color: transparent; border-bottom-color: #2c3e50; }
     
     /* Calculator Drag Handle */
     #calc-header { cursor: move; background: #f1f1f1; padding: 5px; border-radius: 4px 4px 0 0; margin: -10px -10px 10px -10px; text-align: center; font-size: 12px; font-weight: bold; color: #555; border-bottom: 1px solid #ddd; }
@@ -410,6 +410,61 @@
       </div>
     </div>
   </main>
+
+  <!-- Daily Counters Modal -->
+  <div id="daily-counters-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 800px; margin-top: 50px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h3 style="margin:0;">Daily Cycle Counters</h3>
+          <button id="close-counters-modal" class="icon-btn" style="font-size: 24px; line-height: 1;">&times;</button>
+      </div>
+
+      <!-- Form to add/edit daily counters -->
+      <form id="daily-counters-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+          <input type="hidden" id="counter-edit-id">
+          <div>
+              <label for="counter-date">Date</label>
+              <input type="date" id="counter-date" required>
+          </div>
+          <div>
+              <label for="counter-shift">Shift</label>
+              <select id="counter-shift" required>
+                  <option value="Day">Day</option>
+                  <option value="Night">Night</option>
+              </select>
+          </div>
+          <div>
+              <label for="counter-required">Required</label>
+              <input type="number" id="counter-required" required min="0">
+          </div>
+          <div>
+              <label for="counter-active">Active</label>
+              <input type="number" id="counter-active" required min="0">
+          </div>
+          <div style="display:flex; gap:5px;">
+              <button type="submit" id="save-counter-btn" class="icon-btn" title="Save" style="background: #2752a7; color: white; height: 36px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg></button>
+              <button type="button" id="cancel-counter-edit-btn" class="icon-btn" title="Cancel Edit" style="background: #6c757d; color: white; height: 36px; display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+          </div>
+      </form>
+
+      <!-- Table to display daily counters -->
+      <div style="max-height: 400px; overflow-y: auto;">
+          <table id="daily-counters-table" style="width:100%; border-collapse: collapse;">
+              <thead>
+                  <tr style="background: #f9fbfd; border-bottom: 1px solid #eee;">
+                      <th style="padding: 8px; text-align: left;">Date</th>
+                      <th style="padding: 8px; text-align: left;">Shift</th>
+                      <th style="padding: 8px; text-align: left;">Required Counters</th>
+                      <th style="padding: 8px; text-align: left;">Active Counters</th>
+                      <th style="padding: 8px; text-align: left;">Action</th>
+                  </tr>
+              </thead>
+              <tbody></tbody>
+          </table>
+      </div>
+    </div>
+  </div>
 
   <div id="toast-notification" class="toast"></div>
   <!-- Calculator Widget (Moved outside form for global dragging) -->
