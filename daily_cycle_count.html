@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daily Cycle Counters - IMS</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     /* Dark Mode Header */
     body.dark-mode header { background: #1a252f; border-bottom: 1px solid #2c3e50; }
@@ -12,6 +13,17 @@
     .completion-high { color: #2ecc71; font-weight: bold; }
     .completion-med { color: #f1c40f; font-weight: bold; }
     .completion-low { color: #e74c3c; font-weight: bold; }
+    
+    /* Flip Card Styles */
+    .flip-container { perspective: 1000px; position: relative; margin-bottom: 20px; }
+    .flip-inner { transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
+    .flip-container.flipped .flip-inner { transform: rotateY(180deg); }
+    .flip-front, .flip-back { 
+        backface-visibility: hidden; width: 100%; top: 0; left: 0; 
+        background: var(--card); border-radius: 8px; 
+    }
+    .flip-front { z-index: 2; transform: rotateY(0deg); position: relative; }
+    .flip-back { transform: rotateY(180deg); position: absolute; height: 100%; top: 0; overflow-y: auto; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -53,10 +65,16 @@
   </header>
 
   <main>
-    <div class="card">
+    <div class="flip-container" id="counters-flip-container">
+      <div class="flip-inner">
+        <!-- Front: Manage Counters -->
+        <div class="flip-front card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2 style="margin:0;">Manage Daily Counters</h2>
         <div style="display:flex; gap:5px;">
+            <button id="view-productivity-btn" class="icon-btn" title="View Productivity (Target vs Actual)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
             <button id="export-counters-btn" class="icon-btn" title="Export CSV">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
@@ -85,6 +103,10 @@
               <label for="counter-required">Required Counters</label>
               <input type="number" id="counter-required" required min="1" style="width:100%">
           </div>
+          <div>
+              <label for="counter-target">Target Output</label>
+              <input type="number" id="counter-target" min="0" placeholder="Optional" style="width:100%">
+          </div>
           <div style="display:flex; gap:5px;">
               <button type="submit" id="save-counter-btn" class="icon-btn" title="Save" style="background: #2752a7; color: white; height: 38px; width: 100%; justify-content: center;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save
@@ -108,6 +130,21 @@
               </thead>
               <tbody></tbody>
           </table>
+      </div>
+        </div>
+        
+        <!-- Back: Productivity View -->
+        <div class="flip-back card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0;">Productivity: Target vs Actual</h2>
+                <button id="back-to-counters-btn" class="icon-btn" title="Back">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+                </button>
+            </div>
+            <div style="position:relative; height:400px; width:100%;">
+                <canvas id="productivity-chart"></canvas>
+            </div>
+        </div>
       </div>
     </div>
 
@@ -231,9 +268,16 @@
         const attForm = document.getElementById('att-modal-form');
         const addAttBtn = document.getElementById('add-att-btn');
         const attSearchInput = document.getElementById('att-search');
+        
+        // Flip elements
+        const flipContainer = document.getElementById('counters-flip-container');
+        const viewProdBtn = document.getElementById('view-productivity-btn');
+        const backToCountersBtn = document.getElementById('back-to-counters-btn');
+        let productivityChart = null;
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
         const STORAGE_KEY_ATTENDANCE = 'ims_daily_attendance_v1';
+        const STORAGE_KEY_CC = 'ims_cycle_count_v1';
         
         let showArchiveOnly = false;
         let attCurrentPage = 1;
@@ -306,6 +350,10 @@
                         const act = shiftAtt.length;
                         const pct = Math.round((act / req) * 100);
                         
+                        // Visual indicator for shortage
+                        const isShort = act < req;
+                        const shortIndicator = isShort ? `<span title="Shortage: ${req - act}" style="color:#e74c3c; margin-left:5px; cursor:help;">⚠️</span>` : '';
+                        
                         // Breakdowns
                         const areaCounts = {};
                         const roleCounts = {};
@@ -322,7 +370,7 @@
                         
                         html += `
                         <td style="padding:12px;border-bottom:1px solid #eee; vertical-align:top;">
-                            <div style="font-size:13px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong></div>
+                            <div style="font-size:13px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong> ${shortIndicator}</div>
                             <div class="${pctClass}" style="margin-top:4px; margin-bottom:6px;">${pct}% Completed</div>
                             ${areaStr ? `<div style="font-size:11px; color:#666; margin-bottom:2px;"><strong>Area:</strong> ${areaStr}</div>` : ''}
                             ${roleStr ? `<div style="font-size:11px; color:#666; margin-bottom:4px;"><strong>Role:</strong> ${roleStr}</div>` : ''}
@@ -369,6 +417,7 @@
                         `"${item.shift}"`,
                         req,
                         act,
+                        item.targetOutput || 0,
                         `${pct}%`
                     ].join(','));
                 });
@@ -500,6 +549,7 @@
                     date: document.getElementById('counter-date').value,
                     shift: document.getElementById('counter-shift').value,
                     required: Number(document.getElementById('counter-required').value),
+                    targetOutput: Number(document.getElementById('counter-target').value) || 0
                     // active is now derived
                 };
 
@@ -545,6 +595,7 @@
                         document.getElementById('counter-date').value = item.date;
                         document.getElementById('counter-shift').value = item.shift;
                         document.getElementById('counter-required').value = item.required;
+                        document.getElementById('counter-target').value = item.targetOutput || '';
                         
                         saveCounterBtn.innerHTML = 'Update';
                         cancelCounterEditBtn.style.display = 'inline-flex';
@@ -639,6 +690,92 @@
                         document.getElementById('att-break-in').value = item.breakIn;
                         attModal.classList.remove('hidden');
                     }
+                }
+            });
+        }
+
+        // Productivity / Flip Logic
+        if(viewProdBtn && flipContainer) {
+            viewProdBtn.addEventListener('click', () => {
+                flipContainer.classList.add('flipped');
+                renderProductivityChart();
+            });
+        }
+        if(backToCountersBtn && flipContainer) {
+            backToCountersBtn.addEventListener('click', () => {
+                flipContainer.classList.remove('flipped');
+            });
+        }
+
+        function getShiftFromTimestamp(ts) {
+            const d = new Date(ts);
+            const h = d.getHours();
+            let dateStr = d.toISOString().split('T')[0];
+            let shift = '';
+            
+            if (h >= 6 && h < 14) {
+                shift = '1st Shift-(6am-2pm)';
+            } else if (h >= 14 && h < 22) {
+                shift = '2nd Shift-(2pm-10pm)';
+            } else {
+                shift = '3rd Shift-(10pm-6am)';
+                if (h < 6) {
+                    const prev = new Date(d);
+                    prev.setDate(d.getDate() - 1);
+                    dateStr = prev.toISOString().split('T')[0];
+                }
+            }
+            return { date: dateStr, shift };
+        }
+
+        function renderProductivityChart() {
+            const ctx = document.getElementById('productivity-chart');
+            if(!ctx) return;
+            
+            const counters = getCountersData(); // Targets
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            
+            // Aggregate Actuals
+            const actualsMap = {}; // Key: "Date|Shift" -> count
+            cycleCounts.forEach(c => {
+                const ts = c.createdDate || c.date;
+                if(ts) {
+                    const info = getShiftFromTimestamp(ts);
+                    const key = `${info.date}|${info.shift}`;
+                    actualsMap[key] = (actualsMap[key] || 0) + 1;
+                }
+            });
+
+            // Prepare Chart Data (Sort by date desc, take top 10 or so)
+            // We use counters list as the base for X-axis
+            const sortedCounters = counters.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10); // Last 10 shifts
+            
+            const labels = [];
+            const targetData = [];
+            const actualData = [];
+
+            sortedCounters.reverse().forEach(c => {
+                labels.push(`${c.date} (${c.shift.split('-')[0]})`);
+                targetData.push(c.targetOutput || 0);
+                const key = `${c.date}|${c.shift}`;
+                actualData.push(actualsMap[key] || 0);
+            });
+
+            if(productivityChart) productivityChart.destroy();
+            productivityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Target Output', data: targetData, backgroundColor: '#e74c3c' },
+                        { label: 'Actual Output', data: actualData, backgroundColor: '#2ecc71' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
