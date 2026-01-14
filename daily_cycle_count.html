@@ -42,6 +42,8 @@
         width: 100%;
         min-height: 0;
     }
+    /* Ensure modal is on top of navbar (z-index 9999) */
+    .modal { z-index: 10001 !important; }
   </style>
 </head>
 <body class="inventory-mode">
@@ -288,11 +290,15 @@
   <div id="hourly-modal" class="modal hidden">
     <div class="modal-overlay"></div>
     <div class="modal-content card resizable-box" style="width: 95%; height: 90vh; margin: 2vh auto; display: flex; flex-direction: column; max-width: none;">
+    <div class="modal-content card resizable-box" style="width: 95%; height: 90vh; margin: 2vh auto; display: flex; flex-direction: column; max-width: none;">
         <input type="hidden" id="hourly-date-val">
         <input type="hidden" id="hourly-shift-val">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
             <div>
+                <button id="export-hourly-btn" class="icon-btn" title="Export CSV" style="margin-right:5px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </button>
                 <button id="save-hourly-targets-btn" class="icon-btn" title="Save Hourly Data" style="background:#2752a7; color:white;">Save Data</button>
                 <button class="icon-btn close-modal">&times;</button>
             </div>
@@ -687,6 +693,42 @@
                         renderProductivityChart();
                     }
                 }
+            });
+        }
+
+        // Export Hourly Data
+        const exportHourlyBtn = document.getElementById('export-hourly-btn');
+        if (exportHourlyBtn) {
+            exportHourlyBtn.addEventListener('click', () => {
+                const rows = [];
+                rows.push(['Hour', 'Actual', 'Target', 'Variance']);
+                
+                // Data rows
+                const inputs = document.querySelectorAll('#hourly-details .hourly-actual-input');
+                inputs.forEach(input => {
+                    const rowDiv = input.closest('div[style*="display:grid"]');
+                    const hour = rowDiv.children[0].textContent.trim();
+                    const act = input.value;
+                    const tgt = rowDiv.querySelector('.hourly-target-input').value;
+                    const variance = rowDiv.querySelector('.hourly-variance').textContent;
+                    rows.push([`"${hour}"`, act, tgt, variance]);
+                });
+                
+                // Total row
+                const tAct = document.getElementById('hourly-total-act') ? document.getElementById('hourly-total-act').textContent : '0';
+                const tTgt = document.getElementById('hourly-total-tgt') ? document.getElementById('hourly-total-tgt').textContent : '0';
+                const tVar = document.getElementById('hourly-total-var') ? document.getElementById('hourly-total-var').textContent : '0';
+                rows.push(['Total', tAct, tTgt, tVar]);
+                
+                const csvContent = rows.map(e => e.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `hourly_output_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             });
         }
 
