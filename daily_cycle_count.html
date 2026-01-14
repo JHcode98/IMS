@@ -176,6 +176,16 @@
               <tbody></tbody>
           </table>
       </div>
+      <div id="counters-pagination-controls" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-top: 1px solid #eee;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <label for="counters-rows-per-page" style="font-size:13px; color:var(--muted);">Rows:</label>
+            <select id="counters-rows-per-page" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #d6dbe6;"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select>
+        </div>
+        <span id="counters-page-info" style="font-size: 13px; font-weight: 600; color: var(--muted);"></span>
+        <div style="display:flex; gap:8px;">
+            <button id="counters-prev-page" class="icon-btn" title="Previous">‹</button>
+            <button id="counters-next-page" class="icon-btn" title="Next">›</button>
+        </div>
       </div>
         </div>
         
@@ -406,6 +416,8 @@
         let showArchiveOnly = false;
         let attCurrentPage = 1;
         let attItemsPerPage = 20;
+        let countersCurrentPage = 1;
+        let countersItemsPerPage = 10;
 
         // Helper to set local date
         function setLocalDate(input) {
@@ -470,16 +482,30 @@
             });
             
             const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+            
+            // Pagination for Counters
+            const totalItems = dates.length;
+            const totalPages = Math.ceil(totalItems / countersItemsPerPage) || 1;
+            if (countersCurrentPage > totalPages) countersCurrentPage = totalPages;
+            
+            const paginatedDates = dates.slice((countersCurrentPage - 1) * countersItemsPerPage, countersCurrentPage * countersItemsPerPage);
+            
+            const countersPageInfo = document.getElementById('counters-page-info');
+            if(countersPageInfo) {
+                countersPageInfo.textContent = `Page ${countersCurrentPage} of ${totalPages} (${totalItems} dates)`;
+                document.getElementById('counters-prev-page').disabled = countersCurrentPage <= 1;
+                document.getElementById('counters-next-page').disabled = countersCurrentPage >= totalPages;
+            }
 
             countersTableBody.innerHTML = '';
-            if (dates.length === 0) {
+            if (paginatedDates.length === 0) {
                 countersTableBody.innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center; padding: 20px;">No daily counter records found.</td></tr>`;
                 return;
             }
             
             const shifts = ["1st Shift-(6am-2pm)", "2nd Shift-(2pm-10pm)", "3rd Shift-(10pm-6am)"];
             
-            dates.forEach(date => {
+            paginatedDates.forEach(date => {
                 const tr = document.createElement('tr');
                 let html = `<td style="padding:12px;border-bottom:1px solid #eee; font-weight:bold;">${date}</td>`;
                 
@@ -533,6 +559,28 @@
                 tr.innerHTML = html;
                 countersTableBody.appendChild(tr);
             });
+        }
+
+        // Counters Pagination Listeners
+        const countersPaginationControls = document.getElementById('counters-pagination-controls');
+        if (countersPaginationControls) {
+            countersPaginationControls.addEventListener('click', (e) => {
+                if (e.target.id === 'counters-prev-page' && !e.target.disabled) {
+                    countersCurrentPage--;
+                    renderCountersTable();
+                } else if (e.target.id === 'counters-next-page' && !e.target.disabled) {
+                    countersCurrentPage++;
+                    renderCountersTable();
+                }
+            });
+            const countersRowsPerPageSelect = document.getElementById('counters-rows-per-page');
+            if (countersRowsPerPageSelect) {
+                countersRowsPerPageSelect.addEventListener('change', () => {
+                    countersItemsPerPage = parseInt(countersRowsPerPageSelect.value, 10);
+                    countersCurrentPage = 1;
+                    renderCountersTable();
+                });
+            }
         }
 
         // Hourly Monitor Logic
@@ -847,6 +895,15 @@
                 details.style.height = 'auto';
                 details.style.flex = 'none';
                 
+                // Add watermark/timestamp
+                const watermark = document.createElement('div');
+                watermark.innerText = `Generated: ${new Date().toLocaleString()}`;
+                watermark.style.cssText = 'position:absolute; bottom:5px; right:10px; color:#888; font-size:10px; opacity:0.7; z-index:100; pointer-events:none;';
+                
+                const prevPos = content.style.position;
+                content.style.position = 'relative';
+                content.appendChild(watermark);
+
                 try {
                     const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#ffffff' });
                     
@@ -854,6 +911,8 @@
                     details.style.overflow = originalOverflow;
                     details.style.height = originalHeight;
                     details.style.flex = originalFlex;
+                    content.style.position = prevPos;
+                    if(watermark.parentNode) watermark.parentNode.removeChild(watermark);
                     
                     snapshotContainer.innerHTML = '';
                     const img = document.createElement('img');
@@ -872,6 +931,8 @@
                     details.style.overflow = originalOverflow;
                     details.style.height = originalHeight;
                     details.style.flex = originalFlex;
+                    content.style.position = prevPos;
+                    if(watermark.parentNode) watermark.parentNode.removeChild(watermark);
                 }
             });
         }
