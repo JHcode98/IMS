@@ -224,9 +224,14 @@
         <div class="flip-back card resizable-box" style="display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h2 style="margin:0;">Productivity: Target vs Actual</h2>
-                <button id="back-to-counters-btn" class="icon-btn" title="Back">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
-                </button>
+                <div style="display:flex; gap:5px;">
+                    <button id="email-productivity-btn" class="icon-btn" title="Email Chart to Supervisor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    </button>
+                    <button id="back-to-counters-btn" class="icon-btn" title="Back">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+                    </button>
+                </div>
             </div>
             <div class="chart-container-back">
                 <canvas id="productivity-chart"></canvas>
@@ -487,6 +492,7 @@
         const flipContainer = document.getElementById('counters-flip-container');
         const viewProdBtn = document.getElementById('view-productivity-btn');
         const backToCountersBtn = document.getElementById('back-to-counters-btn');
+        const emailProdBtn = document.getElementById('email-productivity-btn');
         let productivityChart = null;
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
@@ -1774,6 +1780,70 @@
                 flipContainer.classList.remove('flipped');
             });
         }
+
+        async function sendProductivityEmail() {
+            const canvas = document.getElementById('productivity-chart');
+            if (!canvas) return;
+            
+            // Create a temporary white background canvas to avoid transparency issues
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
+
+            tempCanvas.toBlob(async (blob) => {
+                const file = new File([blob], "productivity_chart.png", { type: "image/png" });
+                const today = new Date().toLocaleDateString();
+                
+                const h = new Date().getHours();
+                let shift = '1st Shift';
+                if(h >= 14 && h < 22) shift = '2nd Shift';
+                else if(h >= 22 || h < 6) shift = '3rd Shift';
+
+                const shareData = {
+                    title: `Productivity Report - ${today} - ${shift}`,
+                    text: `Please find attached the productivity chart for ${today}, ${shift}.`,
+                    files: [file]
+                };
+
+                if (navigator.canShare && navigator.share && navigator.canShare(shareData)) {
+                    try { await navigator.share(shareData); } catch (err) { console.log('Share cancelled'); }
+                } else {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `productivity_chart_${Date.now()}.png`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    
+                    const subject = encodeURIComponent(`Productivity Report - ${today} - ${shift}`);
+                    const body = encodeURIComponent(`Please find the productivity chart for ${today}, ${shift} (downloaded).`);
+                    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                }
+            });
+        }
+
+        if(emailProdBtn) emailProdBtn.addEventListener('click', sendProductivityEmail);
+
+        // Automatic Shift End Check (runs every minute)
+        setInterval(() => {
+            const now = new Date();
+            const m = now.getMinutes();
+            const h = now.getHours();
+            // Check 5 mins before shift ends: 13:55 (1st), 21:55 (2nd), 05:55 (3rd)
+            if (m === 55 && (h === 13 || h === 21 || h === 5)) {
+                if (!sessionStorage.getItem(`shift_alert_${h}`)) {
+                    sessionStorage.setItem(`shift_alert_${h}`, 'true');
+                    if(confirm('Shift is ending soon. Do you want to email the productivity chart to the supervisor?')) {
+                        if(flipContainer && !flipContainer.classList.contains('flipped')) {
+                            flipContainer.classList.add('flipped');
+                            setTimeout(() => { renderProductivityChart(); setTimeout(sendProductivityEmail, 500); }, 100);
+                        } else { sendProductivityEmail(); }
+                    }
+                }
+            }
+        }, 60000);
 
         // Global Filter Logic
         const applyGlobalFilterBtn = document.getElementById('apply-global-filter');
