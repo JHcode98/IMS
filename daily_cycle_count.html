@@ -25,6 +25,10 @@
     .flip-front { z-index: 2; transform: rotateY(0deg); position: relative; }
     .flip-back { transform: rotateY(180deg); position: absolute; height: 100%; top: 0; overflow-y: auto; }
   </style>
+  <style>
+    /* Card content expand/collapse */
+    .card-content.hidden { display: none; }
+  </style>
 </head>
 <body class="inventory-mode">
   <script>
@@ -68,9 +72,12 @@
     <div class="flip-container" id="counters-flip-container">
       <div class="flip-inner">
         <!-- Front: Manage Counters -->
-        <div class="flip-front card">
+        <div class="flip-front card" id="manage-counters-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h2 style="margin:0;">Manage Daily Counters</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <h2 style="margin:0;">Manage Daily Counters</h2>
+            <button class="icon-btn expand-toggle-btn" title="Toggle View" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+        </div>
         <div style="display:flex; gap:5px;">
             <button id="view-productivity-btn" class="icon-btn" title="View Productivity (Target vs Actual)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -83,6 +90,7 @@
             </button>
         </div>
       </div>
+      <div class="card-content">
 
       <!-- Form -->
       <form id="daily-counters-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #eef2f6;">
@@ -135,6 +143,7 @@
               <tbody></tbody>
           </table>
       </div>
+      </div>
         </div>
         
         <!-- Back: Productivity View -->
@@ -152,16 +161,23 @@
       </div>
     </div>
 
-    <div class="card" style="margin-top: 20px;">
+    <div class="card" id="attendance-card" style="margin-top: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h2 style="margin:0;">Attendance Sheet</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <h2 style="margin:0;">Attendance Sheet</h2>
+            <button class="icon-btn expand-toggle-btn" title="Toggle View" style="padding:4px; border:none; background:transparent; color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
+        </div>
         <div style="display:flex; gap:10px; align-items:center;">
             <input type="text" id="att-search" placeholder="Search name..." style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button id="delete-selected-att-btn" class="icon-btn" title="Delete Selected" style="color:#d9534f; display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+            </button>
             <button id="add-att-btn" class="icon-btn" style="background: #2752a7; color: white; padding: 8px 12px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Entry
             </button>
         </div>
       </div>
+      <div class="card-content">
       <div style="overflow-x: auto;">
           <table id="attendance-table" style="width:100%; border-collapse: collapse;">
               <thead>
@@ -169,6 +185,7 @@
                       <th style="padding: 12px; text-align: left;">Date</th>
                       <th style="padding: 12px; text-align: left;">Shift</th>
                       <th style="padding: 12px; text-align: left;">Name</th>
+                      <th style="padding: 12px; text-align: left; width: 40px;"><input type="checkbox" id="select-all-att" title="Select All"></th>
                       <th style="padding: 12px; text-align: left;">Role</th>
                       <th style="padding: 12px; text-align: left;">Area</th>
                       <th style="padding: 12px; text-align: left;">Break Out</th>
@@ -190,6 +207,7 @@
             <button id="att-prev-page" class="icon-btn" title="Previous">‹</button>
             <button id="att-next-page" class="icon-btn" title="Next">›</button>
         </div>
+      </div>
       </div>
     </div>
   </main>
@@ -258,10 +276,16 @@
     <div class="modal-content card" style="max-width: 800px; margin: 50px auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0" id="hourly-modal-title">Hourly Output</h3>
-            <button class="icon-btn close-modal">&times;</button>
+            <div>
+                <button id="save-hourly-targets-btn" class="icon-btn" title="Save Hourly Targets" style="background:#2752a7; color:white;">Save Targets</button>
+                <button class="icon-btn close-modal">&times;</button>
+            </div>
         </div>
         <div style="position:relative; height:400px; width:100%;">
             <canvas id="hourly-chart"></canvas>
+        </div>
+        <div id="hourly-details" style="margin-top:20px; max-height: 200px; overflow-y: auto;">
+            <!-- Hourly input fields will be generated here -->
         </div>
     </div>
   </div>
@@ -444,6 +468,10 @@
              document.getElementById('hourly-modal-title').textContent = `Hourly Output: ${dateStr} (${shift.split('-')[0]})`;
              hourlyModal.classList.remove('hidden');
              
+             // Find the counter entry to get the main target
+             const counters = getCountersData();
+             const counterEntry = counters.find(c => c.date === dateStr && c.shift === shift);
+             
              // Determine time range
              const start = new Date(dateStr);
              const end = new Date(dateStr);
@@ -461,12 +489,22 @@
              let cycleCounts = [];
              try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
              
+             const hourlyDetailsContainer = document.getElementById('hourly-details');
+             hourlyDetailsContainer.innerHTML = '';
+             let hourlyDetailsHtml = '<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 13px; font-weight: bold; padding-bottom: 5px; border-bottom: 1px solid #eee;"><p>Hour</p><p>Actual</p><p>Target</p></div>';
+
              const hourlyData = {};
+             const hourlyTargets = {};
+             const defaultHourlyTarget = counterEntry && counterEntry.targetOutput > 0 ? Math.round(counterEntry.targetOutput / 8) : 0;
+
              // Initialize hours
              for (let d = new Date(start); d < end; d.setHours(d.getHours() + 1)) {
                  const h = d.getHours();
                  const label = `${h}:00 - ${h+1}:00`;
                  hourlyData[label] = 0;
+                 // Use saved hourly target or default
+                 const savedTarget = counterEntry && counterEntry.hourlyTargets && counterEntry.hourlyTargets[label];
+                 hourlyTargets[label] = savedTarget !== undefined ? savedTarget : defaultHourlyTarget;
              }
  
              cycleCounts.forEach(c => {
@@ -481,6 +519,14 @@
                  }
              });
  
+             // Build details table and populate targets
+             Object.keys(hourlyData).forEach(label => {
+                hourlyDetailsHtml += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 5px 0;">
+                    <div>${label}</div><div>${hourlyData[label]}</div>
+                    <div><input type="number" class="hourly-target-input" data-hour="${label}" value="${hourlyTargets[label]}" style="width: 80px; padding: 4px;"></div></div>`;
+             });
+             hourlyDetailsContainer.innerHTML = hourlyDetailsHtml;
+
              // Calculate cumulative data
              const hourlyValues = Object.values(hourlyData);
              const cumulativeData = [];
@@ -489,6 +535,8 @@
                  sum += value;
                  cumulativeData.push(sum);
              }
+
+             const targetLineData = Object.values(hourlyTargets);
  
              const ctx = document.getElementById('hourly-chart');
              if (hourlyChart) hourlyChart.destroy();
@@ -496,16 +544,43 @@
                  type: 'bar',
                  data: {
                      labels: Object.keys(hourlyData),
-                     datasets: [
-                         { label: 'Hourly Output', data: hourlyValues, backgroundColor: '#36b9cc' },
-                         { label: 'Cumulative Total', data: cumulativeData, type: 'line', borderColor: '#e74c3c', backgroundColor: 'transparent', tension: 0.1, yAxisID: 'y' }
-                     ]
+                    datasets: [
+                        { label: 'Hourly Output', data: hourlyValues, backgroundColor: '#36b9cc', order: 2 },
+                        { label: 'Cumulative Total', data: cumulativeData, type: 'line', borderColor: '#e74c3c', backgroundColor: 'transparent', tension: 0.1, yAxisID: 'y', order: 1 },
+                        { label: 'Target', data: targetLineData, type: 'line', borderColor: '#27ae60', backgroundColor: 'transparent', tension: 0.1, yAxisID: 'y', borderDash: [5, 5], order: 0 }
+                    ]
                  },
                  options: { 
                      responsive: true, maintainAspectRatio: false, 
                      scales: { y: { beginAtZero: true, title: { display: true, text: 'Items Counted' } } } 
                  }
              });
+        }
+
+        // Save Hourly Targets
+        const saveHourlyTargetsBtn = document.getElementById('save-hourly-targets-btn');
+        if (saveHourlyTargetsBtn) {
+            saveHourlyTargetsBtn.addEventListener('click', () => {
+                const title = document.getElementById('hourly-modal-title').textContent;
+                const [dateStr, shiftName] = title.replace('Hourly Output: ', '').split(' (');
+                const shift = shiftName.slice(0, -1) + ' Shift-(6am-2pm)'.substring(3); // Reconstruct shift name
+
+                const counters = getCountersData();
+                const counterIndex = counters.findIndex(c => c.date === dateStr && c.shift.startsWith(shift));
+
+                if (counterIndex > -1) {
+                    if (!counters[counterIndex].hourlyTargets) counters[counterIndex].hourlyTargets = {};
+                    document.querySelectorAll('.hourly-target-input').forEach(input => {
+                        const hour = input.dataset.hour;
+                        const value = parseInt(input.value, 10);
+                        if (!isNaN(value)) {
+                            counters[counterIndex].hourlyTargets[hour] = value;
+                        }
+                    });
+                    saveCountersData(counters);
+                    alert('Hourly targets saved!');
+                }
+            });
         }
 
         if (exportCountersBtn) {
@@ -610,12 +685,13 @@
             }
 
             if (paginatedData.length === 0) {
-                attendanceTableBody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
+                attendanceTableBody.innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center; padding: 20px;">No attendance records found.</td></tr>`;
                 return;
             }
             paginatedData.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td style="padding:12px;border-bottom:1px solid #eee"><input type="checkbox" class="att-row-checkbox" data-id="${item.id}"></td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.date}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.shift}</td>
                     <td style="padding:12px;border-bottom:1px solid #eee">${item.name}</td>
@@ -630,6 +706,47 @@
                     </td>
                 `;
                 attendanceTableBody.appendChild(tr);
+            });
+        }
+
+        // Mass Delete for Attendance
+        const selectAllAtt = document.getElementById('select-all-att');
+        const deleteSelectedAttBtn = document.getElementById('delete-selected-att-btn');
+
+        function updateAttendanceActionButtons() {
+            const selectedCount = document.querySelectorAll('.att-row-checkbox:checked').length;
+            if (deleteSelectedAttBtn) {
+                deleteSelectedAttBtn.style.display = selectedCount > 0 ? 'inline-flex' : 'none';
+            }
+        }
+
+        if (selectAllAtt) {
+            selectAllAtt.addEventListener('change', (e) => {
+                document.querySelectorAll('.att-row-checkbox').forEach(cb => cb.checked = e.target.checked);
+                updateAttendanceActionButtons();
+            });
+        }
+
+        if (attendanceTableBody) {
+            attendanceTableBody.addEventListener('change', (e) => {
+                if (e.target.classList.contains('att-row-checkbox')) {
+                    updateAttendanceActionButtons();
+                }
+            });
+        }
+
+        if (deleteSelectedAttBtn) {
+            deleteSelectedAttBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(document.querySelectorAll('.att-row-checkbox:checked')).map(cb => cb.dataset.id);
+                if (selectedIds.length === 0) { alert('No items selected.'); return; }
+                if (confirm(`Are you sure you want to delete ${selectedIds.length} selected attendance records?`)) {
+                    let data = getAttendanceData();
+                    data = data.filter(item => !selectedIds.includes(item.id));
+                    saveAttendanceData(data);
+                    renderAttendanceTable();
+                    renderCountersTable();
+                    updateAttendanceActionButtons();
+                }
             });
         }
 
@@ -819,6 +936,20 @@
                 }
             });
         }
+
+        // Expand/Collapse Card Logic
+        document.querySelectorAll('.expand-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const card = e.target.closest('.card');
+                const content = card.querySelector('.card-content');
+                if (content) {
+                    content.classList.toggle('hidden');
+                    const isHidden = content.classList.contains('hidden');
+                    btn.title = isHidden ? 'Expand' : 'Collapse';
+                    btn.innerHTML = isHidden ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+                }
+            });
+        });
 
         // Productivity / Flip Logic
         if(viewProdBtn && flipContainer) {
