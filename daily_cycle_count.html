@@ -348,8 +348,16 @@
         let attCurrentPage = 1;
         let attItemsPerPage = 20;
 
+        // Helper to set local date
+        function setLocalDate(input) {
+            if (!input) return;
+            const now = new Date();
+            const local = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+            input.value = local.toISOString().split('T')[0];
+        }
+
         // Set default date
-        if(dateInput) dateInput.valueAsDate = new Date();
+        setLocalDate(dateInput);
 
         // Auto-calc target in form
         function autoCalcTarget() {
@@ -509,7 +517,7 @@
              
              const hourlyDetailsContainer = document.getElementById('hourly-details');
              hourlyDetailsContainer.innerHTML = '';
-             let hourlyDetailsHtml = '<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 13px; font-weight: bold; padding-bottom: 5px; border-bottom: 1px solid #eee;"><p>Hour</p><p>Actual</p><p>Target</p></div>';
+             let hourlyDetailsHtml = '<div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; font-size: 13px; font-weight: bold; padding-bottom: 5px; border-bottom: 1px solid #eee;"><p>Hour</p><p>Actual</p><p>Target</p><p>Variance</p></div>';
 
              const hourlyData = {};
              const hourlyTargets = {};
@@ -549,10 +557,16 @@
  
              // Build details table and populate targets
              Object.keys(hourlyData).forEach(label => {
-                hourlyDetailsHtml += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 5px 0;">
+                const act = hourlyData[label] || 0;
+                const tgt = hourlyTargets[label] || 0;
+                const variance = act - tgt;
+                const varColor = variance >= 0 ? '#2ecc71' : '#e74c3c';
+                
+                hourlyDetailsHtml += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 5px 0;">
                     <div>${label}</div>
-                    <div><input type="number" class="hourly-actual-input" data-hour="${label}" value="${hourlyData[label]}" style="width: 80px; padding: 4px;"></div>
-                    <div><input type="number" class="hourly-target-input" data-hour="${label}" value="${hourlyTargets[label]}" style="width: 80px; padding: 4px;"></div></div>`;
+                    <div><input type="number" class="hourly-actual-input" data-hour="${label}" value="${act}" style="width: 80px; padding: 4px;"></div>
+                    <div><input type="number" class="hourly-target-input" data-hour="${label}" value="${tgt}" style="width: 80px; padding: 4px;"></div>
+                    <div class="hourly-variance" style="font-weight:bold; color:${varColor}">${(variance > 0 ? '+' : '') + variance}</div></div>`;
              });
              hourlyDetailsContainer.innerHTML = hourlyDetailsHtml;
 
@@ -584,6 +598,22 @@
                      scales: { y: { beginAtZero: true, title: { display: true, text: 'Items Counted' } } } 
                  }
              });
+        }
+
+        // Dynamic Variance Calculation
+        const hourlyDetailsDiv = document.getElementById('hourly-details');
+        if (hourlyDetailsDiv) {
+            hourlyDetailsDiv.addEventListener('input', (e) => {
+                if (e.target.classList.contains('hourly-actual-input') || e.target.classList.contains('hourly-target-input')) {
+                    const row = e.target.closest('div[style*="display:grid"]');
+                    const act = parseInt(row.querySelector('.hourly-actual-input').value) || 0;
+                    const tgt = parseInt(row.querySelector('.hourly-target-input').value) || 0;
+                    const variance = act - tgt;
+                    const varDiv = row.querySelector('.hourly-variance');
+                    varDiv.textContent = (variance > 0 ? '+' : '') + variance;
+                    varDiv.style.color = variance >= 0 ? '#2ecc71' : '#e74c3c';
+                }
+            });
         }
 
         // Save Hourly Targets
@@ -895,7 +925,7 @@
                 saveCounterBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save';
                 cancelCounterEditBtn.style.display = 'none';
                 document.getElementById('counter-rate').value = '';
-                document.getElementById('counter-date').valueAsDate = new Date();
+                setLocalDate(document.getElementById('counter-date'));
             });
         }
 
