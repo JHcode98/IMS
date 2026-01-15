@@ -140,9 +140,10 @@
       <button id="apply-global-filter" class="icon-btn" title="Apply Filter" style="background: #2752a7; color: white;">Filter</button>
       <button id="clear-global-filter" class="icon-btn" title="Clear Filter">Clear</button>
     </div>
-    <div class="flip-container" id="counters-flip-container" style="min-height: 600px; margin-bottom: 20px;">
+    <div class="flip-container" id="counters-flip-container" style="min-height: 600px;">
       <div class="flip-inner">
-        <div class="flip-front card resizable-box" id="manage-counters-card" style="margin-bottom: 0; min-height: 600px;">
+        <!-- Front: Manage Counters -->
+        <div class="flip-front card resizable-box" id="manage-counters-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Manage Daily Counters</h2>
@@ -156,7 +157,7 @@
             <button id="clear-counters-filters-btn" class="icon-btn" title="Clear Filters">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
             </button>
-            <button id="view-shift-chart-btn" class="icon-btn" title="View Shift Output Chart">
+            <button id="view-productivity-btn" class="icon-btn" title="View Productivity (Target vs Actual)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </button>
             <button id="export-counters-btn" class="icon-btn" title="Export CSV">
@@ -237,15 +238,25 @@
         </div>
       </div>
         </div>
-        <div class="flip-back card resizable-box" style="margin-bottom: 0; min-height: 600px; display:flex; flex-direction:column;">
+        
+        <!-- Back: Productivity View -->
+        <div class="flip-back card resizable-box" style="display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2 style="margin:0;">Shift Output Chart</h2>
-                <button id="back-to-counters-btn" class="icon-btn" title="Back to Table">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
-                </button>
+                <h2 style="margin:0;">Productivity: Target vs Actual</h2>
+                <div style="display:flex; gap:5px;">
+                    <button id="email-productivity-btn" class="icon-btn" title="Email Chart to Supervisor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    </button>
+                    <button id="download-productivity-btn" class="icon-btn" title="Download Chart Image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
+                    <button id="back-to-counters-btn" class="icon-btn" title="Back">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+                    </button>
+                </div>
             </div>
             <div class="chart-container-back">
-                <canvas id="shift-output-chart"></canvas>
+                <canvas id="productivity-chart"></canvas>
             </div>
         </div>
       </div>
@@ -500,13 +511,16 @@
         const supervisorDeleteModal = document.getElementById('supervisor-delete-modal');
         const confirmSupervisorDeleteBtn = document.getElementById('confirm-supervisor-delete-btn');
         let supervisorDeleteCallback = null;
-        
-        // Flip / Chart elements
-        const flipContainer = document.getElementById('counters-flip-container');
-        const viewChartBtn = document.getElementById('view-shift-chart-btn');
-        const backToCountersBtn = document.getElementById('back-to-counters-btn');
-        let shiftChart = null;
+
         let hourlyChart = null;
+
+        // Flip elements
+        const flipContainer = document.getElementById('counters-flip-container');
+        const viewProdBtn = document.getElementById('view-productivity-btn');
+        const backToCountersBtn = document.getElementById('back-to-counters-btn');
+        const emailProdBtn = document.getElementById('email-productivity-btn');
+        const downloadProdBtn = document.getElementById('download-productivity-btn');
+        let productivityChart = null;
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
         const STORAGE_KEY_ATTENDANCE = 'ims_daily_attendance_v1';
@@ -678,7 +692,7 @@
                             actualOutput = actualsMap[`${date}|${shift}`] || 0;
                         }
                         
-                        const targetMet = activeTarget > 0 && actualOutput >= activeTarget;
+                        const targetMet = (actualOutput - activeTarget) >= 0;
                         
                         // Visual indicator for shortage
                         const isShort = act < req;
@@ -1822,11 +1836,11 @@
             });
         });
 
-        // Flip / Chart Logic
-        if(viewChartBtn && flipContainer) {
-            viewChartBtn.addEventListener('click', () => {
+        // Productivity / Flip Logic
+        if(viewProdBtn && flipContainer) {
+            viewProdBtn.addEventListener('click', () => {
                 flipContainer.classList.add('flipped');
-                setTimeout(renderShiftChart, 300);
+                setTimeout(renderProductivityChart, 500);
             });
         }
         if(backToCountersBtn && flipContainer) {
@@ -1835,67 +1849,70 @@
             });
         }
 
-        function renderShiftChart() {
-            const ctx = document.getElementById('shift-output-chart');
-            if(!ctx) return;
+        async function sendProductivityEmail() {
+            const canvas = document.getElementById('productivity-chart');
+            if (!canvas) return;
             
-            const counters = getCountersData();
-            const attendance = getAttendanceData();
-            let cycleCounts = [];
-            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
-            
-            const actualsMap = {};
-            cycleCounts.forEach(c => {
-                const ts = c.createdDate || c.date;
-                if(ts) {
-                    const info = getShiftFromTimestamp(ts);
-                    const key = `${info.date}|${info.shift}`;
-                    actualsMap[key] = (actualsMap[key] || 0) + 1;
-                }
-            });
+            // Create a temporary white background canvas to avoid transparency issues
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(canvas, 0, 0);
 
-            // Sort counters by date desc, take top 15
-            const sortedCounters = [...counters].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).reverse();
-            
-            const labels = [];
-            const targetData = [];
-            const actualData = [];
-
-            sortedCounters.forEach(item => {
-                labels.push(`${item.date} (${item.shift.split('-')[0]})`);
+            tempCanvas.toBlob(async (blob) => {
+                const file = new File([blob], "productivity_chart.png", { type: "image/png" });
+                const today = new Date().toLocaleDateString();
                 
-                // Calculate Target
-                const shiftAtt = attendance.filter(a => a.date === item.date && a.shift === item.shift);
-                const act = shiftAtt.length;
-                const rate = item.standardRate || 0;
-                const target = rate > 0 ? (act * rate) : (item.targetOutput || 0);
-                targetData.push(target);
+                const h = new Date().getHours();
+                let shift = '1st Shift';
+                if(h >= 14 && h < 22) shift = '2nd Shift';
+                else if(h >= 22 || h < 6) shift = '3rd Shift';
 
-                // Calculate Actual
-                let actual = 0;
-                if (item.hourlyActuals) {
-                    actual = Object.values(item.hourlyActuals).reduce((a, b) => a + (Number(b)||0), 0);
+                const shareData = {
+                    title: `Productivity Report - ${today} - ${shift}`,
+                    text: `Please find attached the productivity chart for ${today}, ${shift}.`,
+                    files: [file]
+                };
+
+                if (navigator.canShare && navigator.share && navigator.canShare(shareData)) {
+                    try { await navigator.share(shareData); } catch (err) { console.log('Share cancelled'); }
                 } else {
-                    actual = actualsMap[`${item.date}|${item.shift}`] || 0;
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `productivity_chart_${Date.now()}.png`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    
+                    const subject = encodeURIComponent(`Productivity Report - ${today} - ${shift}`);
+                    const body = encodeURIComponent(`Please find the productivity chart for ${today}, ${shift} (downloaded).`);
+                    window.location.href = `mailto:?subject=${subject}&body=${body}`;
                 }
-                actualData.push(actual);
             });
+        }
 
-            if(shiftChart) { shiftChart.destroy(); }
-            shiftChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Target Output', data: targetData, backgroundColor: '#e74c3c' },
-                        { label: 'Actual Output', data: actualData, backgroundColor: '#2ecc71' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
+        if(emailProdBtn) emailProdBtn.addEventListener('click', sendProductivityEmail);
+
+        if(downloadProdBtn) {
+            downloadProdBtn.addEventListener('click', () => {
+                const canvas = document.getElementById('productivity-chart');
+                if (!canvas) return;
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                ctx.drawImage(canvas, 0, 0);
+                
+                const link = document.createElement('a');
+                link.download = `productivity_chart_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             });
         }
 
@@ -1908,7 +1925,12 @@
             if (m === 55 && (h === 13 || h === 21 || h === 5)) {
                 if (!sessionStorage.getItem(`shift_alert_${h}`)) {
                     sessionStorage.setItem(`shift_alert_${h}`, 'true');
-                    // Alert removed as chart is removed
+                    if(confirm('Shift is ending soon. Do you want to email the productivity chart to the supervisor?')) {
+                        if(flipContainer && !flipContainer.classList.contains('flipped')) {
+                            flipContainer.classList.add('flipped');
+                            setTimeout(() => { renderProductivityChart(); setTimeout(sendProductivityEmail, 500); }, 100);
+                        } else { sendProductivityEmail(); }
+                    }
                 }
             }
         }, 60000);
@@ -1956,6 +1978,66 @@
                 }
             }
             return { date: dateStr, shift };
+        }
+
+        function renderProductivityChart() {
+            const ctx = document.getElementById('productivity-chart');
+            if(!ctx) return;
+            
+            const counters = getCountersData(); // Targets
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            
+            // Aggregate Actuals
+            const actualsMap = {}; // Key: "Date|Shift" -> count
+            (cycleCounts || []).forEach(c => {
+                const ts = c.createdDate || c.date;
+                if(ts) {
+                    const info = getShiftFromTimestamp(ts);
+                    const key = `${info.date}|${info.shift}`;
+                    actualsMap[key] = (actualsMap[key] || 0) + 1;
+                }
+            });
+
+            // Prepare Chart Data (Sort by date desc, take top 10 or so)
+            // We use counters list as the base for X-axis
+            const sortedCounters = [...counters].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10); // Last 10 shifts
+            
+            const labels = [];
+            const targetData = [];
+            const actualData = [];
+
+            sortedCounters.reverse().forEach(c => {
+                labels.push(`${c.date} (${c.shift.split('-')[0]})`);
+                targetData.push(c.targetOutput || 0);
+                const key = `${c.date}|${c.shift}`;
+                
+                let actual = 0;
+                if (c.hourlyActuals) {
+                    actual = Object.values(c.hourlyActuals).reduce((a, b) => a + (Number(b)||0), 0);
+                } else {
+                    actual = actualsMap[key] || 0;
+                }
+                actualData.push(actual);
+            });
+
+            if(productivityChart) { productivityChart.destroy(); productivityChart = null; }
+            productivityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Target Output', data: targetData, backgroundColor: '#e74c3c' },
+                        { label: 'Actual Output', data: actualData, backgroundColor: '#2ecc71' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    animation: false
+                }
+            });
         }
 
         renderCountersTable();
