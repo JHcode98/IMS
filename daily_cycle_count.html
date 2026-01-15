@@ -2360,6 +2360,7 @@
                         const customName = customLabels[label];
                         const manualStatus = customStatuses[label];
                         
+                        const isPartOfStats = (manualStatus !== 'empty' && manualStatus !== 'not-part');
                         let statusClass = '';
                         let isCounted = false;
                         if (manualStatus === 'counted') {
@@ -2369,18 +2370,20 @@
                             isCounted = false;
                             statusClass = 'uncounted';
                         } else if (manualStatus === 'empty') {
-                            isCounted = true; // Empty counts as done
+                            isCounted = false;
                             statusClass = 'empty';
                         } else if (manualStatus === 'not-part') {
                             isCounted = false;
                             statusClass = 'not-part';
-                            totalCapacity--; // Reduce capacity
                         } else { // auto
                             isCounted = isAutoCounted;
                             if (isCounted) statusClass = 'counted';
                         }
                         
-                        if(isCounted) totalEffectiveCounted++;
+                        if (isPartOfStats) {
+                            totalCapacity++;
+                            if(isCounted) totalEffectiveCounted++;
+                        }
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${statusClass}`;
