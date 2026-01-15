@@ -165,7 +165,6 @@
     .rack-spacer {
         pointer-events: none;
     }
-    .rack-cell.searched {
         outline: 3px solid #f39c12;
         transform: scale(1.1);
         z-index: 5;
@@ -2226,6 +2225,11 @@
             if (!area) {
                 // Dashboard View
                 rackingGrid.innerHTML = '';
+                rackingGrid.style.display = 'grid';
+                rackingGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
+                rackingGrid.style.gap = '20px';
+                rackingGrid.style.maxWidth = '100%';
+                rackingGrid.style.width = '100%';
                 rackingGrid.style.display = 'block'; // Change display for dashboard layout
                 
                 // Add chart container
@@ -2339,6 +2343,7 @@
                             <div style="width:${pct}%; height:100%; background:${color};"></div>
                         </div>
                     `;
+                    rackingGrid.appendChild(card);
                     cardContainer.appendChild(card);
 
                     // Collect data for chart
@@ -2445,6 +2450,7 @@
                         const customName = customLabels[label];
                         const manualStatus = customStatuses[label];
                         
+                        const isPartOfStats = (manualStatus !== 'empty' && manualStatus !== 'not-part');
                         let statusClass = '';
                         let isCounted = false;
                         if (manualStatus === 'counted') {
@@ -2454,6 +2460,7 @@
                             isCounted = false;
                             statusClass = 'uncounted';
                         } else if (manualStatus === 'empty') {
+                            isCounted = false;
                             isCounted = true; // Empty counts as done
                             statusClass = 'empty';
                         } else if (manualStatus === 'not-part') {
@@ -2465,6 +2472,10 @@
                             if (isCounted) statusClass = 'counted';
                         }
                         
+                        if (isPartOfStats) {
+                            totalCapacity++;
+                            if(isCounted) totalEffectiveCounted++;
+                        }
                         if(isCounted) totalEffectiveCounted++;
                         
                         const cell = document.createElement('div');
@@ -2611,6 +2622,7 @@
                 }
             }
             
+            // Update capacity info after loop (since 'not-part' and 'empty' reduce it)
             // Update capacity info after loop (since 'not-part' reduces it)
             document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
             const pct = totalCapacity > 0 ? Math.round((totalEffectiveCounted / totalCapacity) * 100) : 0;
