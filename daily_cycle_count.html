@@ -552,6 +552,7 @@
             <h3 style="margin:0">Sub Area Monitor</h3>
             <div style="display:flex; gap:10px; align-items:center;">
                 <div id="monitor-bulk-actions" style="display:none; gap:5px;">
+                    <button id="bulk-copy-names-btn" class="icon-btn" style="background:#3498db; color:white; width:auto; padding: 6px 12px; font-size:12px;">Copy Names</button>
                     <button id="bulk-counted-btn" class="icon-btn" style="background:#2ecc71; color:white; width:auto; padding: 6px 12px; font-size:12px;">Mark Counted</button>
                     <button id="bulk-uncounted-btn" class="icon-btn" style="background:#e74c3c; color:white; width:auto; padding: 6px 12px; font-size:12px;">Mark Not Counted</button>
                 </div>
@@ -642,6 +643,7 @@
         const monitorBulkActions = document.getElementById('monitor-bulk-actions');
         const bulkCountedBtn = document.getElementById('bulk-counted-btn');
         const bulkUncountedBtn = document.getElementById('bulk-uncounted-btn');
+        const bulkCopyNamesBtn = document.getElementById('bulk-copy-names-btn');
         
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
@@ -2358,6 +2360,32 @@
         
         if (bulkCountedBtn) bulkCountedBtn.addEventListener('click', () => bulkUpdateStatus('counted'));
         if (bulkUncountedBtn) bulkUncountedBtn.addEventListener('click', () => bulkUpdateStatus('uncounted'));
+        
+        if (bulkCopyNamesBtn) {
+            bulkCopyNamesBtn.addEventListener('click', () => {
+                if (monitorSelectedCells.size === 0) {
+                    alert('No cells selected to copy.');
+                    return;
+                }
+
+                const customLabels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
+                const namesToCopy = [];
+
+                monitorSelectedCells.forEach(cellId => {
+                    const name = customLabels[cellId] || cellId;
+                    namesToCopy.push(name);
+                });
+
+                const textToCopy = namesToCopy.join('\n');
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alert(`${namesToCopy.length} pallet name(s) copied to clipboard.`);
+                }).catch(err => {
+                    console.error('Failed to copy names: ', err);
+                    alert('Failed to copy names to clipboard.');
+                });
+            });
+        }
         
         function openCellEditModal(id, currentName, currentStatus) {
             document.getElementById('cell-edit-id').value = id;
