@@ -165,10 +165,6 @@
     .rack-spacer {
         pointer-events: none;
     }
-        outline: 3px solid #f39c12;
-        transform: scale(1.1);
-        z-index: 5;
-    }
     .rack-cell[draggable="true"] {
         cursor: grab;
     }
@@ -584,7 +580,6 @@
                     <button id="bulk-edit-btn" class="icon-btn" style="background:#607d8b; color:white; width:auto; padding: 6px 12px; font-size:12px;">Edit</button>
                     <button id="bulk-uncounted-btn" class="icon-btn" style="background:#e74c3c; color:white; width:auto; padding: 6px 12px; font-size:12px;">Mark Not Counted</button>
                 </div>
-                <input type="text" id="monitor-search-input" placeholder="Search by name..." style="display:none; padding:6px; border-radius:4px; border:1px solid #ccc;">
                 <select id="monitor-sub-area-select" style="padding:6px; border-radius:4px; border:1px solid #ccc; min-width: 150px;"></select>
                 <span id="monitor-capacity-info" style="font-size:13px; color:#666; font-weight:bold;"></span>
                 <button class="icon-btn close-modal">&times;</button>
@@ -678,7 +673,6 @@
         const bulkPasteNamesBtn = document.getElementById('bulk-paste-names-btn');
         const bulkEmptyBtn = document.getElementById('bulk-empty-btn');
         const bulkEditBtn = document.getElementById('bulk-edit-btn');
-        const monitorSearchInput = document.getElementById('monitor-search-input');
         
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
@@ -2189,7 +2183,6 @@
             monitorSubAreaSelect.addEventListener('change', () => {
                 monitorSelectedCells.clear();
                 updateMonitorControls();
-                if(monitorSearchInput) monitorSearchInput.value = '';
                 renderMonitorGrid();
             });
         }
@@ -2230,42 +2223,10 @@
                 rackingGrid.style.gap = '20px';
                 rackingGrid.style.maxWidth = '100%';
                 rackingGrid.style.width = '100%';
-                rackingGrid.style.display = 'block'; // Change display for dashboard layout
-                
-                // Add chart container
-                const chartContainer = document.createElement('div');
-                chartContainer.style.height = '300px';
-                chartContainer.style.marginBottom = '30px';
-                chartContainer.innerHTML = '<canvas id="dashboard-chart"></canvas>';
-                rackingGrid.appendChild(chartContainer);
-
-                // Add card container
-                const cardContainer = document.createElement('div');
-                cardContainer.style.display = 'grid';
-                cardContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-                cardContainer.style.gap = '20px';
-                rackingGrid.appendChild(cardContainer);
                 
                 capacityInfo.textContent = 'Dashboard View';
                 statsDiv.textContent = '';
-                if(monitorSearchInput) monitorSearchInput.style.display = 'none';
 
-                // Legend for Dashboard
-                const legendDiv = document.createElement('div');
-                legendDiv.style.gridColumn = '1 / -1';
-                legendDiv.style.display = 'flex';
-                legendDiv.style.justifyContent = 'center';
-                legendDiv.style.gap = '20px';
-                legendDiv.style.marginBottom = '10px';
-                legendDiv.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#e74c3c;"></div> < 50%</div>
-                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#f1c40f;"></div> 50% - 99%</div>
-                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#2ecc71;"></div> 100%</div>
-                `;
-                rackingGrid.insertBefore(legendDiv, chartContainer);
-
-                const dashboardChartData = { labels: [], percentages: [], colors: [] };
-                
                 subAreaOptions.forEach(subArea => {
                     const config = subAreaConfigs[subArea];
                     if(!config) return;
@@ -2304,17 +2265,6 @@
                                 areaTotal++;
                             }
                         });
-                        // Floor
-                        if (config.floor) {
-                            const floorCells = config.floor.width * config.floor.levels;
-                            for(let i=0; i<floorCells; i++) {
-                                const isAuto = globalCellIndex < countedCount;
-                                globalCellIndex++;
-                                const label = `${config.floor.prefix}-${i+1}`;
-                                if(isCellCounted(label, isAuto)) areaCounted++;
-                                areaTotal++;
-                            }
-                        }
                     }
 
                     const pct = areaTotal > 0 ? Math.round((areaCounted / areaTotal) * 100) : 0;
@@ -2344,43 +2294,12 @@
                         </div>
                     `;
                     rackingGrid.appendChild(card);
-                    cardContainer.appendChild(card);
-
-                    // Collect data for chart
-                    dashboardChartData.labels.push(subArea);
-                    dashboardChartData.percentages.push(pct);
-                    dashboardChartData.colors.push(color);
                 });
-
-                // Render Dashboard Chart
-                const ctx = document.getElementById('dashboard-chart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: dashboardChartData.labels,
-                        datasets: [{
-                            label: 'Completion %',
-                            data: dashboardChartData.percentages,
-                            backgroundColor: dashboardChartData.colors,
-                            borderColor: dashboardChartData.colors,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, title: { display: true, text: 'Sub Area Completion Overview' } },
-                        scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } } }
-                    }
-                });
-
                 return;
             }
             
             // Config
             const config = subAreaConfigs[area] || { width: 20, levels: 5, total: 100 }; // Default if not defined
-            const searchTerm = monitorSearchInput ? monitorSearchInput.value.toLowerCase() : '';
-            if(monitorSearchInput) monitorSearchInput.style.display = 'block';
             
             // Filter counts for this area
             const areaCounts = cycleCounts.filter(c => {
@@ -2395,15 +2314,6 @@
             let globalCellIndex = 0;
             let totalCapacity = 0;
             let totalEffectiveCounted = 0;
-
-            if (config.type === 'multi') {
-                config.blocks.forEach(b => totalCapacity += (b.width * b.levels));
-                if (config.floor) totalCapacity += (config.floor.width * config.floor.levels);
-            } else {
-                totalCapacity = config.total || (config.width * config.levels);
-            }
-            
-            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
             
             // Render Grid
             rackingGrid.innerHTML = '';
@@ -2461,12 +2371,10 @@
                             statusClass = 'uncounted';
                         } else if (manualStatus === 'empty') {
                             isCounted = false;
-                            isCounted = true; // Empty counts as done
                             statusClass = 'empty';
                         } else if (manualStatus === 'not-part') {
                             isCounted = false;
                             statusClass = 'not-part';
-                            totalCapacity--; // Reduce capacity
                         } else { // auto
                             isCounted = isAutoCounted;
                             if (isCounted) statusClass = 'counted';
@@ -2476,15 +2384,9 @@
                             totalCapacity++;
                             if(isCounted) totalEffectiveCounted++;
                         }
-                        if(isCounted) totalEffectiveCounted++;
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${statusClass}`;
-                        
-                        // Search highlight
-                        if (searchTerm && ((customName && customName.toLowerCase().includes(searchTerm)) || label.toLowerCase().includes(searchTerm))) {
-                            cell.classList.add('searched');
-                        }
                         
                         // Drag & Drop Attributes
                         cell.draggable = true;
@@ -2590,12 +2492,6 @@
                         cell.dataset.block = 'floor';
                         if (monitorSelectedCells.has(label)) cell.classList.add('selected');
                         cell.title = `${customName || 'Floor'} - ${isCounted ? 'Counted' : 'Not Counted'}`;
-                        
-                        // Search highlight for floor
-                        if (searchTerm && ((customName && customName.toLowerCase().includes(searchTerm)) || label.toLowerCase().includes(searchTerm))) {
-                            cell.classList.add('searched');
-                        }
-                        
                         cell.onclick = (e) => { if(e.target.type !== 'checkbox') openCellEditModal(label, customName, manualStatus); };
                         if (manualStatus !== 'not-part' && manualStatus !== 'empty') {
                             cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
@@ -2623,15 +2519,9 @@
             }
             
             // Update capacity info after loop (since 'not-part' and 'empty' reduce it)
-            // Update capacity info after loop (since 'not-part' reduces it)
             document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
             const pct = totalCapacity > 0 ? Math.round((totalEffectiveCounted / totalCapacity) * 100) : 0;
             document.getElementById('monitor-stats').innerHTML = `Counted: ${totalEffectiveCounted} / ${totalCapacity} (${pct}%)`;
-        }
-        
-        // Search listener
-        if (monitorSearchInput) {
-            monitorSearchInput.addEventListener('input', () => renderMonitorGrid());
         }
         
         // Drag and Drop Handlers
