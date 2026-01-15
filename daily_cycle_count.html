@@ -664,7 +664,7 @@
         let attSortDirection = 'desc';
         
         let globalSubAreas = []; // Selected sub areas for filtering
-        const subAreaOptions = ['DCI', 'DCJ', 'DCK', 'DCL', 'DCM', 'ERM', 'ERN', 'DCN', 'DCO'];
+        const subAreaOptions = ['DCI', 'DCJ', 'DCK', 'DCL', 'DCM', 'DCN', 'DCO'];
         
         // Sub Area Configurations (Width x Levels)
         const subAreaConfigs = {
@@ -2196,6 +2196,8 @@
                             if(e.target.type !== 'checkbox') openCellEditModal(label, customName, manualStatus);
                         };
                         
+                        cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
+                        
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.className = 'cell-checkbox';
@@ -2203,8 +2205,6 @@
                         checkbox.onclick = (e) => { e.stopPropagation(); toggleCellSelection(label, e.target.checked); };
                         
                         cell.appendChild(checkbox);
-                        
-                        cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
                         
                         if(customName) {
                             const nameSpan = document.createElement('span');
