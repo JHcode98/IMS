@@ -570,7 +570,13 @@
         
         // Sub Area Configurations (Width x Levels)
         const subAreaConfigs = {
-            'DCJ': { width: 46, levels: 6, total: 276, splitAt: 23 } // 46 * 6 = 276
+            'DCJ': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCJ002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCJ004', rowBase: 20, rowStep: 10 }
+                ]
+            }
         };
 
         // Helper to set local date
@@ -2004,7 +2010,12 @@
             
             // Config
             const config = subAreaConfigs[area] || { width: 20, levels: 5, total: 100 }; // Default if not defined
-            const totalCells = config.total || (config.width * config.levels);
+            let totalCells = 0;
+            if (config.type === 'multi') {
+                config.blocks.forEach(b => totalCells += (b.width * b.levels));
+            } else {
+                totalCells = config.total || (config.width * config.levels);
+            }
             
             document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCells} positions (${config.width}W x ${config.levels}H)`;
             
@@ -2031,27 +2042,54 @@
             
             // Render Grid
             rackingGrid.innerHTML = '';
+            rackingGrid.style.maxWidth = 'none';
             
-            if (config.splitAt) {
-                rackingGrid.style.gridTemplateColumns = `repeat(${config.splitAt}, 1fr) 30px repeat(${config.width - config.splitAt}, 1fr)`;
-                rackingGrid.style.maxWidth = `${(config.width * 25) + 30}px`;
+            if (config.type === 'multi') {
+                rackingGrid.style.display = 'flex';
+                rackingGrid.style.flexDirection = 'column';
+                rackingGrid.style.gap = '40px'; // Space between blocks
+                rackingGrid.style.alignItems = 'center';
+                
+                let globalCellIndex = 0;
+                
+                config.blocks.forEach(block => {
+                    const blockDiv = document.createElement('div');
+                    blockDiv.style.display = 'grid';
+                    blockDiv.style.gridTemplateColumns = `repeat(${block.width}, 1fr)`;
+                    blockDiv.style.gap = '2px';
+                    blockDiv.style.width = '100%';
+                    blockDiv.style.maxWidth = `${block.width * 25}px`;
+                    
+                    const blockCells = block.width * block.levels;
+                    
+                    for (let i = 0; i < blockCells; i++) {
+                        const isCounted = globalCellIndex < countedCount;
+                        globalCellIndex++;
+                        
+                        // Generate Label: Prefix + RowNum + Col
+                        const rowIdx = Math.floor(i / block.width);
+                        const colIdx = (i % block.width) + 1;
+                        const rowNum = (block.rowBase || 0) + (rowIdx * (block.rowStep || 10));
+                        const label = `${block.prefix}${rowNum}-C${colIdx}`;
+                        
+                        const cell = document.createElement('div');
+                        cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
+                        cell.title = `${label} (${isCounted ? 'Counted' : 'Empty'})`;
+                        blockDiv.appendChild(cell);
+                    }
+                    rackingGrid.appendChild(blockDiv);
+                });
             } else {
+                rackingGrid.style.display = 'grid';
                 rackingGrid.style.gridTemplateColumns = `repeat(${config.width}, 1fr)`;
                 rackingGrid.style.maxWidth = `${config.width * 25}px`;
-            }
-            
-            rackingGrid.style.width = '100%';
-            
-            for (let i = 0; i < totalCells; i++) {
-                if (config.splitAt && (i % config.width === config.splitAt)) {
-                    const spacer = document.createElement('div');
-                    spacer.className = 'rack-spacer';
-                    rackingGrid.appendChild(spacer);
+                rackingGrid.style.width = '100%';
+                for (let i = 0; i < totalCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = `rack-cell ${i < countedCount ? 'counted' : ''}`;
+                    cell.title = i < countedCount ? 'Counted' : 'Empty';
+                    rackingGrid.appendChild(cell);
                 }
-                const cell = document.createElement('div');
-                cell.className = `rack-cell ${i < countedCount ? 'counted' : ''}`;
-                cell.title = i < countedCount ? 'Counted' : 'Empty';
-                rackingGrid.appendChild(cell);
             }
             
             const pct = Math.round((countedCount / totalCells) * 100);
