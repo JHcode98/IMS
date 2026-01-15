@@ -2227,6 +2227,20 @@
                 capacityInfo.textContent = 'Dashboard View';
                 statsDiv.textContent = '';
 
+                // Legend for Dashboard
+                const legendDiv = document.createElement('div');
+                legendDiv.style.gridColumn = '1 / -1';
+                legendDiv.style.display = 'flex';
+                legendDiv.style.justifyContent = 'center';
+                legendDiv.style.gap = '20px';
+                legendDiv.style.marginBottom = '10px';
+                legendDiv.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#e74c3c;"></div> < 50%</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#f1c40f;"></div> 50% - 99%</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:15px; height:15px; background:#2ecc71;"></div> 100%</div>
+                `;
+                rackingGrid.appendChild(legendDiv);
+
                 subAreaOptions.forEach(subArea => {
                     const config = subAreaConfigs[subArea];
                     if(!config) return;
@@ -2258,6 +2272,9 @@
                                 const rowNum = (block.rowBase || 0) + (rowIdx * (block.rowStep || 10));
                                 const label = `${block.prefix}${rowNum}-C${colIdx}`;
                                 
+                                const status = customStatuses[label];
+                                if (status === 'empty' || status === 'not-part') continue;
+
                                 if(isCellCounted(label, isAuto)) areaCounted++;
                                 areaTotal++;
                             }
