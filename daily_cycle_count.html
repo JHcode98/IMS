@@ -97,6 +97,13 @@
         background-color: #e0e0e0;
         border: 1px solid #ccc;
         border-radius: 2px;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+    .rack-cell:hover {
+        transform: scale(1.1);
+        z-index: 1;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .rack-cell.counted {
         background-color: #2ecc71;
@@ -492,6 +499,29 @@
             <div id="racking-grid" style="display:grid; gap:2px;"></div>
         </div>
         <div id="monitor-stats" style="margin-top:10px; font-weight:bold; text-align: right;"></div>
+    </div>
+  </div>
+
+  <!-- Cell Edit Modal -->
+  <div id="cell-edit-modal" class="modal hidden" style="z-index: 10005;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="max-width: 300px; margin: 150px auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0">Edit Grid Name</h3>
+            <button class="icon-btn close-modal">&times;</button>
+        </div>
+        <input type="hidden" id="cell-edit-id">
+        <div style="margin-bottom:10px;">
+            <label style="font-size:12px; color:#666;">Default ID:</label>
+            <div id="cell-default-id" style="font-weight:bold; margin-bottom:10px;"></div>
+        </div>
+        <div style="margin-bottom:15px;">
+            <label for="cell-custom-name" style="font-weight:bold;">Grid Name:</label>
+            <input type="text" id="cell-custom-name" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter name">
+        </div>
+        <div style="text-align:right;">
+            <button id="save-cell-btn" class="icon-btn" style="background:#2752a7; color:white; padding:8px 16px;">Save</button>
+        </div>
     </div>
   </div>
 
@@ -2021,6 +2051,9 @@
             
             // Get Data
             let cycleCounts = [];
+            const customLabels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
+            const CELL_SIZE = 45; // Larger grid cells
+            
             try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
             
             // Filter by date (Global Filter)
@@ -2058,7 +2091,7 @@
                     blockDiv.style.gridTemplateColumns = `repeat(${block.width}, 1fr)`;
                     blockDiv.style.gap = '2px';
                     blockDiv.style.width = '100%';
-                    blockDiv.style.maxWidth = `${block.width * 25}px`;
+                    blockDiv.style.maxWidth = `${block.width * CELL_SIZE}px`;
                     
                     const blockCells = block.width * block.levels;
                     
@@ -2072,9 +2105,25 @@
                         const rowNum = (block.rowBase || 0) + (rowIdx * (block.rowStep || 10));
                         const label = `${block.prefix}${rowNum}-C${colIdx}`;
                         
+                        const customName = customLabels[label];
+                        
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
-                        cell.title = `${label} (${isCounted ? 'Counted' : 'Empty'})`;
+                        cell.title = `${label} ${customName ? '('+customName+')' : ''} - ${isCounted ? 'Counted' : 'Empty'}`;
+                        cell.onclick = () => openCellEditModal(label, customName);
+                        
+                        if(customName) {
+                            cell.textContent = customName;
+                            cell.style.fontSize = '10px';
+                            cell.style.display = 'flex';
+                            cell.style.alignItems = 'center';
+                            cell.style.justifyContent = 'center';
+                            cell.style.overflow = 'hidden';
+                            cell.style.wordBreak = 'break-all';
+                            cell.style.lineHeight = '1.1';
+                            cell.style.padding = '2px';
+                        }
+                        
                         blockDiv.appendChild(cell);
                     }
                     rackingGrid.appendChild(blockDiv);
@@ -2082,7 +2131,7 @@
             } else {
                 rackingGrid.style.display = 'grid';
                 rackingGrid.style.gridTemplateColumns = `repeat(${config.width}, 1fr)`;
-                rackingGrid.style.maxWidth = `${config.width * 25}px`;
+                rackingGrid.style.maxWidth = `${config.width * CELL_SIZE}px`;
                 rackingGrid.style.width = '100%';
                 for (let i = 0; i < totalCells; i++) {
                     const cell = document.createElement('div');
@@ -2095,6 +2144,24 @@
             const pct = Math.round((countedCount / totalCells) * 100);
             document.getElementById('monitor-stats').innerHTML = `Counted: ${countedCount} / ${totalCells} (${pct}%)`;
         }
+        
+        function openCellEditModal(id, currentName) {
+            document.getElementById('cell-edit-id').value = id;
+            document.getElementById('cell-default-id').textContent = id;
+            document.getElementById('cell-custom-name').value = currentName || '';
+            document.getElementById('cell-edit-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('cell-custom-name').focus(), 100);
+        }
+        
+        document.getElementById('save-cell-btn').addEventListener('click', () => {
+            const id = document.getElementById('cell-edit-id').value;
+            const name = document.getElementById('cell-custom-name').value.trim();
+            const labels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
+            if (name) labels[id] = name; else delete labels[id];
+            localStorage.setItem('ims_rack_labels_v1', JSON.stringify(labels));
+            document.getElementById('cell-edit-modal').classList.add('hidden');
+            renderMonitorGrid();
+        });
 
         // Fix tooltips globally to use native title (avoids clipping/z-index issues)
         function fixTooltips() {
