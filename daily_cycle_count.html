@@ -71,6 +71,16 @@
     main.full-view-counters #attendance-card { display: none; }
     main.full-view-attendance #counters-flip-container { display: none; }
     main.full-view-attendance #attendance-card { min-height: 80vh; }
+    
+    .badge-target-met {
+        background-color: #2ecc71;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+        vertical-align: middle;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -252,6 +262,7 @@
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <select id="att-filter-role" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
                 <option value="">All Roles</option>
+                <option value="Counter">Counter</option>
                 <option value="IC Support">IC Support</option>
                 <option value="IC Back up">IC Back up</option>
             </select>
@@ -560,6 +571,19 @@
             let data = getCountersData();
             const attendance = getAttendanceData();
             
+            // Load actuals for badge calculation
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            const actualsMap = {};
+            cycleCounts.forEach(c => {
+                const ts = c.createdDate || c.date;
+                if(ts) {
+                    const info = getShiftFromTimestamp(ts);
+                    const key = `${info.date}|${info.shift}`;
+                    actualsMap[key] = (actualsMap[key] || 0) + 1;
+                }
+            });
+            
             if (showArchiveOnly) {
                 const today = new Date().toISOString().split('T')[0];
                 data = data.filter(d => d.date < today);
@@ -633,6 +657,16 @@
                         const rate = item.standardRate || 0;
                         const activeTarget = rate > 0 ? (act * rate) : (item.targetOutput || 0);
                         
+                        // Calculate actual output for this shift
+                        let actualOutput = 0;
+                        if (item.hourlyActuals) {
+                            actualOutput = Object.values(item.hourlyActuals).reduce((a, b) => a + (Number(b)||0), 0);
+                        } else {
+                            actualOutput = actualsMap[`${date}|${shift}`] || 0;
+                        }
+                        
+                        const targetMet = (activeTarget > 0 && actualOutput >= activeTarget);
+                        
                         // Visual indicator for shortage
                         const isShort = act < req;
                         const shortIndicator = isShort ? `<span title="Shortage: ${req - act}" style="color:#e74c3c; margin-left:5px; cursor:help;">⚠️</span>` : '';
@@ -653,7 +687,7 @@
                         
                         html += `
                         <td style="padding:12px;border-bottom:1px solid #eee; vertical-align:top;">
-                            <div style="font-size:13px; margin-bottom:4px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong> ${shortIndicator}</div>
+                            <div style="font-size:13px; margin-bottom:4px;">Req: <strong>${req}</strong> | Act: <strong>${act}</strong> ${shortIndicator} ${targetMet ? '<span class="badge-target-met">Target Met</span>' : ''}</div>
                             ${rate > 0 ? `<div style="font-size:12px; color:#2752a7; margin-bottom:4px;">Target (Act): <strong>${activeTarget}</strong> <span class="muted" style="font-size:11px">(@${rate}/p)</span></div>` : ''}
                             <div class="${pctClass}" style="margin-top:4px; margin-bottom:6px;">${pct}% Completed</div>
                             ${item.note ? `<div style="font-size:11px; color:#555; margin-bottom:4px; font-style:italic; background:#f8f9fa; padding:2px 4px; border-radius:3px;">Note: ${item.note}</div>` : ''}
@@ -1777,8 +1811,7 @@
         if(viewProdBtn && flipContainer) {
             viewProdBtn.addEventListener('click', () => {
                 flipContainer.classList.add('flipped');
-                renderProductivityChart();
-                setTimeout(() => { if(productivityChart) productivityChart.resize(); }, 600);
+                setTimeout(renderProductivityChart, 500);
             });
         }
         if(backToCountersBtn && flipContainer) {
