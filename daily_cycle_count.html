@@ -654,9 +654,14 @@
                             actualOutput = actualsMap[`${date}|${shift}`] || 0;
                         }
                         
+                        let effectiveTarget = activeTarget;
+                        if (item.hourlyTargets) {
+                            effectiveTarget = Object.values(item.hourlyTargets).reduce((a, b) => a + (Number(b)||0), 0);
+                        }
+                        
                         let varianceHtml = '';
-                        if (activeTarget > 0) {
-                            const variance = actualOutput - activeTarget;
+                        if (effectiveTarget > 0 || (item.hourlyTargets && Object.keys(item.hourlyTargets).length > 0)) {
+                            const variance = actualOutput - effectiveTarget;
                             const varColor = variance >= 0 ? '#2ecc71' : '#e74c3c';
                             const varSign = variance > 0 ? '+' : '';
                             varianceHtml = `<span style="background-color:${varColor}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; vertical-align:middle; margin-left:5px;">Var: ${varSign}${variance}</span>`;
@@ -864,7 +869,15 @@
 
              const hourlyData = {};
              const hourlyTargets = {};
-             const defaultHourlyTarget = counterEntry && counterEntry.targetOutput > 0 ? Math.round(counterEntry.targetOutput / 8) : 0;
+             
+             // Calculate default hourly target based on active target (rate * attendance or targetOutput)
+             const attendance = getAttendanceData();
+             const shiftAtt = attendance.filter(a => a.date === dateStr && a.shift === shift);
+             const act = shiftAtt.length;
+             const rate = (counterEntry && counterEntry.standardRate) || 0;
+             const activeTarget = rate > 0 ? (act * rate) : ((counterEntry && counterEntry.targetOutput) || 0);
+             const defaultHourlyTarget = activeTarget > 0 ? Math.round(activeTarget / 8) : 0;
+             
              const savedActuals = counterEntry && counterEntry.hourlyActuals ? counterEntry.hourlyActuals : null;
              let totalAct = 0;
              let totalTgt = 0;
