@@ -140,7 +140,9 @@
       <button id="apply-global-filter" class="icon-btn" title="Apply Filter" style="background: #2752a7; color: white;">Filter</button>
       <button id="clear-global-filter" class="icon-btn" title="Clear Filter">Clear</button>
     </div>
-    <div class="card resizable-box" id="manage-counters-card" style="min-height: 600px; margin-bottom: 20px;">
+    <div class="flip-container" id="counters-flip-container" style="min-height: 600px; margin-bottom: 20px;">
+      <div class="flip-inner">
+        <div class="flip-front card resizable-box" id="manage-counters-card" style="margin-bottom: 0; min-height: 600px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div style="display:flex; align-items:center; gap:10px;">
             <h2 style="margin:0;">Manage Daily Counters</h2>
@@ -153,6 +155,9 @@
             </button>
             <button id="clear-counters-filters-btn" class="icon-btn" title="Clear Filters">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            </button>
+            <button id="view-shift-chart-btn" class="icon-btn" title="View Shift Output Chart">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </button>
             <button id="export-counters-btn" class="icon-btn" title="Export CSV">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -229,6 +234,19 @@
         <div style="display:flex; gap:8px;">
             <button id="counters-prev-page" class="icon-btn" title="Previous">‹</button>
             <button id="counters-next-page" class="icon-btn" title="Next">›</button>
+        </div>
+      </div>
+        </div>
+        <div class="flip-back card resizable-box" style="margin-bottom: 0; min-height: 600px; display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0;">Shift Output Chart</h2>
+                <button id="back-to-counters-btn" class="icon-btn" title="Back to Table">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+                </button>
+            </div>
+            <div class="chart-container-back">
+                <canvas id="shift-output-chart"></canvas>
+            </div>
         </div>
       </div>
     </div>
@@ -482,6 +500,12 @@
         const supervisorDeleteModal = document.getElementById('supervisor-delete-modal');
         const confirmSupervisorDeleteBtn = document.getElementById('confirm-supervisor-delete-btn');
         let supervisorDeleteCallback = null;
+        
+        // Flip / Chart elements
+        const flipContainer = document.getElementById('counters-flip-container');
+        const viewChartBtn = document.getElementById('view-shift-chart-btn');
+        const backToCountersBtn = document.getElementById('back-to-counters-btn');
+        let shiftChart = null;
         let hourlyChart = null;
 
         const STORAGE_KEY_COUNTERS = 'ims_daily_counters_v1';
@@ -654,7 +678,7 @@
                             actualOutput = actualsMap[`${date}|${shift}`] || 0;
                         }
                         
-                        const targetMet = activeTarget > 0 && (actualOutput - activeTarget) >= 0;
+                        const targetMet = activeTarget > 0 && actualOutput >= activeTarget;
                         
                         // Visual indicator for shortage
                         const isShort = act < req;
@@ -1797,6 +1821,83 @@
                 }
             });
         });
+
+        // Flip / Chart Logic
+        if(viewChartBtn && flipContainer) {
+            viewChartBtn.addEventListener('click', () => {
+                flipContainer.classList.add('flipped');
+                setTimeout(renderShiftChart, 300);
+            });
+        }
+        if(backToCountersBtn && flipContainer) {
+            backToCountersBtn.addEventListener('click', () => {
+                flipContainer.classList.remove('flipped');
+            });
+        }
+
+        function renderShiftChart() {
+            const ctx = document.getElementById('shift-output-chart');
+            if(!ctx) return;
+            
+            const counters = getCountersData();
+            const attendance = getAttendanceData();
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            
+            const actualsMap = {};
+            cycleCounts.forEach(c => {
+                const ts = c.createdDate || c.date;
+                if(ts) {
+                    const info = getShiftFromTimestamp(ts);
+                    const key = `${info.date}|${info.shift}`;
+                    actualsMap[key] = (actualsMap[key] || 0) + 1;
+                }
+            });
+
+            // Sort counters by date desc, take top 15
+            const sortedCounters = [...counters].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 15).reverse();
+            
+            const labels = [];
+            const targetData = [];
+            const actualData = [];
+
+            sortedCounters.forEach(item => {
+                labels.push(`${item.date} (${item.shift.split('-')[0]})`);
+                
+                // Calculate Target
+                const shiftAtt = attendance.filter(a => a.date === item.date && a.shift === item.shift);
+                const act = shiftAtt.length;
+                const rate = item.standardRate || 0;
+                const target = rate > 0 ? (act * rate) : (item.targetOutput || 0);
+                targetData.push(target);
+
+                // Calculate Actual
+                let actual = 0;
+                if (item.hourlyActuals) {
+                    actual = Object.values(item.hourlyActuals).reduce((a, b) => a + (Number(b)||0), 0);
+                } else {
+                    actual = actualsMap[`${item.date}|${item.shift}`] || 0;
+                }
+                actualData.push(actual);
+            });
+
+            if(shiftChart) { shiftChart.destroy(); }
+            shiftChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Target Output', data: targetData, backgroundColor: '#e74c3c' },
+                        { label: 'Actual Output', data: actualData, backgroundColor: '#2ecc71' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
 
         // Automatic Shift End Check (runs every minute)
         setInterval(() => {
