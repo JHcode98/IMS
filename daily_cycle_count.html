@@ -102,6 +102,9 @@
         background-color: #2ecc71;
         border-color: #27ae60;
     }
+    .rack-spacer {
+        pointer-events: none;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -567,7 +570,7 @@
         
         // Sub Area Configurations (Width x Levels)
         const subAreaConfigs = {
-            'DCJ': { width: 46, levels: 6, total: 276 } // 46 * 6 = 276
+            'DCJ': { width: 46, levels: 6, total: 276, splitAt: 23 } // 46 * 6 = 276
         };
 
         // Helper to set local date
@@ -2027,12 +2030,24 @@
             const countedCount = areaCounts.length;
             
             // Render Grid
-            rackingGrid.style.gridTemplateColumns = `repeat(${config.width}, 1fr)`;
-            rackingGrid.style.width = '100%';
-            rackingGrid.style.maxWidth = `${config.width * 25}px`; // Limit cell size
             rackingGrid.innerHTML = '';
             
+            if (config.splitAt) {
+                rackingGrid.style.gridTemplateColumns = `repeat(${config.splitAt}, 1fr) 30px repeat(${config.width - config.splitAt}, 1fr)`;
+                rackingGrid.style.maxWidth = `${(config.width * 25) + 30}px`;
+            } else {
+                rackingGrid.style.gridTemplateColumns = `repeat(${config.width}, 1fr)`;
+                rackingGrid.style.maxWidth = `${config.width * 25}px`;
+            }
+            
+            rackingGrid.style.width = '100%';
+            
             for (let i = 0; i < totalCells; i++) {
+                if (config.splitAt && (i % config.width === config.splitAt)) {
+                    const spacer = document.createElement('div');
+                    spacer.className = 'rack-spacer';
+                    rackingGrid.appendChild(spacer);
+                }
                 const cell = document.createElement('div');
                 cell.className = `rack-cell ${i < countedCount ? 'counted' : ''}`;
                 cell.title = i < countedCount ? 'Counted' : 'Empty';
