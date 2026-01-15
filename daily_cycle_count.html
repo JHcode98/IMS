@@ -90,6 +90,18 @@
     .shift-summary-content:hover {
         background-color: rgba(39, 82, 167, 0.08);
     }
+    /* Racking Grid Styles */
+    .rack-cell {
+        width: 100%;
+        aspect-ratio: 1;
+        background-color: #e0e0e0;
+        border: 1px solid #ccc;
+        border-radius: 2px;
+    }
+    .rack-cell.counted {
+        background-color: #2ecc71;
+        border-color: #27ae60;
+    }
   </style>
 </head>
 <body class="inventory-mode">
@@ -141,6 +153,9 @@
       <button id="clear-global-filter" class="icon-btn" title="Clear Filter">Clear</button>
       <button id="sub-area-filter-btn" class="icon-btn" title="Sub Area Filter" style="margin-left: 10px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Sub Area
+      </button>
+      <button id="monitor-sub-area-btn" class="icon-btn" title="Monitor Sub Area" style="margin-left: 5px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg> Monitor
       </button>
     </div>
     <div class="card resizable-box" id="manage-counters-card" style="min-height: 600px; margin-bottom: 20px;">
@@ -458,6 +473,25 @@
     </div>
   </div>
 
+  <!-- Sub Area Monitor Modal -->
+  <div id="sub-area-monitor-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content card" style="width: 95%; max-width: 1400px; height: 85vh; display:flex; flex-direction:column; margin: 40px auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0">Sub Area Monitor</h3>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select id="monitor-sub-area-select" style="padding:6px; border-radius:4px; border:1px solid #ccc; min-width: 150px;"></select>
+                <span id="monitor-capacity-info" style="font-size:13px; color:#666; font-weight:bold;"></span>
+                <button class="icon-btn close-modal">&times;</button>
+            </div>
+        </div>
+        <div style="flex:1; overflow:auto; padding:20px; border:1px solid #eee; border-radius:4px; background:#f9f9f9; display: flex; justify-content: center; align-items: flex-start;">
+            <div id="racking-grid" style="display:grid; gap:2px;"></div>
+        </div>
+        <div id="monitor-stats" style="margin-top:10px; font-weight:bold; text-align: right;"></div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   <script>
     if(!sessionStorage.getItem('dms_auth_v1')) window.location.href = 'index.html';
@@ -498,6 +532,12 @@
         const subAreaList = document.getElementById('sub-area-list');
         const applySubAreaFilterBtn = document.getElementById('apply-sub-area-filter');
         
+        // Monitor elements
+        const monitorSubAreaBtn = document.getElementById('monitor-sub-area-btn');
+        const subAreaMonitorModal = document.getElementById('sub-area-monitor-modal');
+        const monitorSubAreaSelect = document.getElementById('monitor-sub-area-select');
+        const rackingGrid = document.getElementById('racking-grid');
+        
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
         const snapshotModal = document.getElementById('snapshot-modal');
@@ -524,6 +564,11 @@
         
         let globalSubAreas = []; // Selected sub areas for filtering
         const subAreaOptions = ['DCI', 'DCJ', 'DCK', 'DCL', 'DCM', 'ERM', 'ERN', 'DCN', 'DCO'];
+        
+        // Sub Area Configurations (Width x Levels)
+        const subAreaConfigs = {
+            'DCJ': { width: 46, levels: 6, total: 276 } // 46 * 6 = 276
+        };
 
         // Helper to set local date
         function setLocalDate(input) {
@@ -1927,6 +1972,75 @@
                 renderCountersTable();
                 renderAttendanceTable();
             });
+        }
+        
+        // Monitor Sub Area Logic
+        if (monitorSubAreaBtn) {
+            // Populate select
+            monitorSubAreaSelect.innerHTML = '<option value="">Select Sub Area</option>';
+            subAreaOptions.forEach(area => {
+                monitorSubAreaSelect.innerHTML += `<option value="${area}">${area}</option>`;
+            });
+            
+            monitorSubAreaBtn.addEventListener('click', () => {
+                subAreaMonitorModal.classList.remove('hidden');
+                if(monitorSubAreaSelect.value) renderMonitorGrid();
+            });
+            
+            monitorSubAreaSelect.addEventListener('change', renderMonitorGrid);
+        }
+        
+        function renderMonitorGrid() {
+            const area = monitorSubAreaSelect.value;
+            if (!area) {
+                rackingGrid.innerHTML = '<p class="muted">Please select a sub area.</p>';
+                document.getElementById('monitor-capacity-info').textContent = '';
+                document.getElementById('monitor-stats').textContent = '';
+                return;
+            }
+            
+            // Config
+            const config = subAreaConfigs[area] || { width: 20, levels: 5, total: 100 }; // Default if not defined
+            const totalCells = config.total || (config.width * config.levels);
+            
+            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCells} positions (${config.width}W x ${config.levels}H)`;
+            
+            // Get Data
+            let cycleCounts = [];
+            try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
+            
+            // Filter by date (Global Filter)
+            const start = globalStartDate.value ? new Date(globalStartDate.value) : null;
+            if (start) start.setHours(0,0,0,0);
+            const end = globalEndDate.value ? new Date(globalEndDate.value) : null;
+            if (end) end.setHours(23,59,59,999);
+            
+            // Filter counts for this area
+            const areaCounts = cycleCounts.filter(c => {
+                const d = new Date(c.createdDate || c.date);
+                const dateMatch = (!start || d >= start) && (!end || d <= end);
+                // Match location starting with area name
+                const locMatch = (c.location || '').toUpperCase().startsWith(area);
+                return dateMatch && locMatch;
+            });
+            
+            const countedCount = areaCounts.length;
+            
+            // Render Grid
+            rackingGrid.style.gridTemplateColumns = `repeat(${config.width}, 1fr)`;
+            rackingGrid.style.width = '100%';
+            rackingGrid.style.maxWidth = `${config.width * 25}px`; // Limit cell size
+            rackingGrid.innerHTML = '';
+            
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = `rack-cell ${i < countedCount ? 'counted' : ''}`;
+                cell.title = i < countedCount ? 'Counted' : 'Empty';
+                rackingGrid.appendChild(cell);
+            }
+            
+            const pct = Math.round((countedCount / totalCells) * 100);
+            document.getElementById('monitor-stats').innerHTML = `Counted: ${countedCount} / ${totalCells} (${pct}%)`;
         }
 
         // Fix tooltips globally to use native title (avoids clipping/z-index issues)
