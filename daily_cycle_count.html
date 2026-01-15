@@ -630,6 +630,8 @@
             <select id="cell-status" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
                 <option value="auto">Auto (Default)</option>
                 <option value="counted">Counted</option>
+                <option value="empty">Empty</option>
+                <option value="not-part">Not Part</option>
                 <option value="uncounted">Not Counted</option>
             </select>
         </div>
@@ -2328,15 +2330,6 @@
             let totalCapacity = 0;
             let totalEffectiveCounted = 0;
 
-            if (config.type === 'multi') {
-                config.blocks.forEach(b => totalCapacity += (b.width * b.levels));
-                if (config.floor) totalCapacity += (config.floor.width * config.floor.levels);
-            } else {
-                totalCapacity = config.total || (config.width * config.levels);
-            }
-            
-            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
-            
             // Render Grid
             rackingGrid.innerHTML = '';
             rackingGrid.style.maxWidth = 'none';
@@ -2384,18 +2377,31 @@
                         
                         let statusClass = '';
                         let isCounted = false;
+                        let includeInStats = true;
+
                         if (manualStatus === 'counted') {
                             isCounted = true;
                             statusClass = 'counted';
                         } else if (manualStatus === 'uncounted') {
                             isCounted = false;
                             statusClass = 'uncounted';
+                        } else if (manualStatus === 'empty') {
+                            isCounted = false;
+                            statusClass = 'empty';
+                            includeInStats = false;
+                        } else if (manualStatus === 'not-part') {
+                            isCounted = false;
+                            statusClass = 'not-part';
+                            includeInStats = false;
                         } else { // auto
                             isCounted = isAutoCounted;
                             if (isCounted) statusClass = 'counted';
                         }
                         
-                        if(isCounted) totalEffectiveCounted++;
+                        if (includeInStats) {
+                            totalCapacity++;
+                            if(isCounted) totalEffectiveCounted++;
+                        }
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${statusClass}`;
@@ -2523,6 +2529,7 @@
                 }
             }
             
+            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
             const pct = totalCapacity > 0 ? Math.round((totalEffectiveCounted / totalCapacity) * 100) : 0;
             document.getElementById('monitor-stats').innerHTML = `Counted: ${totalEffectiveCounted} / ${totalCapacity} (${pct}%)`;
         }
