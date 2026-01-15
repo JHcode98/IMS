@@ -2175,24 +2175,9 @@
         
         function renderMonitorGrid() {
             const area = monitorSubAreaSelect.value;
-            if (!area) {
-                rackingGrid.innerHTML = '<p class="muted">Please select a sub area.</p>';
-                document.getElementById('monitor-capacity-info').textContent = '';
-                document.getElementById('monitor-stats').textContent = '';
-                return;
-            }
-            
-            // Config
-            const config = subAreaConfigs[area] || { width: 20, levels: 5, total: 100 }; // Default if not defined
-            let totalCells = 0;
-            if (config.type === 'multi') {
-                config.blocks.forEach(b => totalCells += (b.width * b.levels));
-                if (config.floor) totalCells += (config.floor.width * config.floor.levels);
-            } else {
-                totalCells = config.total || (config.width * config.levels);
-            }
-            
-            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCells} positions (${config.width}W x ${config.levels}H)`;
+            const rackingGrid = document.getElementById('racking-grid');
+            const statsDiv = document.getElementById('monitor-stats');
+            const capacityInfo = document.getElementById('monitor-capacity-info');
             
             // Get Data
             let cycleCounts = [];
@@ -2208,6 +2193,108 @@
             const end = globalEndDate.value ? new Date(globalEndDate.value) : null;
             if (end) end.setHours(23,59,59,999);
             
+            // Helper to check if a cell is counted
+            const isCellCounted = (label, isAuto) => {
+                const manualStatus = customStatuses[label];
+                if (manualStatus === 'counted') return true;
+                if (manualStatus === 'uncounted') return false;
+                return isAuto;
+            };
+
+            if (!area) {
+                // Dashboard View
+                rackingGrid.innerHTML = '';
+                rackingGrid.style.display = 'grid';
+                rackingGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
+                rackingGrid.style.gap = '20px';
+                rackingGrid.style.maxWidth = '100%';
+                rackingGrid.style.width = '100%';
+                
+                capacityInfo.textContent = 'Dashboard View';
+                statsDiv.textContent = '';
+
+                subAreaOptions.forEach(subArea => {
+                    const config = subAreaConfigs[subArea];
+                    if(!config) return;
+
+                    // Calculate stats for this area
+                    let areaTotal = 0;
+                    let areaCounted = 0;
+                    
+                    // Filter counts for this area
+                    const areaCounts = cycleCounts.filter(c => {
+                        const d = new Date(c.createdDate || c.date);
+                        const dateMatch = (!start || d >= start) && (!end || d <= end);
+                        const locMatch = (c.location || '').toUpperCase().startsWith(subArea);
+                        return dateMatch && locMatch;
+                    });
+                    const countedCount = areaCounts.length;
+                    let globalCellIndex = 0;
+
+                    // Blocks
+                    if (config.type === 'multi') {
+                        config.blocks.forEach(block => {
+                            const blockCells = block.width * block.levels;
+                            for(let i=0; i<blockCells; i++) {
+                                const isAuto = globalCellIndex < countedCount;
+                                globalCellIndex++;
+                                
+                                const rowIdx = Math.floor(i / block.width);
+                                const colIdx = (i % block.width) + 1;
+                                const rowNum = (block.rowBase || 0) + (rowIdx * (block.rowStep || 10));
+                                const label = `${block.prefix}${rowNum}-C${colIdx}`;
+                                
+                                if(isCellCounted(label, isAuto)) areaCounted++;
+                                areaTotal++;
+                            }
+                        });
+                        // Floor
+                        if (config.floor) {
+                            const floorCells = config.floor.width * config.floor.levels;
+                            for(let i=0; i<floorCells; i++) {
+                                const isAuto = globalCellIndex < countedCount;
+                                globalCellIndex++;
+                                const label = `${config.floor.prefix}-${i+1}`;
+                                if(isCellCounted(label, isAuto)) areaCounted++;
+                                areaTotal++;
+                            }
+                        }
+                    }
+
+                    const pct = areaTotal > 0 ? Math.round((areaCounted / areaTotal) * 100) : 0;
+                    let color = '#e74c3c';
+                    if(pct >= 100) color = '#2ecc71';
+                    else if(pct >= 50) color = '#f1c40f';
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.padding = '20px';
+                    card.style.textAlign = 'center';
+                    card.style.cursor = 'pointer';
+                    card.style.transition = 'transform 0.2s';
+                    card.onmouseover = () => card.style.transform = 'translateY(-5px)';
+                    card.onmouseout = () => card.style.transform = 'none';
+                    card.onclick = () => {
+                        monitorSubAreaSelect.value = subArea;
+                        renderMonitorGrid();
+                    };
+
+                    card.innerHTML = `
+                        <h3 style="margin:0 0 10px 0; color:#2752a7;">${subArea}</h3>
+                        <div style="font-size:36px; font-weight:bold; color:${color};">${pct}%</div>
+                        <div style="color:#666; font-size:14px; margin-top:5px;">${areaCounted} / ${areaTotal} Counted</div>
+                        <div style="margin-top:10px; height:10px; background:#eee; border-radius:5px; overflow:hidden;">
+                            <div style="width:${pct}%; height:100%; background:${color};"></div>
+                        </div>
+                    `;
+                    rackingGrid.appendChild(card);
+                });
+                return;
+            }
+            
+            // Config
+            const config = subAreaConfigs[area] || { width: 20, levels: 5, total: 100 }; // Default if not defined
+            
             // Filter counts for this area
             const areaCounts = cycleCounts.filter(c => {
                 const d = new Date(c.createdDate || c.date);
@@ -2218,6 +2305,18 @@
             });
             
             const countedCount = areaCounts.length;
+            let globalCellIndex = 0;
+            let totalCapacity = 0;
+            let totalEffectiveCounted = 0;
+
+            if (config.type === 'multi') {
+                config.blocks.forEach(b => totalCapacity += (b.width * b.levels));
+                if (config.floor) totalCapacity += (config.floor.width * config.floor.levels);
+            } else {
+                totalCapacity = config.total || (config.width * config.levels);
+            }
+            
+            document.getElementById('monitor-capacity-info').textContent = `Capacity: ${totalCapacity} positions`;
             
             // Render Grid
             rackingGrid.innerHTML = '';
@@ -2228,8 +2327,6 @@
                 rackingGrid.style.flexDirection = 'column';
                 rackingGrid.style.gap = '40px'; // Space between blocks
                 rackingGrid.style.alignItems = 'center';
-                
-                let globalCellIndex = 0;
                 
                 config.blocks.forEach((block, blockIndex) => {
                     const blockWrapper = document.createElement('div');
@@ -2278,6 +2375,8 @@
                             isCounted = isAutoCounted;
                             if (isCounted) statusClass = 'counted';
                         }
+                        
+                        if(isCounted) totalEffectiveCounted++;
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${statusClass}`;
@@ -2330,6 +2429,9 @@
                 
                 // Render Floor
                 if (config.floor) {
+                    const floorCells = config.floor.width * config.floor.levels;
+                    let floorCounted = 0;
+                    
                     const floorHeader = document.createElement('h4');
                     floorHeader.textContent = 'FLOOR';
                     floorHeader.style.width = '100%';
@@ -2347,8 +2449,6 @@
                     floorDiv.style.width = '100%';
                     floorDiv.style.maxWidth = `${config.floor.width * CELL_SIZE}px`;
                     
-                    const floorCells = config.floor.width * config.floor.levels;
-                    
                     for (let i = 0; i < floorCells; i++) {
                         const isAutoCounted = globalCellIndex < countedCount;
                         globalCellIndex++;
@@ -2362,6 +2462,11 @@
                         if (manualStatus === 'counted') { isCounted = true; statusClass = 'counted'; }
                         else if (manualStatus === 'uncounted') { isCounted = false; statusClass = 'uncounted'; }
                         else { isCounted = isAutoCounted; if (isCounted) statusClass = 'counted'; }
+                        
+                        if(isCounted) {
+                            totalEffectiveCounted++;
+                            floorCounted++;
+                        }
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${statusClass}`;
@@ -2386,6 +2491,7 @@
                         floorDiv.appendChild(cell);
                     }
                     rackingGrid.appendChild(floorDiv);
+                    floorHeader.textContent = `FLOOR (${floorCounted} / ${floorCells})`;
                 }
             } else {
                 rackingGrid.style.display = 'grid';
@@ -2400,8 +2506,8 @@
                 }
             }
             
-            const pct = Math.round((countedCount / totalCells) * 100);
-            document.getElementById('monitor-stats').innerHTML = `Counted: ${countedCount} / ${totalCells} (${pct}%)`;
+            const pct = totalCapacity > 0 ? Math.round((totalEffectiveCounted / totalCapacity) * 100) : 0;
+            document.getElementById('monitor-stats').innerHTML = `Counted: ${totalEffectiveCounted} / ${totalCapacity} (${pct}%)`;
         }
         
         // Drag and Drop Handlers
