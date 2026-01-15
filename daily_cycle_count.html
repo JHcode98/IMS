@@ -155,13 +155,13 @@
     }
     .cell-checkbox {
         position: absolute;
-        top: 2px;
-        left: 2px;
+        top: 5px;
+        left: 5px;
         z-index: 5;
         cursor: pointer;
         width: 14px;
         height: 14px;
-        opacity: 0.6;
+        opacity: 0;
     }
     .cell-checkbox:checked {
         opacity: 1;
@@ -2160,13 +2160,25 @@
                 
                 let globalCellIndex = 0;
                 
-                config.blocks.forEach(block => {
+                config.blocks.forEach((block, blockIndex) => {
+                    const blockWrapper = document.createElement('div');
+                    blockWrapper.style.display = 'flex';
+                    blockWrapper.style.flexDirection = 'column';
+                    blockWrapper.style.alignItems = 'flex-start';
+                    blockWrapper.style.width = '100%';
+                    blockWrapper.style.maxWidth = `${block.width * CELL_SIZE}px`;
+
+                    const headerDiv = document.createElement('div');
+                    headerDiv.style.marginBottom = '5px';
+                    headerDiv.innerHTML = `<label style="font-size:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center;"><input type="checkbox" class="block-select-all" data-block="${blockIndex}" style="margin-right:5px;"> Select All</label>`;
+                    headerDiv.querySelector('input').onclick = (e) => toggleBlockSelection(blockIndex, e.target.checked);
+                    blockWrapper.appendChild(headerDiv);
+
                     const blockDiv = document.createElement('div');
                     blockDiv.style.display = 'grid';
                     blockDiv.style.gridTemplateColumns = `repeat(${block.width}, 1fr)`;
                     blockDiv.style.gap = '2px';
                     blockDiv.style.width = '100%';
-                    blockDiv.style.maxWidth = `${block.width * CELL_SIZE}px`;
                     
                     const blockCells = block.width * block.levels;
                     
@@ -2189,6 +2201,8 @@
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
+                        cell.dataset.id = label;
+                        cell.dataset.block = blockIndex;
                         if (monitorSelectedCells.has(label)) cell.classList.add('selected');
                         
                         cell.title = `${customName || 'Grid'} - ${isCounted ? 'Counted' : 'Not Counted'}`;
@@ -2202,7 +2216,12 @@
                         checkbox.type = 'checkbox';
                         checkbox.className = 'cell-checkbox';
                         checkbox.checked = monitorSelectedCells.has(label);
-                        checkbox.onclick = (e) => { e.stopPropagation(); toggleCellSelection(label, e.target.checked); };
+                        checkbox.onclick = (e) => { 
+                            e.stopPropagation(); 
+                            const checked = e.target.checked;
+                            if(checked) cell.classList.add('selected'); else cell.classList.remove('selected');
+                            toggleCellSelection(label, checked); 
+                        };
                         
                         cell.appendChild(checkbox);
                         
@@ -2215,7 +2234,8 @@
                         
                         blockDiv.appendChild(cell);
                     }
-                    rackingGrid.appendChild(blockDiv);
+                    blockWrapper.appendChild(blockDiv);
+                    rackingGrid.appendChild(blockWrapper);
                 });
             } else {
                 rackingGrid.style.display = 'grid';
@@ -2240,6 +2260,25 @@
             } else {
                 monitorSelectedCells.add(id);
             }
+            updateMonitorControls();
+        }
+
+        function toggleBlockSelection(blockIndex, isChecked) {
+            const cells = document.querySelectorAll(`.rack-cell[data-block="${blockIndex}"]`);
+            cells.forEach(cell => {
+                const id = cell.dataset.id;
+                const cb = cell.querySelector('.cell-checkbox');
+                if (cb) {
+                    cb.checked = isChecked;
+                    if (isChecked) {
+                        monitorSelectedCells.add(id);
+                        cell.classList.add('selected');
+                    } else {
+                        monitorSelectedCells.delete(id);
+                        cell.classList.remove('selected');
+                    }
+                }
+            });
             updateMonitorControls();
         }
 
