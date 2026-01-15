@@ -94,8 +94,8 @@
     .rack-cell {
         width: 100%;
         aspect-ratio: 1.6;
-        background-color: #ffebee;
-        border: 1px solid #ef9a9a;
+        background-color: #f0f2f5;
+        border: 1px solid #d9d9d9;
         border-radius: 2px;
         cursor: pointer;
         transition: transform 0.1s;
@@ -124,6 +124,10 @@
     .rack-cell.counted {
         background-color: #e8f5e9;
         border-color: #a5d6a7;
+    }
+    .rack-cell.uncounted {
+        background-color: #ffebee;
+        border-color: #ef9a9a;
     }
     .rack-cell.counted .pallet-icon {
         fill: #7f8c8d;
@@ -668,11 +672,53 @@
         
         // Sub Area Configurations (Width x Levels)
         const subAreaConfigs = {
+            'DCI': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCI002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCI004', rowBase: 20, rowStep: 10 }
+                ]
+            },
             'DCJ': { 
                 type: 'multi',
                 blocks: [
                     { width: 23, levels: 6, prefix: 'DCJ002', rowBase: 20, rowStep: 10 },
                     { width: 23, levels: 6, prefix: 'DCJ004', rowBase: 20, rowStep: 10 }
+                ]
+            },
+            'DCK': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCK002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCK004', rowBase: 20, rowStep: 10 }
+                ]
+            },
+            'DCL': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCL002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCL004', rowBase: 20, rowStep: 10 }
+                ]
+            },
+            'DCM': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCM002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCM004', rowBase: 20, rowStep: 10 }
+                ]
+            },
+            'DCN': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCN002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCN004', rowBase: 20, rowStep: 10 }
+                ]
+            },
+            'DCO': { 
+                type: 'multi',
+                blocks: [
+                    { width: 23, levels: 6, prefix: 'DCO002', rowBase: 20, rowStep: 10 },
+                    { width: 23, levels: 6, prefix: 'DCO004', rowBase: 20, rowStep: 10 }
                 ]
             }
         };
@@ -2195,12 +2241,21 @@
                         const customName = customLabels[label];
                         const manualStatus = customStatuses[label];
                         
-                        let isCounted = isAutoCounted;
-                        if (manualStatus === 'counted') isCounted = true;
-                        else if (manualStatus === 'uncounted') isCounted = false;
+                        let statusClass = '';
+                        let isCounted = false;
+                        if (manualStatus === 'counted') {
+                            isCounted = true;
+                            statusClass = 'counted';
+                        } else if (manualStatus === 'uncounted') {
+                            isCounted = false;
+                            statusClass = 'uncounted';
+                        } else { // auto
+                            isCounted = isAutoCounted;
+                            if (isCounted) statusClass = 'counted';
+                        }
                         
                         const cell = document.createElement('div');
-                        cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
+                        cell.className = `rack-cell ${statusClass}`;
                         cell.dataset.id = label;
                         cell.dataset.block = blockIndex;
                         if (monitorSelectedCells.has(label)) cell.classList.add('selected');
