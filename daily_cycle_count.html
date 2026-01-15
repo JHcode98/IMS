@@ -94,8 +94,8 @@
     .rack-cell {
         width: 100%;
         aspect-ratio: 1.6;
-        background-color: #f8f9fa;
-        border: 1px solid #ccc;
+        background-color: #ffebee;
+        border: 1px solid #ef9a9a;
         border-radius: 2px;
         cursor: pointer;
         transition: transform 0.1s;
@@ -112,16 +112,17 @@
     .rack-cell .pallet-icon {
         width: 80%;
         height: 80%;
-        fill: #bdc3c7;
+        fill: #7f8c8d;
+        opacity: 0.5;
         transition: fill 0.3s;
     }
     .rack-cell.counted {
         background-color: #e8f5e9;
-        border-color: #2ecc71;
+        border-color: #a5d6a7;
     }
     .rack-cell.counted .pallet-icon {
-        fill: #95a5a6;
-        opacity: 0.4;
+        fill: #7f8c8d;
+        opacity: 0.5;
     }
     .rack-cell .cell-name {
         position: absolute;
@@ -546,6 +547,14 @@
         <div style="margin-bottom:15px;">
             <label for="cell-custom-name" style="font-weight:bold;">Grid Name:</label>
             <input type="text" id="cell-custom-name" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter name">
+        </div>
+        <div style="margin-bottom:15px;">
+            <label for="cell-status" style="font-weight:bold;">Status:</label>
+            <select id="cell-status" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                <option value="auto">Auto (Default)</option>
+                <option value="counted">Counted</option>
+                <option value="uncounted">Not Counted</option>
+            </select>
         </div>
         <div style="text-align:right;">
             <button id="save-cell-btn" class="icon-btn" style="background:#2752a7; color:white; padding:8px 16px;">Save</button>
@@ -2080,6 +2089,7 @@
             // Get Data
             let cycleCounts = [];
             const customLabels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
+            const customStatuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
             const CELL_SIZE = 45; // Larger grid cells
             
             try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
@@ -2124,7 +2134,7 @@
                     const blockCells = block.width * block.levels;
                     
                     for (let i = 0; i < blockCells; i++) {
-                        const isCounted = globalCellIndex < countedCount;
+                        const isAutoCounted = globalCellIndex < countedCount;
                         globalCellIndex++;
                         
                         // Generate Label: Prefix + RowNum + Col
@@ -2134,11 +2144,16 @@
                         const label = `${block.prefix}${rowNum}-C${colIdx}`;
                         
                         const customName = customLabels[label];
+                        const manualStatus = customStatuses[label];
+                        
+                        let isCounted = isAutoCounted;
+                        if (manualStatus === 'counted') isCounted = true;
+                        else if (manualStatus === 'uncounted') isCounted = false;
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
-                        cell.title = `${customName || 'Grid'} - ${isCounted ? 'Counted' : 'Empty'}`;
-                        cell.onclick = () => openCellEditModal(label, customName);
+                        cell.title = `${customName || 'Grid'} - ${isCounted ? 'Counted' : 'Not Counted'}`;
+                        cell.onclick = () => openCellEditModal(label, customName, manualStatus);
                         
                         cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
                         
@@ -2170,9 +2185,10 @@
             document.getElementById('monitor-stats').innerHTML = `Counted: ${countedCount} / ${totalCells} (${pct}%)`;
         }
         
-        function openCellEditModal(id, currentName) {
+        function openCellEditModal(id, currentName, currentStatus) {
             document.getElementById('cell-edit-id').value = id;
             document.getElementById('cell-custom-name').value = currentName || '';
+            document.getElementById('cell-status').value = currentStatus || 'auto';
             document.getElementById('cell-edit-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('cell-custom-name').focus(), 100);
         }
@@ -2180,9 +2196,16 @@
         document.getElementById('save-cell-btn').addEventListener('click', () => {
             const id = document.getElementById('cell-edit-id').value;
             const name = document.getElementById('cell-custom-name').value.trim();
+            const status = document.getElementById('cell-status').value;
+            
             const labels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
             if (name) labels[id] = name; else delete labels[id];
             localStorage.setItem('ims_rack_labels_v1', JSON.stringify(labels));
+            
+            const statuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
+            if (status !== 'auto') statuses[id] = status; else delete statuses[id];
+            localStorage.setItem('ims_rack_status_v1', JSON.stringify(statuses));
+            
             document.getElementById('cell-edit-modal').classList.add('hidden');
             renderMonitorGrid();
         });
