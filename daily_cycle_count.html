@@ -93,7 +93,7 @@
     /* Racking Grid Styles */
     .rack-cell {
         width: 100%;
-        aspect-ratio: 1;
+        aspect-ratio: 1.6;
         background-color: #f8f9fa;
         border: 1px solid #ccc;
         border-radius: 2px;
@@ -116,21 +116,25 @@
         transition: fill 0.3s;
     }
     .rack-cell.counted {
-        background-color: #fff;
+        background-color: #e8f5e9;
         border-color: #2ecc71;
     }
     .rack-cell.counted .pallet-icon {
-        fill: #2ecc71;
+        fill: #95a5a6;
+        opacity: 0.4;
     }
     .rack-cell .cell-name {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: bold;
         color: #333;
-        text-shadow: 0 0 2px #fff;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 2px 4px;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         width: 100%;
         text-align: center;
         word-break: break-word;
@@ -2136,7 +2140,7 @@
                         cell.title = `${customName || 'Grid'} - ${isCounted ? 'Counted' : 'Empty'}`;
                         cell.onclick = () => openCellEditModal(label, customName);
                         
-                        cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.41 21.94 12.21 22 12 22C11.79 22 11.59 21.94 11.43 21.82L3.53 17.38C3.21 17.21 3 16.88 3 16.5V7.5C3 7.12 3.21 6.88 3.53 6.72L11.43 2.28C11.59 2.19 11.79 2.13 12 2.13C12.21 2.13 12.41 2.19 12.57 2.28L20.47 6.72C20.79 6.88 21 7.12 21 7.5V16.5M12 4.15L6.04 7.5L12 10.85L17.96 7.5L12 4.15M5 15.91L11 19.29V12.5L5 9.13V15.91M13 19.29L19 15.91V9.13L13 12.5V19.29Z"/></svg>`;
+                        cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
                         
                         if(customName) {
                             const nameSpan = document.createElement('span');
