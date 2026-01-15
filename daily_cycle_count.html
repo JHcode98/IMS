@@ -109,6 +109,11 @@
         z-index: 1;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
+    .rack-cell.selected {
+        border-color: #2752a7;
+        box-shadow: inset 0 0 0 3px #2752a7;
+        z-index: 2;
+    }
     .rack-cell .pallet-icon {
         width: 80%;
         height: 80%;
@@ -129,7 +134,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 11px;
+        font-size: 12px;
         font-weight: bold;
         color: #333;
         background-color: rgba(255, 255, 255, 0.9);
@@ -141,6 +146,10 @@
         word-break: break-word;
         line-height: 1;
         pointer-events: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 95%;
     }
     .rack-spacer {
         pointer-events: none;
@@ -523,6 +532,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3 style="margin:0">Sub Area Monitor</h3>
             <div style="display:flex; gap:10px; align-items:center;">
+                <button id="monitor-select-mode-btn" class="icon-btn" title="Toggle Selection Mode" style="width:auto; padding: 6px 12px; font-size:13px;">Select</button>
+                <button id="monitor-bulk-btn" class="icon-btn" title="Bulk Update Status" style="display:none; background:#2752a7; color:white; width:auto; padding: 6px 12px; font-size:13px;">Update Status</button>
                 <select id="monitor-sub-area-select" style="padding:6px; border-radius:4px; border:1px solid #ccc; min-width: 150px;"></select>
                 <span id="monitor-capacity-info" style="font-size:13px; color:#666; font-weight:bold;"></span>
                 <button class="icon-btn close-modal">&times;</button>
@@ -544,7 +555,7 @@
             <button class="icon-btn close-modal">&times;</button>
         </div>
         <input type="hidden" id="cell-edit-id">
-        <div style="margin-bottom:15px;">
+        <div id="cell-name-group" style="margin-bottom:15px;">
             <label for="cell-custom-name" style="font-weight:bold;">Grid Name:</label>
             <input type="text" id="cell-custom-name" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="Enter name">
         </div>
@@ -607,6 +618,8 @@
         const subAreaMonitorModal = document.getElementById('sub-area-monitor-modal');
         const monitorSubAreaSelect = document.getElementById('monitor-sub-area-select');
         const rackingGrid = document.getElementById('racking-grid');
+        const monitorSelectModeBtn = document.getElementById('monitor-select-mode-btn');
+        const monitorBulkBtn = document.getElementById('monitor-bulk-btn');
         
         // Hourly Modal
         const hourlyModal = document.getElementById('hourly-modal');
@@ -645,6 +658,9 @@
                 ]
             }
         };
+        
+        let isMonitorSelectMode = false;
+        const monitorSelectedCells = new Set();
 
         // Helper to set local date
         function setLocalDate(input) {
@@ -2090,7 +2106,7 @@
             let cycleCounts = [];
             const customLabels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
             const customStatuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
-            const CELL_SIZE = 45; // Larger grid cells
+            const CELL_SIZE = 70; // Larger grid cells
             
             try { cycleCounts = JSON.parse(localStorage.getItem(STORAGE_KEY_CC) || '[]'); } catch(e){}
             
@@ -2152,8 +2168,14 @@
                         
                         const cell = document.createElement('div');
                         cell.className = `rack-cell ${isCounted ? 'counted' : ''}`;
+                        if (monitorSelectedCells.has(label)) cell.classList.add('selected');
+                        
                         cell.title = `${customName || 'Grid'} - ${isCounted ? 'Counted' : 'Not Counted'}`;
-                        cell.onclick = () => openCellEditModal(label, customName, manualStatus);
+                        if (isMonitorSelectMode) {
+                            cell.onclick = () => toggleCellSelection(label);
+                        } else {
+                            cell.onclick = () => openCellEditModal(label, customName, manualStatus);
+                        }
                         
                         cell.innerHTML = `<svg class="pallet-icon" viewBox="0 0 24 24"><path d="M19 13H5c-1.1 0-2 .9-2 2v4h2v2h14v-2h2v-4c0-1.1-.9-2-2-2zM7 19v-2h2v2H7zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2zM4 9h16v2H4V9zm0-4h16v2H4V5z"/></svg>`;
                         
@@ -2185,8 +2207,53 @@
             document.getElementById('monitor-stats').innerHTML = `Counted: ${countedCount} / ${totalCells} (${pct}%)`;
         }
         
+        function toggleCellSelection(id) {
+            if (monitorSelectedCells.has(id)) {
+                monitorSelectedCells.delete(id);
+            } else {
+                monitorSelectedCells.add(id);
+            }
+            updateMonitorControls();
+            renderMonitorGrid();
+        }
+
+        function updateMonitorControls() {
+            if (monitorSelectedCells.size > 0) {
+                monitorBulkBtn.style.display = 'inline-flex';
+                monitorBulkBtn.textContent = `Update ${monitorSelectedCells.size} Status`;
+            } else {
+                monitorBulkBtn.style.display = 'none';
+            }
+        }
+        
+        if (monitorSelectModeBtn) {
+            monitorSelectModeBtn.addEventListener('click', () => {
+                isMonitorSelectMode = !isMonitorSelectMode;
+                monitorSelectModeBtn.style.background = isMonitorSelectMode ? '#e74c3c' : '';
+                monitorSelectModeBtn.style.color = isMonitorSelectMode ? 'white' : '';
+                monitorSelectModeBtn.textContent = isMonitorSelectMode ? 'Cancel Select' : 'Select';
+                if (!isMonitorSelectMode) {
+                    monitorSelectedCells.clear();
+                    updateMonitorControls();
+                }
+                renderMonitorGrid();
+            });
+        }
+        
+        if (monitorBulkBtn) {
+            monitorBulkBtn.addEventListener('click', () => {
+                document.getElementById('cell-edit-id').value = 'BULK';
+                document.getElementById('cell-name-group').style.display = 'none';
+                document.getElementById('cell-status').value = 'auto';
+                document.querySelector('#cell-edit-modal h3').textContent = `Update ${monitorSelectedCells.size} Cells`;
+                document.getElementById('cell-edit-modal').classList.remove('hidden');
+            });
+        }
+        
         function openCellEditModal(id, currentName, currentStatus) {
             document.getElementById('cell-edit-id').value = id;
+            document.getElementById('cell-name-group').style.display = '';
+            document.querySelector('#cell-edit-modal h3').textContent = 'Edit Grid Name';
             document.getElementById('cell-custom-name').value = currentName || '';
             document.getElementById('cell-status').value = currentStatus || 'auto';
             document.getElementById('cell-edit-modal').classList.remove('hidden');
@@ -2195,16 +2262,27 @@
         
         document.getElementById('save-cell-btn').addEventListener('click', () => {
             const id = document.getElementById('cell-edit-id').value;
-            const name = document.getElementById('cell-custom-name').value.trim();
             const status = document.getElementById('cell-status').value;
             
-            const labels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
-            if (name) labels[id] = name; else delete labels[id];
-            localStorage.setItem('ims_rack_labels_v1', JSON.stringify(labels));
-            
-            const statuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
-            if (status !== 'auto') statuses[id] = status; else delete statuses[id];
-            localStorage.setItem('ims_rack_status_v1', JSON.stringify(statuses));
+            if (id === 'BULK') {
+                const statuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
+                monitorSelectedCells.forEach(cellId => {
+                    if (status !== 'auto') statuses[cellId] = status; else delete statuses[cellId];
+                });
+                localStorage.setItem('ims_rack_status_v1', JSON.stringify(statuses));
+                monitorSelectedCells.clear();
+                isMonitorSelectMode = false;
+                monitorSelectModeBtn.click(); // Reset UI state
+            } else {
+                const name = document.getElementById('cell-custom-name').value.trim();
+                const labels = JSON.parse(localStorage.getItem('ims_rack_labels_v1') || '{}');
+                if (name) labels[id] = name; else delete labels[id];
+                localStorage.setItem('ims_rack_labels_v1', JSON.stringify(labels));
+                
+                const statuses = JSON.parse(localStorage.getItem('ims_rack_status_v1') || '{}');
+                if (status !== 'auto') statuses[id] = status; else delete statuses[id];
+                localStorage.setItem('ims_rack_status_v1', JSON.stringify(statuses));
+            }
             
             document.getElementById('cell-edit-modal').classList.add('hidden');
             renderMonitorGrid();
